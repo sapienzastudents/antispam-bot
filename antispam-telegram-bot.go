@@ -58,7 +58,8 @@ func main() {
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		// Note: this will not scale very well - keep an eye on it
 		if !m.Private() {
-			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
+				logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
 				return
 			}
 
@@ -77,7 +78,7 @@ func main() {
 		if m.Private() {
 			_, _ = b.Send(m.Chat, fmt.Sprint(m.Sender.ID))
 		} else {
-			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
 				return
 			}
 			botdb.UpdateMyChatroomList(m.Chat)
@@ -89,7 +90,7 @@ func main() {
 			msg := fmt.Sprintf("Version %s", APP_VERSION)
 			_, _ = b.Send(m.Chat, msg)
 		} else {
-			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
 				return
 			}
 			botdb.UpdateMyChatroomList(m.Chat)

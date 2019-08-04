@@ -5,7 +5,7 @@ import (
 )
 
 func onUserLeft(m *tb.Message) {
-	if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+	if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
 		return
 	}
 	logger.Infof("Leaving chat %s", m.Chat.Title)
