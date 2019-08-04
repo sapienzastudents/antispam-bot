@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-redis/redis"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -13,20 +14,18 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 	var err error
 	var keys []string
 	for {
-		keys, cursor, err = db.redisconn.HScan("chatrooms", cursor, "*", 50).Result()
+		keys, cursor, err = db.redisconn.HScan("chatrooms", cursor, "", -1).Result()
+		if err == redis.Nil {
+			return chatrooms, nil
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		for _, k := range keys {
-			roombytes, err := db.redisconn.HGet("chatrooms", k).Result()
-			if err != nil {
-				// TODO: skip?
-				return nil, err
-			}
-
+		fmt.Println(keys)
+		for i := 0; i < len(keys); i += 2 {
 			room := tb.Chat{}
-			err = json.Unmarshal([]byte(roombytes), &room)
+			err = json.Unmarshal([]byte(keys[i+1]), &room)
 			if err != nil {
 				// TODO: skip?
 				return nil, err
