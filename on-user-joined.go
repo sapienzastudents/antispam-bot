@@ -5,11 +5,14 @@ import (
 )
 
 func onUserJoined(m *tb.Message) {
+	if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+		return
+	}
 	if m.IsService() && !m.Private() && m.UserJoined.ID == b.Me.ID {
 		logger.Infof("Joining chat %s", m.Chat.Title)
 	}
 	if m.IsService() && !m.Private() {
-		updateMyChatList(m.Chat)
+		botdb.UpdateMyChatroomList(m.Chat)
 	}
 	if m.IsService() && !m.Private() && m.UserJoined.ID != b.Me.ID {
 		// We can mute users from the beginning

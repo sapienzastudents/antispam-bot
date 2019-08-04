@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/op/go-logging"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
@@ -13,7 +12,7 @@ var APP_VERSION = "dev"
 
 var b *tb.Bot = nil
 var logger *logging.Logger = nil
-var redisDb *redis.Client = nil
+var botdb BOTDatabase = nil
 
 func main() {
 	var err error
@@ -38,15 +37,9 @@ func main() {
 	}
 
 	// Initialize Redis database
-	redisOptions, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+	botdb, err = NewBotDatabase()
 	if err != nil {
-		logger.Fatal("Unable to parse REDIS_URL variable:", err)
-		return
-	}
-	redisDb = redis.NewClient(redisOptions)
-	err = redisDb.Ping().Err()
-	if err != nil {
-		logger.Fatal("Unable to connect to Redis server:", err)
+		logger.Fatalf("Unable to initialize the database, exiting: %s", err.Error())
 		return
 	}
 
@@ -65,7 +58,11 @@ func main() {
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		// Note: this will not scale very well - keep an eye on it
 		if !m.Private() {
-			updateMyChatList(m.Chat)
+			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+				return
+			}
+
+			botdb.UpdateMyChatroomList(m.Chat)
 
 			// Launch spam detection algorithms
 			if chineseChars(m.Text) > 0.5 || arabicChars(m.Text) > 0.5 {
@@ -80,7 +77,10 @@ func main() {
 		if m.Private() {
 			_, _ = b.Send(m.Chat, fmt.Sprint(m.Sender.ID))
 		} else {
-			updateMyChatList(m.Chat)
+			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+				return
+			}
+			botdb.UpdateMyChatroomList(m.Chat)
 		}
 	})
 
@@ -89,14 +89,20 @@ func main() {
 			msg := fmt.Sprintf("Version %s", APP_VERSION)
 			_, _ = b.Send(m.Chat, msg)
 		} else {
-			updateMyChatList(m.Chat)
+			if b, err := botdb.IsBotEnabled(m.Chat); b || err != nil {
+				return
+			}
+			botdb.UpdateMyChatroomList(m.Chat)
 		}
 	})
 
 	// Register commands
 	b.Handle("/help", onHelp)
 	b.Handle("/start", onHelp)
-	b.Handle("/unmute", onUnMuteRequest)
+	//b.Handle("/unmute", onUnMuteRequest)
+
+	// Global-administrative commands
+	b.Handle("/mychatrooms", onMyChatroomRequest)
 
 	// Register events
 	b.Handle(tb.OnUserJoined, onUserJoined)
@@ -123,7 +129,7 @@ func adminListUpdater() {
 			var keys []string
 			var err error
 			for {
-				keys, cursor, err = redisDb.Scan(cursor, "chat.*", 10).Result()
+				keys, cursor, err = redisconn.Scan(cursor, "chat.*", 10).Result()
 				if err != nil {
 					logger.Criticalf("Cannot scan for admins, redis error: %s", err.Error())
 					break
