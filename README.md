@@ -8,7 +8,7 @@ Features (when not ticked, they're planned):
 
 * [ ] Configurable
 * [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
-* [ ] Detect Arab messages
+* [X] Detect Arabic messages
 * [ ] Detect spam links sent by users that sent no messages before
 * [ ] Detect people that are sending multiple messages for a single phrase
 

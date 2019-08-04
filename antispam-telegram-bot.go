@@ -68,7 +68,7 @@ func main() {
 			updateMyChatList(m.Chat)
 
 			// Launch spam detection algorithms
-			if chineseChars(m.Text) > 0.5 {
+			if chineseChars(m.Text) > 0.5 || arabicChars(m.Text) > 0.5 {
 				actionDelete(m)
 				// Or we can mute it (TODO: leave it as an option)
 				//muteUser(m.Chat, m.Sender, m)
