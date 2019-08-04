@@ -17,7 +17,7 @@ docker:
 push:
 	docker tag antispam-telegram-bot:latest enrico204/antispam-telegram-bot:latest
 	docker push enrico204/antispam-telegram-bot:latest
-	docker rm enrico204/antispam-telegram-bot:latest
+	docker rmi enrico204/antispam-telegram-bot:latest
 
 clean:
 	rm -f antispam-telegram-bot
