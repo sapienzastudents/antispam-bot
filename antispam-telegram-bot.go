@@ -55,24 +55,13 @@ func main() {
 	}
 
 	// Registering internal/utils handlers
-	b.Handle(tb.OnText, func(m *tb.Message) {
-		// Note: this will not scale very well - keep an eye on it
-		if !m.Private() {
-			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
-				logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
-				return
-			}
-
-			botdb.UpdateMyChatroomList(m.Chat)
-
-			// Launch spam detection algorithms
-			if chineseChars(m.Text) > 0.5 || arabicChars(m.Text) > 0.5 {
-				actionDelete(m)
-				// Or we can mute it (TODO: leave it as an option)
-				//muteUser(m.Chat, m.Sender, m)
-			}
-		}
-	})
+	b.Handle(tb.OnVoice, onAnyMessage)
+	b.Handle(tb.OnVideo, onAnyMessage)
+	b.Handle(tb.OnEdited, onAnyMessage)
+	b.Handle(tb.OnDocument, onAnyMessage)
+	b.Handle(tb.OnAudio, onAnyMessage)
+	b.Handle(tb.OnPhoto, onAnyMessage)
+	b.Handle(tb.OnText, onAnyMessage)
 
 	b.Handle("/id", func(m *tb.Message) {
 		if m.Private() {

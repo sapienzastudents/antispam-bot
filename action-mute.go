@@ -5,22 +5,13 @@ import (
 )
 
 // Useful to mute an user
-func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) {
+func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	// TODO: cache this list as it might be slow to look up every time
-	admins, err := b.AdminsOf(chat)
-	if err != nil {
-		logger.Criticalf("Cannot get the admin list for %s (%d): %s", chat.Title, chat.ID, err.Error())
-		return
-	}
-	for _, a := range admins {
-		if user.ID == a.User.ID {
-			logger.Infof("Ok we were wrong, %s %s (%s) is an admin. I can't mute an admin!", user.FirstName, user.LastName, user.Username)
-			return
-		}
+	isAdmin, err := IsAdminOf(message.Chat, message.Sender)
+	if err != nil || isAdmin {
+		return false
 	}
 
-	// No fields set, mute immediately!
 	member, err := b.ChatMemberOf(chat, user)
 	if err != nil {
 		logger.Criticalf("Cannot get the member object for user %s (%s %s) in chat %s %s: %s",
@@ -51,6 +42,10 @@ func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) {
 				logger.Criticalf("Cannot send mute warning to %s (%s %s) in chat %s %s: %s",
 					user.Username, user.FirstName, user.LastName, chat.Title, err.Error())
 			}
+			return true
+		} else {
+			return true
 		}
 	}
+	return false
 }

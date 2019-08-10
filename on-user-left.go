@@ -9,7 +9,7 @@ func onUserLeft(m *tb.Message) {
 		return
 	}
 	logger.Infof("Leaving chat %s", m.Chat.Title)
-	if !m.Private() && m.UserJoined.ID == b.Me.ID {
+	if !m.Private() && m.UserLeft.ID == b.Me.ID {
 		botdb.LeftChatroom(m.Chat)
 	}
 }

@@ -22,5 +22,9 @@ func onUserJoined(m *tb.Message) {
 		} else if chineseChars(m.UserJoined.FirstName) > 0.5 || chineseChars(m.UserJoined.LastName) > 0.5 {
 			muteUser(m.Chat, m.UserJoined, m)
 		}*/
+		if chineseChars(m.UserJoined.FirstName) > 0.5 || chineseChars(m.UserJoined.LastName) > 0.5 ||
+			arabicChars(m.UserJoined.FirstName) > 0.5 || arabicChars(m.UserJoined.LastName) > 0.5 {
+			kickUser(m.Chat, m.UserJoined)
+		}
 	}
 }
