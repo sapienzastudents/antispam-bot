@@ -9,6 +9,9 @@ func kickUser(chat *tb.Chat, user *tb.User) bool {
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
 	isAdmin, err := IsAdminOf(chat, user)
 	if err != nil || isAdmin {
+		if err != nil {
+			logger.Critical(err)
+		}
 		return false
 	}
 
@@ -23,6 +26,7 @@ func kickUser(chat *tb.Chat, user *tb.User) bool {
 				user.Username, user.FirstName, user.LastName, chat.Title, err.Error())
 		} else {
 			_ = b.Unban(chat, user)
+			logger.Infof("User %d kicked", user.ID)
 			return true
 		}
 	}

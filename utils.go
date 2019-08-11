@@ -15,8 +15,8 @@ func IsAdminOf(chat *tb.Chat, user *tb.User) (bool, error) {
 		if user.ID == a.User.ID {
 			logger.Infof("Ok we were wrong, %s %s (%s) is an admin. I can't delete a message from an admin!",
 				a.User.FirstName, a.User.LastName, a.User.Username)
-			return false, nil
+			return true, nil
 		}
 	}
-	return true, nil
+	return false, nil
 }

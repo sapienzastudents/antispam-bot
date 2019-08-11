@@ -35,7 +35,7 @@ func onAnyMessage(m *tb.Message) {
 		for _, text := range textvalues {
 			chinesePercent := chineseChars(text)
 			arabicPercent := arabicChars(text)
-			logger.Infof("SPAM detection: chinese %f arabic %f", chinesePercent, arabicPercent)
+			logger.Infof("SPAM detection (msg id %d): chinese %f arabic %f", m.ID, chinesePercent, arabicPercent)
 			// Launch spam detection algorithms
 			if chinesePercent > 0.05 || arabicPercent > 0.05 {
 				actionDelete(m)
