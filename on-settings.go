@@ -240,7 +240,13 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 			return
 		}
 
+		isGlobalAdmin := botdb.IsGlobalAdmin(m.Sender)
+
 		for _, x := range chatrooms {
+			if chatsettings, err := botdb.GetChatSetting(x); !isGlobalAdmin || err != nil || !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
+				continue
+			}
+
 			btn := tb.InlineButton{
 				Unique: fmt.Sprintf("select_chatid_%d", x.ID*-1),
 				Text:   x.Title,
@@ -260,12 +266,16 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 			chatButtons = append(chatButtons, []tb.InlineButton{btn})
 		}
 
-		_, _ = b.Send(m.Chat, "Please select the chatroom:", &tb.SendOptions{
-			ParseMode: tb.ModeMarkdown,
-			ReplyMarkup: &tb.ReplyMarkup{
-				InlineKeyboard: chatButtons,
-			},
-		})
+		if len(chatButtons) == 0 {
+			_, _ = b.Send(m.Chat, "You are not an admin in a chat where the bot is.")
+		} else {
+			_, _ = b.Send(m.Chat, "Please select the chatroom:", &tb.SendOptions{
+				ParseMode: tb.ModeMarkdown,
+				ReplyMarkup: &tb.ReplyMarkup{
+					InlineKeyboard: chatButtons,
+				},
+			})
+		}
 	}
 }
 
