@@ -4,16 +4,9 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func onAnyMessage(m *tb.Message) {
+func onAnyMessage(m *tb.Message, settings ChatSettings) {
 	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
-		if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
-			logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
-			return
-		}
-
-		botdb.UpdateMyChatroomList(m.Chat)
-
 		textvalues := []string{
 			m.Text,
 			m.Caption,
@@ -33,16 +26,22 @@ func onAnyMessage(m *tb.Message) {
 		}
 
 		for _, text := range textvalues {
-			chinesePercent := chineseChars(text)
-			arabicPercent := arabicChars(text)
-			logger.Infof("SPAM detection (msg id %d): chinese %f arabic %f", m.ID, chinesePercent, arabicPercent)
-			// Launch spam detection algorithms
-			if chinesePercent > 0.05 || arabicPercent > 0.05 {
-				actionDelete(m)
-				// Or we can mute it (TODO: leave it as an option)
-				//muteUser(m.Chat, m.Sender, m)
+			if settings.OnMessageChinese.Action != ACTION_NONE {
+				chinesePercent := chineseChars(text)
+				logger.Debugf("SPAM detection (msg id %d): chinese %f", m.ID, chinesePercent)
+				if chinesePercent > 0.05 {
+					performAction(m, m.Sender, settings.OnMessageChinese)
+					return
+				}
+			}
 
-				break
+			if settings.OnMessageArabic.Action != ACTION_NONE {
+				arabicPercent := arabicChars(text)
+				logger.Debugf("SPAM detection (msg id %d): arabic %f", m.ID, arabicPercent)
+				if arabicPercent > 0.05 {
+					performAction(m, m.Sender, settings.OnMessageArabic)
+					return
+				}
 			}
 		}
 	}

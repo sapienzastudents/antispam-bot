@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-func onMyChatroomRequest(m *tb.Message) {
+func onMyChatroomRequest(m *tb.Message, _ ChatSettings) {
 	logger.Debugf("My chat room requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
-	if isAdmin, _ := botdb.IsGlobalAdmin(m.Sender); m.Private() && isAdmin {
+	if m.Private() && botdb.IsGlobalAdmin(m.Sender) {
 		chatrooms, err := botdb.ListMyChatrooms()
 		if err != nil {
 			logger.Criticalf("Error getting chatroom list: %s", err.Error())

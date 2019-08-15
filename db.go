@@ -4,23 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/patrickmn/go-cache"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type BOTDatabase interface {
-	IsGlobalAdmin(user *tb.User) (bool, error)
+	IsGlobalAdmin(user *tb.User) bool
 
-	IsBotEnabled(c *tb.Chat) (bool, error)
-	EnableBot(c *tb.Chat) error
-	DisableBot(c *tb.Chat) error
+	GetChatSetting(*tb.Chat) (ChatSettings, error)
+	SetChatSettings(*tb.Chat, ChatSettings) error
 
 	ListMyChatrooms() ([]*tb.Chat, error)
 
 	UpdateMyChatroomList(c *tb.Chat) error
 	LeftChatroom(c *tb.Chat) error
+
+	DoCacheUpdate() error
 }
 
 func NewBotDatabase() (BOTDatabase, error) {
@@ -34,17 +37,22 @@ func NewBotDatabase() (BOTDatabase, error) {
 		return nil, errors.New(fmt.Sprint("Unable to connect to Redis server:", err))
 	}
 
-	return &_botDatabase{redisconn: redisDb}, nil
+	return &_botDatabase{
+		redisconn: redisDb,
+		cache:     cache.New(7*24*time.Hour, 7*24*time.Hour),
+	}, nil
 }
 
 type _botDatabase struct {
 	redisconn *redis.Client
+	cache     *cache.Cache
 }
 
-func (db *_botDatabase) IsGlobalAdmin(user *tb.User) (bool, error) {
+func (db *_botDatabase) IsGlobalAdmin(user *tb.User) bool {
 	admins, err := db.redisconn.HGet("global", "admins").Result()
 	if err != nil {
-		return false, err
+		logger.Critical("Cannot get global admin list:", err)
+		return false
 	}
 
 	for _, sID := range strings.Split(admins, ",") {
@@ -53,8 +61,8 @@ func (db *_botDatabase) IsGlobalAdmin(user *tb.User) (bool, error) {
 			continue
 		}
 		if ID == int64(user.ID) {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }

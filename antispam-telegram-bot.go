@@ -55,88 +55,99 @@ func main() {
 	}
 
 	// Registering internal/utils handlers
-	b.Handle(tb.OnVoice, onAnyMessage)
-	b.Handle(tb.OnVideo, onAnyMessage)
-	b.Handle(tb.OnEdited, onAnyMessage)
-	b.Handle(tb.OnDocument, onAnyMessage)
-	b.Handle(tb.OnAudio, onAnyMessage)
-	b.Handle(tb.OnPhoto, onAnyMessage)
-	b.Handle(tb.OnText, onAnyMessage)
+	b.Handle(tb.OnVoice, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnVideo, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnEdited, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnDocument, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnAudio, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnPhoto, HandlerWrapper(onAnyMessage))
+	b.Handle(tb.OnText, HandlerWrapper(onAnyMessage))
 
-	b.Handle("/id", func(m *tb.Message) {
+	b.Handle("/id", HandlerWrapper(func(m *tb.Message, _ ChatSettings) {
 		if m.Private() {
 			_, _ = b.Send(m.Chat, fmt.Sprint(m.Sender.ID))
-		} else {
-			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
-				return
-			}
-			botdb.UpdateMyChatroomList(m.Chat)
 		}
-	})
+	}))
 
-	b.Handle("/version", func(m *tb.Message) {
+	b.Handle("/version", HandlerWrapper(func(m *tb.Message, _ ChatSettings) {
 		if m.Private() {
 			msg := fmt.Sprintf("Version %s", APP_VERSION)
 			_, _ = b.Send(m.Chat, msg)
-		} else {
-			if b, err := botdb.IsBotEnabled(m.Chat); !b || err != nil {
-				return
-			}
-			botdb.UpdateMyChatroomList(m.Chat)
 		}
-	})
+	}))
 
 	// Register commands
-	b.Handle("/help", onHelp)
-	b.Handle("/start", onHelp)
+	b.Handle("/help", HandlerWrapper(onHelp))
+	b.Handle("/start", HandlerWrapper(onHelp))
 	//b.Handle("/unmute", onUnMuteRequest)
 
+	// Chat-admin commands
+	b.Handle("/settings", HandlerWrapper(onSettings))
+
 	// Global-administrative commands
-	b.Handle("/mychatrooms", onMyChatroomRequest)
+	b.Handle("/mychatrooms", HandlerWrapper(onMyChatroomRequest))
 
 	// Register events
-	b.Handle(tb.OnUserJoined, onUserJoined)
-	b.Handle(tb.OnUserLeft, onUserLeft)
+	b.Handle(tb.OnUserJoined, HandlerWrapper(onUserJoined))
+	b.Handle(tb.OnUserLeft, HandlerWrapper(onUserLeft))
 
 	logger.Info("Init ok, starting bot")
-	go adminListUpdater()
+
+	// Cache updater
+	go func() {
+		time.Sleep(5 * time.Minute)
+
+		t := time.NewTicker(5 * time.Minute)
+		for {
+			<-t.C
+			err := botdb.DoCacheUpdate()
+			if err != nil {
+				logger.Critical(err)
+			}
+		}
+	}()
+
 	// Let's go!
 	b.Start()
 }
 
-func adminListUpdater() {
-	// TODO: completare questa parte prima di metterlo in produzione
-	/*
-		// The first update is in 5 seconds
-		time.Sleep(5 * time.Second)
-
-		// Then, every 5 minutes
-		t := time.NewTicker(5 * time.Minute)
-		for {
-			<-t.C
-			startms := time.Now()
-			var cursor uint64 = 0
-			var keys []string
-			var err error
-			for {
-				keys, cursor, err = redisconn.Scan(cursor, "chat.*", 10).Result()
-				if err != nil {
-					logger.Criticalf("Cannot scan for admins, redis error: %s", err.Error())
-					break
-				} else {
-
-					// TODO: scan for admins and cache it
-
-					if cursor == 0 {
-						// The end of scan
-						break
-					}
-				}
+// Wrapper to each call
+func HandlerWrapper(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Message) {
+	return func(m *tb.Message) {
+		if !m.Private() {
+			err := botdb.UpdateMyChatroomList(m.Chat)
+			if err != nil {
+				logger.Critical("Cannot update my chatroom list:", err)
+				return
 			}
 
-			logger.Infof("Chat admin scan done in %.2f seconds", time.Now().Sub(startms).Seconds())
+			settings, err := botdb.GetChatSetting(m.Chat)
+			if err != nil {
+				logger.Critical("Cannot get chat settings:", err)
+			} else if !settings.BotEnabled {
+				logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
+			} else {
+				actionHandler(m, settings)
+			}
+		} else {
+			actionHandler(m, ChatSettings{})
 		}
+	}
+}
 
-		// This is not a very clean way to finish - however it works, and hopefully the bot is not rebooted as it always works®
-	*/
+func CallbackWrapper(fn func(*tb.Callback, ChatSettings), onlyadmins bool) func(*tb.Callback) {
+	return func(callback *tb.Callback) {
+		settings, err := botdb.GetChatSetting(callback.Message.Chat)
+		if err != nil {
+			logger.Critical("Cannot get chat settings:", err)
+		} else if onlyadmins && !settings.ChatAdmins.IsAdmin(callback.Sender) {
+			logger.Critical("Non-admin is using a callback from the admin:", callback.Sender)
+			b.Respond(callback, &tb.CallbackResponse{
+				Text:      "Not authorized",
+				ShowAlert: true,
+			})
+		} else {
+			fn(callback, settings)
+		}
+	}
 }
