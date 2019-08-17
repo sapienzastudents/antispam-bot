@@ -13,8 +13,8 @@ ARG APPVERSION
 # Copy code and get dependencies
 COPY go.mod .
 COPY go.sum .
+RUN go mod download
 COPY *.go ./
-RUN go get -d -v
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.APP_VERSION=${APPVERSION}" -a -installsuffix cgo -o antispam-telegram-bot . && \
