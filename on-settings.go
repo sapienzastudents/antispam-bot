@@ -45,6 +45,11 @@ func generateSettingsMessageText(chat *tb.Chat, settings ChatSettings) string {
 	reply.WriteString(prettyActionName(settings.OnMessageArabic))
 	reply.WriteString("*\n")
 
+	reply.WriteString("\nCAS-ban (see https://combot.org/cas/ ):\n")
+	reply.WriteString("On any action: *")
+	reply.WriteString(prettyActionName(settings.OnBlacklistCAS))
+	reply.WriteString("*\n")
+
 	reply.WriteString("\nGenerated at: ")
 	reply.WriteString(time.Now().String())
 	return reply.String()
@@ -205,6 +210,30 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 	}
 	b.Handle(&onMessageArabicKickButton, onMessageArabicKickButton.Action)
 
+	// Enable CAS
+	enableCASbuttonText := "❌ CAS disabled"
+	if settings.OnBlacklistCAS.Action != ACTION_NONE {
+		enableCASbuttonText = "✅ CAS enabled"
+	}
+	enableCASbutton := tb.InlineButton{
+		Unique: "settings_enable_disable_cas",
+		Text:   enableCASbuttonText,
+		Data:   fmt.Sprintf("%d", chat.ID),
+		Action: CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+			if settings.OnBlacklistCAS.Action == ACTION_NONE {
+				settings.OnBlacklistCAS = BotAction{
+					Action: ACTION_KICK,
+				}
+			} else {
+				settings.OnBlacklistCAS = BotAction{
+					Action: ACTION_NONE,
+				}
+			}
+			return settings
+		}),
+	}
+	b.Handle(&enableCASbutton, enableCASbutton.Action)
+
 	closeBtn := tb.InlineButton{
 		Unique: "settings_close",
 		Text:   "Close",
@@ -220,6 +249,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 			{deleteJoinMessages, deleteLeaveMessages},
 			{onJoinChineseKickButton, onJoinArabicKickButton},
 			{onMessageChineseKickButton, onMessageArabicKickButton},
+			{enableCASbutton},
 			{closeBtn},
 		},
 	}
@@ -229,8 +259,9 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 	// Messages in a chat
 	if !m.Private() && botdb.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
 		_, _ = b.Send(m.Chat, generateSettingsMessageText(m.Chat, settings), &tb.SendOptions{
-			ParseMode:   tb.ModeMarkdown,
-			ReplyMarkup: generateSettingsReplyMarkup(m.Chat, settings),
+			ParseMode:             tb.ModeMarkdown,
+			ReplyMarkup:           generateSettingsReplyMarkup(m.Chat, settings),
+			DisableWebPagePreview: true,
 		})
 	} else if m.Private() {
 		chatButtons := [][]tb.InlineButton{}
@@ -257,8 +288,9 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 
 					settings, _ := botdb.GetChatSetting(newchat)
 					_, _ = b.Send(callback.Message.Chat, generateSettingsMessageText(newchat, settings), &tb.SendOptions{
-						ParseMode:   tb.ModeMarkdown,
-						ReplyMarkup: generateSettingsReplyMarkup(newchat, settings),
+						ParseMode:             tb.ModeMarkdown,
+						ReplyMarkup:           generateSettingsReplyMarkup(newchat, settings),
+						DisableWebPagePreview: true,
 					})
 				},
 			}
@@ -313,8 +345,9 @@ func CallbackSettings(fn func(*tb.Callback, ChatSettings) ChatSettings) func(cal
 			botdb.SetChatSettings(chat, newsettings)
 
 			b.Edit(callback.Message, generateSettingsMessageText(chat, newsettings), &tb.SendOptions{
-				ParseMode:   tb.ModeMarkdown,
-				ReplyMarkup: generateSettingsReplyMarkup(chat, newsettings),
+				ParseMode:             tb.ModeMarkdown,
+				ReplyMarkup:           generateSettingsReplyMarkup(chat, newsettings),
+				DisableWebPagePreview: true,
 			})
 
 			b.Respond(callback, &tb.CallbackResponse{

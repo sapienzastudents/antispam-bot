@@ -13,6 +13,12 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 	logger.Debugf("User %d (%s %s %s) joined chat %s (%d)", m.UserJoined.ID, m.UserJoined.Username,
 		m.UserJoined.FirstName, m.UserJoined.LastName, m.Chat.Title, m.Chat.ID)
 
+	if settings.OnBlacklistCAS.Action != ACTION_NONE && settings.OnBlacklistCAS.Action != ACTION_DELETE_MSG && IsCASBanned(m.Sender.ID) {
+		logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
+		performAction(m, m.Sender, settings.OnBlacklistCAS)
+		return
+	}
+
 	textvalues := []string{
 		m.UserJoined.Username,
 		m.UserJoined.FirstName,

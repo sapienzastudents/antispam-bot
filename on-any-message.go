@@ -7,6 +7,12 @@ import (
 func onAnyMessage(m *tb.Message, settings ChatSettings) {
 	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
+		if settings.OnBlacklistCAS.Action != ACTION_NONE && IsCASBanned(m.Sender.ID) {
+			logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
+			performAction(m, m.Sender, settings.OnBlacklistCAS)
+			return
+		}
+
 		textvalues := []string{
 			m.Text,
 			m.Caption,

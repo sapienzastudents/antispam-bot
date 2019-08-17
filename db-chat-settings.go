@@ -19,6 +19,9 @@ const (
 type ChatAdminList []tb.ChatMember
 
 func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
+	if list == nil {
+		return false
+	}
 	for _, v := range *list {
 		if v.User.ID == user.ID {
 			return true
@@ -54,7 +57,7 @@ type ChatSettings struct {
 	OnMessageArabic  BotAction `json:"on_message_arabic"`
 	//OnMessageSpam    BotAction `json:"on_message_spam"`
 
-	//OnBlacklistCAS BotAction `json:"on_blacklist_cas"`
+	OnBlacklistCAS BotAction `json:"on_blacklist_cas"`
 
 	// Chat admins (only for cache)
 	ChatAdmins ChatAdminList `json:"-"`
@@ -87,6 +90,11 @@ func (db *_botDatabase) GetChatSetting(chat *tb.Chat) (ChatSettings, error) {
 					Delay:    0,
 				},
 				OnMessageArabic: BotAction{
+					Action:   ACTION_NONE,
+					Duration: 0,
+					Delay:    0,
+				},
+				OnBlacklistCAS: BotAction{
 					Action:   ACTION_NONE,
 					Duration: 0,
 					Delay:    0,

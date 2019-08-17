@@ -107,6 +107,8 @@ func main() {
 		}
 	}()
 
+	go CASWorker()
+
 	// Let's go!
 	b.Start()
 }
