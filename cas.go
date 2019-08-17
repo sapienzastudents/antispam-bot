@@ -65,10 +65,14 @@ func LoadCAS() (CASDB, CASDB) {
 		}
 	}
 
-	casdb = newcas
-	logger.Debugf("CAS Database updated - items:%d, added:%d, deleted:%d", len(casdb), len(added), len(deleted))
-
-	return added, deleted
+	if len(newcas) > 0 {
+		casdb = newcas
+		logger.Debugf("CAS Database updated - items:%d, added:%d, deleted:%d", len(casdb), len(added), len(deleted))
+		return added, deleted
+	} else {
+		logger.Warning("New CAS database is empty - keeping old values")
+		return CASDB{}, CASDB{}
+	}
 }
 
 func IsCASBanned(uid int) bool {
