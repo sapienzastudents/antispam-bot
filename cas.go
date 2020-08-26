@@ -20,7 +20,7 @@ var casdb = CASDB{}
 // and returns the list of added and removed items, or nil,nil in case
 // of error
 func LoadCAS() (CASDB, CASDB) {
-	resp, err := grequests.Get("https://combot.org/api/cas/export.csv", &grequests.RequestOptions{
+	resp, err := grequests.Get("https://api.cas.chat/export.csv", &grequests.RequestOptions{
 		UserAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0",
 	})
 	if err != nil {
