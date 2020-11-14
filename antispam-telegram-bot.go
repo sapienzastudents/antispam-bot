@@ -87,6 +87,8 @@ func main() {
 	// Global-administrative commands
 	b.Handle("/mychatrooms", HandlerWrapper(onMyChatroomRequest))
 
+	b.Handle("/sigkill", HandlerWrapper(onSigKill))
+
 	// Register events
 	b.Handle(tb.OnUserJoined, HandlerWrapper(onUserJoined))
 	b.Handle(tb.OnUserLeft, HandlerWrapper(onUserLeft))
