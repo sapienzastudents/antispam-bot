@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/op/go-logging"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
@@ -15,6 +16,7 @@ var logger *logging.Logger = nil
 var botdb BOTDatabase = nil
 
 func main() {
+	_ = godotenv.Load()
 	var err error
 
 	// Logging init
@@ -81,13 +83,26 @@ func main() {
 	b.Handle("/start", HandlerWrapper(onHelp))
 	//b.Handle("/unmute", onUnMuteRequest)
 
+	b.Handle("/groups", HandlerWrapper(onGroups))
+
 	// Chat-admin commands
 	b.Handle("/settings", HandlerWrapper(onSettings))
 
 	// Global-administrative commands
-	b.Handle("/mychatrooms", HandlerWrapper(onMyChatroomRequest))
-
 	b.Handle("/sigkill", HandlerWrapper(onSigKill))
+	b.Handle("/sigdel", HandlerWrapper(onSigDel))
+	b.Handle("/sighup", func(m *tb.Message) {
+		if !botdb.IsGlobalAdmin(m.Sender) {
+			return
+		}
+
+		err := botdb.DoCacheUpdate()
+		if err != nil {
+			b.Send(m.Chat, "Errore: "+err.Error())
+		} else {
+			b.Send(m.Chat, "Reload OK")
+		}
+	})
 
 	// Register events
 	b.Handle(tb.OnUserJoined, HandlerWrapper(onUserJoined))
@@ -109,7 +124,9 @@ func main() {
 		}
 	}()
 
-	go CASWorker()
+	if os.Getenv("DISABLE_CAS") == "" {
+		go CASWorker()
+	}
 
 	// Let's go!
 	b.Start()

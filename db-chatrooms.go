@@ -22,7 +22,6 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 			return nil, err
 		}
 
-		fmt.Println(keys)
 		for i := 0; i < len(keys); i += 2 {
 			room := tb.Chat{}
 			err = json.Unmarshal([]byte(keys[i+1]), &room)

@@ -46,6 +46,8 @@ type ChatSettings struct {
 	// Whether the bot is enabled for this chat
 	BotEnabled bool `json:"bot_enabled"`
 
+	Hidden bool `json:"hidden"`
+
 	OnJoinDelete  bool `json:"on_join_delete"`
 	OnLeaveDelete bool `json:"on_leave_delete"`
 
