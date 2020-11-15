@@ -5,8 +5,10 @@ import (
 	"time"
 )
 
-func onSigKill(m *tb.Message, settings ChatSettings) {
-	if m.ReplyTo == nil || !settings.BotEnabled || m.Private() || !botdb.IsGlobalAdmin(m.Sender) {
+func onTerminate(m *tb.Message, settings ChatSettings) {
+	b.Delete(m)
+	if m.ReplyTo == nil || m.Private() {
+		// We need an handle
 		return
 	}
 
@@ -22,7 +24,7 @@ func onSigKill(m *tb.Message, settings ChatSettings) {
 	logger.Debugf("Sigkill %d (%s %s %s) for %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName,
 		m.ReplyTo.Sender.ID, m.ReplyTo.Sender.Username, m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName)
 
-	_, _ = b.Reply(m.ReplyTo, "You will be terminated in 60 seconds, there will be no further warnings")
+	_, _ = b.Reply(m.ReplyTo, "🚨 You will be terminated in 60 seconds, there will be no further warnings")
 
 	go func() {
 		time.Sleep(60 * time.Second)

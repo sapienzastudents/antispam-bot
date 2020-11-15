@@ -37,6 +37,9 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 		return
 	}
 
+	// Note: nothing personal. We were forced to write these blocks for chinese texts in a period of time when bots were
+	// targetting our group. This check is trying to avoid banning people randomly just for having chinese/arabic names,
+	// however false positive might arise
 	textvalues := []string{
 		m.UserJoined.Username,
 		m.UserJoined.FirstName,

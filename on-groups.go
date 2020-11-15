@@ -23,7 +23,7 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 		})
 
 		msg := strings.Builder{}
-		msg.WriteString("Chatrooms:\n\n")
+		msg.WriteString("🇮🇹 Premi sul pulsante di un gruppo per ricevere il suo link di invito\n\n🇬🇧 Click on a group button to receive its invite link")
 		for _, v := range chatrooms {
 			settings, err := botdb.GetChatSetting(v)
 			if err != nil {
@@ -33,12 +33,6 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 			if settings.Hidden {
 				continue
 			}
-
-			msg.WriteString("-")
-			msg.WriteString(v.Title)
-			msg.WriteString(" (")
-			msg.WriteString(string(v.Type))
-			msg.WriteString(")\n")
 
 			s := sha1.New()
 			s.Write([]byte(v.Title))
@@ -64,7 +58,7 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 	}
 
 	if !m.Private() {
-		b.Send(m.Chat, "Ti ho scritto in privato!", &tb.SendOptions{ReplyTo: m})
+		b.Send(m.Chat, "🇮🇹 Ti ho scritto in privato!\n\n🇬🇧 I sent you a direct message!", &tb.SendOptions{ReplyTo: m})
 	}
 }
 
@@ -124,12 +118,12 @@ func groupButtonHandler(v *tb.Chat) func(callback *tb.Callback) {
 					return
 				}
 
-				_, err = b.Send(callback.Sender, "Link di invito: "+inviteLink)
+				_, err = b.Send(callback.Sender, "Link: "+inviteLink)
 				if err != nil {
 					logger.Warning("can't send message to the user ", err)
 				}
 			} else {
-				_, err = b.Send(callback.Sender, "Link di invito: "+v.InviteLink)
+				_, err = b.Send(callback.Sender, "Link: "+v.InviteLink)
 				if err != nil {
 					logger.Warning("can't send message to the user ", err)
 				}

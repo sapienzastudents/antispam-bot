@@ -50,63 +50,41 @@ func main() {
 		Token:  os.Getenv("BOT_TOKEN"),
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
-
 	if err != nil {
 		logger.Fatal(err)
 		return
 	}
 
-	// Registering internal/utils handlers
-	b.Handle(tb.OnVoice, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnVideo, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnEdited, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnDocument, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnAudio, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnPhoto, HandlerWrapper(onAnyMessage))
-	b.Handle(tb.OnText, HandlerWrapper(onAnyMessage))
-
-	b.Handle("/id", HandlerWrapper(func(m *tb.Message, _ ChatSettings) {
-		if m.Private() {
-			_, _ = b.Send(m.Chat, fmt.Sprint(m.Sender.ID))
-		}
-	}))
-
-	b.Handle("/version", HandlerWrapper(func(m *tb.Message, _ ChatSettings) {
-		if m.Private() {
-			msg := fmt.Sprintf("Version %s", APP_VERSION)
-			_, _ = b.Send(m.Chat, msg)
-		}
-	}))
+	// Registering internal/utils handlers (mostly for: spam detection, chat refresh)
+	b.Handle(tb.OnVoice, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnVideo, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnEdited, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnDocument, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnAudio, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnPhoto, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnText, RefreshDBInfo(onAnyMessage))
+	b.Handle(tb.OnUserJoined, RefreshDBInfo(onUserJoined))
+	b.Handle(tb.OnUserLeft, RefreshDBInfo(onUserLeft))
 
 	// Register commands
-	b.Handle("/help", HandlerWrapper(onHelp))
-	b.Handle("/start", HandlerWrapper(onHelp))
-	//b.Handle("/unmute", onUnMuteRequest)
-
-	b.Handle("/groups", HandlerWrapper(onGroups))
+	b.Handle("/help", RefreshDBInfo(onHelp))
+	b.Handle("/start", RefreshDBInfo(onHelp))
+	b.Handle("/groups", RefreshDBInfo(onGroups))
 
 	// Chat-admin commands
-	b.Handle("/settings", HandlerWrapper(onSettings))
+	b.Handle("/settings", RefreshDBInfo(CheckGroupAdmin(onSettings)))
+	b.Handle("/terminate", RefreshDBInfo(CheckGroupAdmin(onTerminate)))
 
 	// Global-administrative commands
-	b.Handle("/sigkill", HandlerWrapper(onSigKill))
-	b.Handle("/sigdel", HandlerWrapper(onSigDel))
-	b.Handle("/sighup", func(m *tb.Message) {
-		if !botdb.IsGlobalAdmin(m.Sender) {
-			return
-		}
+	b.Handle("/emergency_remove", CheckGlobalAdmin(RefreshDBInfo(onEmergencyRemove)))
+	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
+	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
+	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
 
-		err := botdb.DoCacheUpdate()
-		if err != nil {
-			b.Send(m.Chat, "Errore: "+err.Error())
-		} else {
-			b.Send(m.Chat, "Reload OK")
-		}
-	})
-
-	// Register events
-	b.Handle(tb.OnUserJoined, HandlerWrapper(onUserJoined))
-	b.Handle(tb.OnUserLeft, HandlerWrapper(onUserLeft))
+	// Utilities
+	b.Handle("/id", RefreshDBInfo(func(m *tb.Message, _ ChatSettings) {
+		_, _ = b.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
+	}))
 
 	logger.Info("Init ok, starting bot")
 
@@ -132,8 +110,9 @@ func main() {
 	b.Start()
 }
 
-// Wrapper to each call
-func HandlerWrapper(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Message) {
+// This wrapper is refreshing the info for the chat in the database
+// (due the fact that Telegram APIs does not support listing chats)
+func RefreshDBInfo(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Message) {
 	return func(m *tb.Message) {
 		if !m.Private() {
 			err := botdb.UpdateMyChatroomList(m.Chat)
@@ -145,7 +124,7 @@ func HandlerWrapper(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Me
 			settings, err := botdb.GetChatSetting(m.Chat)
 			if err != nil {
 				logger.Critical("Cannot get chat settings:", err)
-			} else if !settings.BotEnabled {
+			} else if !settings.BotEnabled && !botdb.IsGlobalAdmin(m.Sender) {
 				logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
 			} else {
 				actionHandler(m, settings)
@@ -156,19 +135,21 @@ func HandlerWrapper(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Me
 	}
 }
 
-func CallbackWrapper(fn func(*tb.Callback, ChatSettings), onlyadmins bool) func(*tb.Callback) {
-	return func(callback *tb.Callback) {
-		settings, err := botdb.GetChatSetting(callback.Message.Chat)
-		if err != nil {
-			logger.Critical("Cannot get chat settings:", err)
-		} else if onlyadmins && !settings.ChatAdmins.IsAdmin(callback.Sender) {
-			logger.Critical("Non-admin is using a callback from the admin:", callback.Sender)
-			b.Respond(callback, &tb.CallbackResponse{
-				Text:      "Not authorized",
-				ShowAlert: true,
-			})
-		} else {
-			fn(callback, settings)
+func CheckGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
+	return func(m *tb.Message) {
+		if !botdb.IsGlobalAdmin(m.Sender) {
+			return
 		}
+		actionHandler(m)
+	}
+}
+
+func CheckGroupAdmin(actionHandler func(*tb.Message, ChatSettings)) func(*tb.Message, ChatSettings) {
+	return func(m *tb.Message, settings ChatSettings) {
+		if !settings.ChatAdmins.IsAdmin(m.Sender) && !botdb.IsGlobalAdmin(m.Sender) {
+			_, _ = b.Send(m.Chat, "Sorry, only group admins can use this command")
+			return
+		}
+		actionHandler(m, settings)
 	}
 }

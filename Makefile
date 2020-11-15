@@ -19,5 +19,8 @@ push:
 	docker push enrico204/antispam-telegram-bot:latest
 	docker rmi enrico204/antispam-telegram-bot:latest
 
+deploy:
+	kubectl -n default set image deploy/antispam-tbot antispam-tbot=enrico204/antispam-telegram-bot@$(shell skopeo inspect docker://enrico204/antispam-telegram-bot:latest | jq -r ".Digest")
+
 clean:
 	rm -f antispam-telegram-bot

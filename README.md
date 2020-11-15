@@ -2,20 +2,43 @@
 
 This is a simple anti-spam telegram bot designed for groups.
 
-**WORK IN PROGRESS**: do not use in production envs
+Note that this bot will not have some features that you can find in other bots like `GroupHelp`.
+
+**WORK IN PROGRESS**
 
 Features (when not ticked, they're planned):
 
-* [ ] Configurable
-* [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
-* [X] Detect Arabic messages
-* [ ] Detect spam links sent by users that sent no messages before
-* [ ] Detect people that are sending multiple messages for a single phrase
+* [X] Use CAS blacklist
+* [ ] Per-group configurable checks
+    * [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
+    * [X] Detect Arabic messages
+    * [ ] Detect spam links with some heuristic
+    * [ ] Detect people that are sending multiple messages for a single phrase
+* [x] Index all groups and provide invite links (opt-out by group admin)
+    * [ ] Split groups by course (degree program)
+* [ ] Create an instance for other networks with all those services:
+    * [ ] Discord
+* [ ] Create a way to index answers and try to provide some clues (maybe some AI/NLP?)
+* [ ] Publish the group index on sapienzahub.it website
+* [ ] Public log channel with actions (for auditing)
+* [ ] Group activity metrics (export to InfluxDB/Prometheus/whatever and expose via Grafana)
 
-Actions are:
+Also, in ToDo list:
 
-* Ban
-* Delete message (if applicable)
+* [ ] Clean up the code
+    * [ ] Do not use global variables (!!!)
+    * [ ] Handle errors correctly (!!!)
+* [ ] Switch to `logrus` for structured logging
+* [ ] Expose HTTP endpoint (optionally)
+* [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, etc)
+
+## Commands
+
+```
+groups - List all groups of the network
+settings - Group settings
+terminate - Ban an user from a group with a 60s delay
+```
 
 ## How to build
 

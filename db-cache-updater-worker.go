@@ -31,20 +31,16 @@ func (db *_botDatabase) DoCacheUpdate() error {
 		chat = newChatInfo
 		logger.Infof("New chat info: %d %s", chat.ID, chat.Title)
 
-		_, err = b.GetInviteLink(chat)
+		inviteLink, err := b.GetInviteLink(chat)
 		if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
 			// We have both the old group and the new group, remove the old one only
 			botdb.LeftChatroom(chat)
 			continue
 		}
+		chat.InviteLink = inviteLink
 
 		admins, err := b.AdminsOf(chat)
 		if err != nil {
-			if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
-				logger.Criticalf("Chat %s not found, removing configuration", chat.Title)
-				db.LeftChatroom(chat)
-				continue
-			}
 			logger.Criticalf("Error getting admins for chat %d (%s): %s", chat.ID, chat.Title, err.Error())
 			continue
 		}
@@ -60,6 +56,8 @@ func (db *_botDatabase) DoCacheUpdate() error {
 		if err != nil {
 			logger.Criticalf("Cannot save chat settings for chat %d %s: %s", chat.ID, chat.Title, err.Error())
 		}
+
+		db.UpdateMyChatroomList(chat)
 	}
 
 	logger.Infof("Chat admin scan done in %.3f seconds", time.Now().Sub(startms).Seconds())
