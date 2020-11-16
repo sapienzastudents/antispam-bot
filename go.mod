@@ -10,7 +10,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/levigross/grequests v0.0.0-20190130132859-37c80f76a0da
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pkg/errors v0.8.1
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	gopkg.in/tucnak/telebot.v2 v2.3.5
 )

@@ -10,7 +10,7 @@ Features (when not ticked, they're planned):
 
 * [X] Use CAS blacklist
 * [ ] Write an help/welcome message
-* [ ] Use cache - do not ask Telegram APIs for everything
+* [ ] Merge "chatrooms" and "settings" sets in Redis
 * [ ] Per-group configurable checks
     * [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
     * [X] Detect Arabic messages
@@ -33,7 +33,7 @@ Also, in ToDo list:
     * [ ] Handle errors correctly (!!!)
 * [ ] Switch to `logrus` for structured logging
 * [ ] Expose HTTP endpoint (optionally)
-* [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, etc)
+* [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, int64, etc)
 
 ## Commands
 

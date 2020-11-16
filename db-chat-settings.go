@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
-	"github.com/patrickmn/go-cache"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -16,18 +15,25 @@ const (
 	ACTION_DELETE_MSG = 4
 )
 
-type ChatAdminList []tb.ChatMember
+type ChatAdminList []int64
 
 func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
 	if list == nil {
 		return false
 	}
 	for _, v := range *list {
-		if v.User.ID == user.ID {
+		if v == int64(user.ID) {
 			return true
 		}
 	}
 	return false
+}
+
+func (list *ChatAdminList) SetFromChat(admins []tb.ChatMember) {
+	*list = ChatAdminList{}
+	for _, u := range admins {
+		*list = append(*list, int64(u.User.ID))
+	}
 }
 
 type BotAction struct {
@@ -61,67 +67,64 @@ type ChatSettings struct {
 
 	OnBlacklistCAS BotAction `json:"on_blacklist_cas"`
 
-	// Chat admins (only for cache)
-	ChatAdmins ChatAdminList `json:"-"`
+	// Chat admins
+	ChatAdmins ChatAdminList `json:"chat_admins"`
 }
 
 func (db *_botDatabase) GetChatSetting(chat *tb.Chat) (ChatSettings, error) {
-	settingscache, found := db.cache.Get(fmt.Sprintf("chat:%d:settings", chat.ID))
-	if !found {
-		settings := ChatSettings{}
-		jsonb, err := db.redisconn.HGet("settings", fmt.Sprintf("%d", chat.ID)).Result()
-		if err == redis.Nil {
-			// Settings not found, load default values
-			settings = ChatSettings{
-				BotEnabled:    true,
-				OnJoinDelete:  false,
-				OnLeaveDelete: false,
-				OnJoinChinese: BotAction{
-					Action:   ACTION_NONE,
-					Duration: 0,
-					Delay:    0,
-				},
-				OnJoinArabic: BotAction{
-					Action:   ACTION_NONE,
-					Duration: 0,
-					Delay:    0,
-				},
-				OnMessageChinese: BotAction{
-					Action:   ACTION_NONE,
-					Duration: 0,
-					Delay:    0,
-				},
-				OnMessageArabic: BotAction{
-					Action:   ACTION_NONE,
-					Duration: 0,
-					Delay:    0,
-				},
-				OnBlacklistCAS: BotAction{
-					Action:   ACTION_NONE,
-					Duration: 0,
-					Delay:    0,
-				},
-				ChatAdmins: []tb.ChatMember{},
-			}
-		} else if err != nil {
-			return ChatSettings{}, err
-		} else {
-			err = json.Unmarshal([]byte(jsonb), &settings)
-			if err != nil {
-				return ChatSettings{}, err
-			}
+	settings := ChatSettings{}
+	jsonb, err := db.redisconn.HGet("settings", fmt.Sprintf("%d", chat.ID)).Result()
+	if err == redis.Nil {
+		// Settings not found, load default values
+		settings = ChatSettings{
+			BotEnabled:    true,
+			OnJoinDelete:  false,
+			OnLeaveDelete: false,
+			OnJoinChinese: BotAction{
+				Action:   ACTION_NONE,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnJoinArabic: BotAction{
+				Action:   ACTION_NONE,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnMessageChinese: BotAction{
+				Action:   ACTION_NONE,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnMessageArabic: BotAction{
+				Action:   ACTION_NONE,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnBlacklistCAS: BotAction{
+				Action:   ACTION_NONE,
+				Duration: 0,
+				Delay:    0,
+			},
+			ChatAdmins: ChatAdminList{},
 		}
 
-		settings.ChatAdmins, err = b.AdminsOf(chat)
+		chatAdmins, err := b.AdminsOf(chat)
 		if err != nil {
 			return ChatSettings{}, err
 		}
+		settings.ChatAdmins.SetFromChat(chatAdmins)
 
-		db.cache.Set(fmt.Sprintf("chat:%d:settings", chat.ID), settings, cache.DefaultExpiration)
-		return settings, nil
+		err = db.SetChatSettings(chat, settings)
+	} else if err != nil {
+		return ChatSettings{}, err
 	} else {
-		return settingscache.(ChatSettings), nil
+		err = json.Unmarshal([]byte(jsonb), &settings)
+		if err != nil {
+			return ChatSettings{}, err
+		}
 	}
+
+	return settings, err
 }
 
 func (db *_botDatabase) SetChatSettings(chat *tb.Chat, settings ChatSettings) error {
@@ -129,11 +132,5 @@ func (db *_botDatabase) SetChatSettings(chat *tb.Chat, settings ChatSettings) er
 	if err != nil {
 		return err
 	}
-	err = db.redisconn.HSet("settings", fmt.Sprintf("%d", chat.ID), jsonb).Err()
-	if err != nil {
-		return err
-	}
-
-	db.cache.Set(fmt.Sprintf("chat:%d:settings", chat.ID), settings, cache.DefaultExpiration)
-	return nil
+	return db.redisconn.HSet("settings", fmt.Sprintf("%d", chat.ID), jsonb).Err()
 }

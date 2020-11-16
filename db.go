@@ -4,12 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
-	"github.com/patrickmn/go-cache"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type BOTDatabase interface {
@@ -40,13 +38,11 @@ func NewBotDatabase() (BOTDatabase, error) {
 
 	return &_botDatabase{
 		redisconn: redisDb,
-		cache:     cache.New(7*24*time.Hour, 7*24*time.Hour),
 	}, nil
 }
 
 type _botDatabase struct {
 	redisconn *redis.Client
-	cache     *cache.Cache
 }
 
 func (db *_botDatabase) IsGlobalAdmin(user *tb.User) bool {

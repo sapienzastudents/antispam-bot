@@ -17,7 +17,10 @@ func (db *_botDatabase) DoCacheUpdate() error {
 	}
 
 	for _, chat := range chats {
-		db.DoCacheUpdateForChat(chat)
+		err = db.DoCacheUpdateForChat(chat)
+		if err != nil {
+			logger.Warning("Error updating chat ", chat.Title, " ", err.Error())
+		}
 
 		// Do not ask too quickly
 		time.Sleep(1 * time.Second)
@@ -55,7 +58,7 @@ func (db *_botDatabase) DoCacheUpdateForChat(chat *tb.Chat) error {
 		return errors.Wrap(err, fmt.Sprintf("Cannot get chat settings for chat %d %s: %s", chat.ID, chat.Title, err.Error()))
 	}
 
-	chatsettings.ChatAdmins = admins
+	chatsettings.ChatAdmins.SetFromChat(admins)
 	err = db.SetChatSettings(chat, chatsettings)
 	if err != nil {
 		logger.Criticalf("Cannot save chat settings for chat %d %s: %s", chat.ID, chat.Title, err.Error())
