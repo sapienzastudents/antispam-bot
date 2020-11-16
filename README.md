@@ -9,6 +9,8 @@ Note that this bot will not have some features that you can find in other bots l
 Features (when not ticked, they're planned):
 
 * [X] Use CAS blacklist
+* [ ] Write an help/welcome message
+* [ ] Use cache - do not ask Telegram APIs for everything
 * [ ] Per-group configurable checks
     * [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
     * [X] Detect Arabic messages
@@ -22,6 +24,7 @@ Features (when not ticked, they're planned):
 * [ ] Publish the group index on sapienzahub.it website
 * [ ] Public log channel with actions (for auditing)
 * [ ] Group activity metrics (export to InfluxDB/Prometheus/whatever and expose via Grafana)
+* [ ] Notify on error (via Telegram? via logging?)
 
 Also, in ToDo list:
 

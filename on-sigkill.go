@@ -6,18 +6,14 @@ import (
 )
 
 func onTerminate(m *tb.Message, settings ChatSettings) {
-	b.Delete(m)
+	_ = b.Delete(m)
 	if m.ReplyTo == nil || m.Private() {
 		// We need an handle
 		return
 	}
 
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	isAdmin, err := IsAdminOf(m.Chat, m.ReplyTo.Sender)
-	if err != nil || isAdmin {
-		if err != nil {
-			logger.Critical(err)
-		}
+	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) {
 		return
 	}
 

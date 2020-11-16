@@ -24,6 +24,7 @@ type BOTDatabase interface {
 	LeftChatroom(c *tb.Chat) error
 
 	DoCacheUpdate() error
+	DoCacheUpdateForChat(chat *tb.Chat) error
 }
 
 func NewBotDatabase() (BOTDatabase, error) {

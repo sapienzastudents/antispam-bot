@@ -64,6 +64,7 @@ func main() {
 	b.Handle(tb.OnPhoto, RefreshDBInfo(onAnyMessage))
 	b.Handle(tb.OnText, RefreshDBInfo(onAnyMessage))
 	b.Handle(tb.OnUserJoined, RefreshDBInfo(onUserJoined))
+	b.Handle(tb.OnAddedToGroup, RefreshDBInfo(func(_ *tb.Message, _ ChatSettings) {}))
 	b.Handle(tb.OnUserLeft, RefreshDBInfo(onUserLeft))
 
 	// Register commands
@@ -74,9 +75,11 @@ func main() {
 	// Chat-admin commands
 	b.Handle("/settings", RefreshDBInfo(CheckGroupAdmin(onSettings)))
 	b.Handle("/terminate", RefreshDBInfo(CheckGroupAdmin(onTerminate)))
+	b.Handle("/reload", RefreshDBInfo(CheckGroupAdmin(onReloadGroup)))
 
 	// Global-administrative commands
 	b.Handle("/emergency_remove", CheckGlobalAdmin(RefreshDBInfo(onEmergencyRemove)))
+	b.Handle("/emergency_elevate", CheckGlobalAdmin(RefreshDBInfo(onEmergencyElevate)))
 	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
 	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
 	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
@@ -90,9 +93,7 @@ func main() {
 
 	// Cache updater
 	go func() {
-		time.Sleep(5 * time.Minute)
-
-		t := time.NewTicker(5 * time.Minute)
+		t := time.NewTicker(10 * time.Minute)
 		for {
 			<-t.C
 			err := botdb.DoCacheUpdate()

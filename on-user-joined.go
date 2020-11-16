@@ -23,7 +23,7 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 			member.CanInviteUsers = true
 			member.CanPinMessages = true
 			member.CanRestrictMembers = true
-			member.CanPostMessages = true
+			member.CanPromoteMembers = true
 			err = b.Promote(m.Chat, member)
 			if err != nil {
 				logger.Error("Can't elevate ", err)

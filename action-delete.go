@@ -5,9 +5,14 @@ import (
 )
 
 func actionDelete(m *tb.Message) bool {
+	chatsettings, err := botdb.GetChatSetting(m.Chat)
+	if err != nil {
+		logger.Critical(err)
+		return false
+	}
+
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	isAdmin, err := IsAdminOf(m.Chat, m.Sender)
-	if err != nil || isAdmin {
+	if chatsettings.ChatAdmins.IsAdmin(m.Sender) {
 		return false
 	}
 

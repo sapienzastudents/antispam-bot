@@ -6,12 +6,14 @@ import (
 
 // Useful to kick an user
 func kickUser(chat *tb.Chat, user *tb.User) bool {
+	chatsettings, err := botdb.GetChatSetting(chat)
+	if err != nil {
+		logger.Critical(err)
+		return false
+	}
+
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	isAdmin, err := IsAdminOf(chat, user)
-	if err != nil || isAdmin {
-		if err != nil {
-			logger.Critical(err)
-		}
+	if chatsettings.ChatAdmins.IsAdmin(user) {
 		return false
 	}
 

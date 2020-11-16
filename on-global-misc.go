@@ -18,6 +18,30 @@ func onEmergencyRemove(m *tb.Message, _ ChatSettings) {
 	}
 }
 
+func onEmergencyElevate(m *tb.Message, _ ChatSettings) {
+	err := b.Delete(m)
+	if err != nil {
+		logger.Error("Can't delete messages ", err)
+		return
+	}
+
+	member, err := b.ChatMemberOf(m.Chat, m.Sender)
+	if err != nil {
+		logger.Error("Can't get member of ", err)
+	} else {
+		member.CanDeleteMessages = true
+		member.CanChangeInfo = true
+		member.CanInviteUsers = true
+		member.CanPinMessages = true
+		member.CanRestrictMembers = true
+		member.CanPromoteMembers = true
+		err = b.Promote(m.Chat, member)
+		if err != nil {
+			logger.Error("Can't elevate ", err)
+		}
+	}
+}
+
 func onSigHup(m *tb.Message, _ ChatSettings) {
 	err := botdb.DoCacheUpdate()
 	if err != nil {

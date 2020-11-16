@@ -1,14 +1,20 @@
 package main
 
 import (
+	"fmt"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 // Useful to mute an user
 func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
+	chatsettings, err := botdb.GetChatSetting(message.Chat)
+	if err != nil {
+		logger.Critical(err)
+		return false
+	}
+
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	isAdmin, err := IsAdminOf(message.Chat, message.Sender)
-	if err != nil || isAdmin {
+	if chatsettings.ChatAdmins.IsAdmin(message.Sender) {
 		return false
 	}
 
@@ -32,8 +38,8 @@ func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
 				// No username set
 				displayName = user.FirstName + " " + user.LastName
 			}
-			_, err := b.Send(chat, "Oh no %s! My SPAM algorithm was triggered and I muted you from the chat.\n\n"+
-				"Please, send me a private message so I can unblock you", &tb.SendOptions{
+			_, err := b.Send(chat, fmt.Sprintf("Oh no %s! My SPAM algorithm was triggered and I muted you from the chat.\n\n"+
+				"Please, send me a private message so I can unblock you", displayName), &tb.SendOptions{
 				DisableNotification: true,
 				ParseMode:           tb.ModeMarkdown,
 				ReplyTo:             message,
