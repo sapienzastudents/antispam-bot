@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
 )
@@ -17,10 +18,14 @@ func onTerminate(m *tb.Message, settings ChatSettings) {
 		return
 	}
 
-	logger.Debugf("Sigkill %d (%s %s %s) for %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName,
+	logger.Debugf("Terminate by %d (%s %s %s) for %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName,
 		m.ReplyTo.Sender.ID, m.ReplyTo.Sender.Username, m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName)
 
-	_, _ = b.Reply(m.ReplyTo, "🚨 You will be terminated in 60 seconds, there will be no further warnings")
+	if m.Sender.Username != "" {
+		_, _ = b.Reply(m.ReplyTo, fmt.Sprintf("🚨 @%s You will be terminated in 60 seconds, there will be no further warnings", m.ReplyTo.Sender.Username))
+	} else {
+		_, _ = b.Reply(m.ReplyTo, fmt.Sprintf("🚨 %s %s You will be terminated in 60 seconds, there will be no further warnings", m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName))
+	}
 
 	go func() {
 		time.Sleep(60 * time.Second)
