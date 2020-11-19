@@ -101,6 +101,7 @@ func main() {
 	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
 	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
 	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
+	b.Handle("/updatewww", CheckGlobalAdmin(RefreshDBInfo(onGlobalUpdateWww)))
 
 	// Utilities
 	b.Handle("/id", RefreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {

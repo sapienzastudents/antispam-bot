@@ -3,3 +3,5 @@
 antispam-telegram-bot
 .DS_Store
 .env
+wwwkey
+wwwkey.pub

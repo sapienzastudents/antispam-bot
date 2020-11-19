@@ -21,7 +21,7 @@ Features (when not ticked, they're planned):
 * [ ] Create an instance for other networks with all those services:
     * [ ] Discord
 * [ ] Create a way to index answers and try to provide some clues (maybe some AI/NLP?)
-* [ ] Publish the group index on sapienzahub.it website
+* [X] Publish the group index on sapienzahub.it website
 * [ ] Public log channel with actions (for auditing)
 * [ ] Group activity metrics (export to InfluxDB/Prometheus/whatever and expose via Grafana)
 * [ ] Notify on error (via Telegram? via logging?)
