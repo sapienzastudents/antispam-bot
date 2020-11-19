@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"reflect"
 	"sort"
 	"strings"
 )
 
-func onGroupsPrivileges(m *tb.Message, _ ChatSettings) {
+func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
 	logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 
 	var botpermissions = map[string]string{
@@ -24,7 +25,7 @@ func onGroupsPrivileges(m *tb.Message, _ ChatSettings) {
 
 	chatrooms, err := botdb.ListMyChatrooms()
 	if err != nil {
-		logger.Criticalf("Error getting chatroom list: %s", err.Error())
+		logger.WithError(err).Error("Error getting chatroom list")
 	} else {
 		sort.Slice(chatrooms, func(i, j int) bool {
 			return chatrooms[i].Title < chatrooms[j].Title

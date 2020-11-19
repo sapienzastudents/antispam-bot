@@ -24,11 +24,11 @@ func LoadCAS() (CASDB, CASDB) {
 		UserAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0",
 	})
 	if err != nil {
-		logger.Critical("CAS database download error: ", err)
+		logger.WithError(err).Error("CAS database download error")
 		return nil, nil
 	}
 	if strings.Contains(resp.String(), "cloudflare") {
-		logger.Critical("CAS database download error: CloudFlare limited")
+		logger.Error("CAS database download error: CloudFlare limited")
 		logger.Debug(resp.String())
 		return nil, nil
 	}
@@ -50,7 +50,7 @@ func LoadCAS() (CASDB, CASDB) {
 
 		uid, err := strconv.Atoi(row)
 		if err != nil {
-			logger.Critical("Cannot convert ID to Telegram UID: ", err)
+			logger.WithError(err).Error("Cannot convert ID to Telegram UID")
 		} else {
 			// Check if it's new
 			_, found := casdb[uid]

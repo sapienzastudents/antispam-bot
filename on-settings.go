@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"strings"
 	"time"
 )
 
-func generateSettingsMessageText(chat *tb.Chat, settings ChatSettings) string {
+func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSettings) string {
 	reply := strings.Builder{}
 
 	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chat.Title, chat.ID))
@@ -61,14 +62,14 @@ func generateSettingsMessageText(chat *tb.Chat, settings ChatSettings) string {
 	return reply.String()
 }
 
-func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.ReplyMarkup {
+func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSettings) *tb.ReplyMarkup {
 	// TODO: move button creations in init function (eg. global buttons objects and handler)
 	settingsRefreshButton := tb.InlineButton{
 		Unique: "settings_message_refresh",
 		Text:   "🔄 Refresh",
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&settingsRefreshButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+	b.Handle(&settingsRefreshButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		return settings
 	}))
 
@@ -82,7 +83,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   enableDisableButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&enableDisableBotButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+	b.Handle(&enableDisableBotButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		settings.BotEnabled = !settings.BotEnabled
 		return settings
 	}))
@@ -97,7 +98,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   hideShowButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&hideShowBotButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+	b.Handle(&hideShowBotButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		settings.Hidden = !settings.Hidden
 		return settings
 	}))
@@ -112,7 +113,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   deleteJoinMessagesText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&deleteJoinMessages, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+	b.Handle(&deleteJoinMessages, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		settings.OnJoinDelete = !settings.OnJoinDelete
 		return settings
 	}))
@@ -126,14 +127,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   deleteLeaveMessagesText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&deleteLeaveMessages, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
+	b.Handle(&deleteLeaveMessages, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		settings.OnLeaveDelete = !settings.OnLeaveDelete
 		return settings
 	}))
 
 	// On Join Chinese (TODO: add kick action)
 	onJoinChineseKickButtonText := "✅ Ban Chinese on join"
-	if settings.OnJoinChinese.Action != ACTION_NONE {
+	if settings.OnJoinChinese.Action != botdatabase.ACTION_NONE {
 		onJoinChineseKickButtonText = "❌ Don't ban chinese joins"
 	}
 	onJoinChineseKickButton := tb.InlineButton{
@@ -141,14 +142,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   onJoinChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onJoinChineseKickButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
-		if settings.OnJoinChinese.Action == ACTION_NONE {
-			settings.OnJoinChinese = BotAction{
-				Action: ACTION_BAN,
+	b.Handle(&onJoinChineseKickButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+		if settings.OnJoinChinese.Action == botdatabase.ACTION_NONE {
+			settings.OnJoinChinese = botdatabase.BotAction{
+				Action: botdatabase.ACTION_BAN,
 			}
 		} else {
-			settings.OnJoinChinese = BotAction{
-				Action: ACTION_NONE,
+			settings.OnJoinChinese = botdatabase.BotAction{
+				Action: botdatabase.ACTION_NONE,
 			}
 		}
 		return settings
@@ -156,7 +157,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 
 	// On Join Arabic (TODO: add kick action)
 	onJoinArabicKickButtonText := "✅ Ban Arabic on join"
-	if settings.OnJoinArabic.Action != ACTION_NONE {
+	if settings.OnJoinArabic.Action != botdatabase.ACTION_NONE {
 		onJoinArabicKickButtonText = "❌ Don't ban arabs joins"
 	}
 	onJoinArabicKickButton := tb.InlineButton{
@@ -164,14 +165,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   onJoinArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onJoinArabicKickButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
-		if settings.OnJoinArabic.Action == ACTION_NONE {
-			settings.OnJoinArabic = BotAction{
-				Action: ACTION_BAN,
+	b.Handle(&onJoinArabicKickButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+		if settings.OnJoinArabic.Action == botdatabase.ACTION_NONE {
+			settings.OnJoinArabic = botdatabase.BotAction{
+				Action: botdatabase.ACTION_BAN,
 			}
 		} else {
-			settings.OnJoinArabic = BotAction{
-				Action: ACTION_NONE,
+			settings.OnJoinArabic = botdatabase.BotAction{
+				Action: botdatabase.ACTION_NONE,
 			}
 		}
 		return settings
@@ -179,7 +180,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 
 	// On Message Chinese (TODO: add ban action)
 	onMessageChineseKickButtonText := "✅ Kick Chinese msgs"
-	if settings.OnMessageChinese.Action != ACTION_NONE {
+	if settings.OnMessageChinese.Action != botdatabase.ACTION_NONE {
 		onMessageChineseKickButtonText = "❌ Don't kick chinese msgs"
 	}
 	onMessageChineseKickButton := tb.InlineButton{
@@ -187,14 +188,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   onMessageChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onMessageChineseKickButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
-		if settings.OnMessageChinese.Action == ACTION_NONE {
-			settings.OnMessageChinese = BotAction{
-				Action: ACTION_KICK,
+	b.Handle(&onMessageChineseKickButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+		if settings.OnMessageChinese.Action == botdatabase.ACTION_NONE {
+			settings.OnMessageChinese = botdatabase.BotAction{
+				Action: botdatabase.ACTION_KICK,
 			}
 		} else {
-			settings.OnMessageChinese = BotAction{
-				Action: ACTION_NONE,
+			settings.OnMessageChinese = botdatabase.BotAction{
+				Action: botdatabase.ACTION_NONE,
 			}
 		}
 		return settings
@@ -202,7 +203,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 
 	// On Message Arabic (TODO: add ban action)
 	onMessageArabicKickButtonText := "✅ Kick Arabic msgs"
-	if settings.OnMessageArabic.Action != ACTION_NONE {
+	if settings.OnMessageArabic.Action != botdatabase.ACTION_NONE {
 		onMessageArabicKickButtonText = "❌ Don't kick arabs msgs"
 	}
 	onMessageArabicKickButton := tb.InlineButton{
@@ -210,14 +211,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   onMessageArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onMessageArabicKickButton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
-		if settings.OnMessageArabic.Action == ACTION_NONE {
-			settings.OnMessageArabic = BotAction{
-				Action: ACTION_KICK,
+	b.Handle(&onMessageArabicKickButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+		if settings.OnMessageArabic.Action == botdatabase.ACTION_NONE {
+			settings.OnMessageArabic = botdatabase.BotAction{
+				Action: botdatabase.ACTION_KICK,
 			}
 		} else {
-			settings.OnMessageArabic = BotAction{
-				Action: ACTION_NONE,
+			settings.OnMessageArabic = botdatabase.BotAction{
+				Action: botdatabase.ACTION_NONE,
 			}
 		}
 		return settings
@@ -225,7 +226,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 
 	// Enable CAS
 	enableCASbuttonText := "❌ CAS disabled"
-	if settings.OnBlacklistCAS.Action != ACTION_NONE {
+	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE {
 		enableCASbuttonText = "✅ CAS enabled"
 	}
 	enableCASbutton := tb.InlineButton{
@@ -233,14 +234,14 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   enableCASbuttonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&enableCASbutton, CallbackSettings(func(callback *tb.Callback, settings ChatSettings) ChatSettings {
-		if settings.OnBlacklistCAS.Action == ACTION_NONE {
-			settings.OnBlacklistCAS = BotAction{
-				Action: ACTION_KICK,
+	b.Handle(&enableCASbutton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+		if settings.OnBlacklistCAS.Action == botdatabase.ACTION_NONE {
+			settings.OnBlacklistCAS = botdatabase.BotAction{
+				Action: botdatabase.ACTION_KICK,
 			}
 		} else {
-			settings.OnBlacklistCAS = BotAction{
-				Action: ACTION_NONE,
+			settings.OnBlacklistCAS = botdatabase.BotAction{
+				Action: botdatabase.ACTION_NONE,
 			}
 		}
 		return settings
@@ -251,7 +252,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 		Text:   "Close",
 	}
 	b.Handle(&closeBtn, func(callback *tb.Callback) {
-		b.Delete(callback.Message)
+		_ = b.Delete(callback.Message)
 	})
 
 	return &tb.ReplyMarkup{
@@ -267,7 +268,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings ChatSettings) *tb.Reply
 	}
 }
 
-func onSettings(m *tb.Message, settings ChatSettings) {
+func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 	// Messages in a chat
 	if !m.Private() && botdb.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
 		_, _ = b.Send(m.Chat, generateSettingsMessageText(m.Chat, settings), &tb.SendOptions{
@@ -279,14 +280,14 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 		chatButtons := [][]tb.InlineButton{}
 		chatrooms, err := botdb.ListMyChatrooms()
 		if err != nil {
-			logger.Critical(err)
+			logger.WithError(err).Error("cant get chatroom list")
 			return
 		}
 
 		isGlobalAdmin := botdb.IsGlobalAdmin(m.Sender)
 
 		for _, x := range chatrooms {
-			if chatsettings, err := botdb.GetChatSetting(x); !isGlobalAdmin || err != nil || !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
+			if chatsettings, err := botdb.GetChatSetting(b, x); !isGlobalAdmin || err != nil || !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
 				continue
 			}
 
@@ -297,9 +298,9 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 			}
 			b.Handle(&btn, func(callback *tb.Callback) {
 				newchat, _ := b.ChatByID(callback.Data)
-				b.Delete(callback.Message)
+				_ = b.Delete(callback.Message)
 
-				settings, _ := botdb.GetChatSetting(newchat)
+				settings, _ := botdb.GetChatSetting(b, newchat)
 				_, _ = b.Send(callback.Message.Chat, generateSettingsMessageText(newchat, settings), &tb.SendOptions{
 					ParseMode:             tb.ModeMarkdown,
 					ReplyMarkup:           generateSettingsReplyMarkup(newchat, settings),
@@ -322,15 +323,15 @@ func onSettings(m *tb.Message, settings ChatSettings) {
 	}
 }
 
-func CallbackSettings(fn func(*tb.Callback, ChatSettings) ChatSettings) func(callback *tb.Callback) {
+func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
 	return func(callback *tb.Callback) {
 		var err error
 		chat := callback.Message.Chat
 		if callback.Data != "" {
 			chat, err = b.ChatByID(callback.Data)
 			if err != nil {
-				logger.Critical(err)
-				b.Respond(callback, &tb.CallbackResponse{
+				logger.WithError(err).Error("can't get chat by id")
+				_ = b.Respond(callback, &tb.CallbackResponse{
 					Text:      "Internal error",
 					ShowAlert: true,
 				})
@@ -338,30 +339,30 @@ func CallbackSettings(fn func(*tb.Callback, ChatSettings) ChatSettings) func(cal
 			}
 		}
 
-		settings, err := botdb.GetChatSetting(chat)
+		settings, err := botdb.GetChatSetting(b, chat)
 		if err != nil {
-			logger.Critical("Cannot get chat settings:", err)
-			b.Respond(callback, &tb.CallbackResponse{
+			logger.WithError(err).Error("Cannot get chat settings")
+			_ = b.Respond(callback, &tb.CallbackResponse{
 				Text:      "Internal error",
 				ShowAlert: true,
 			})
 		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) {
-			logger.Critical("Non-admin is using a callback from the admin:", callback.Sender)
-			b.Respond(callback, &tb.CallbackResponse{
+			logger.Warning("Non-admin is using a callback from the admin:", callback.Sender)
+			_ = b.Respond(callback, &tb.CallbackResponse{
 				Text:      "Not authorized",
 				ShowAlert: true,
 			})
 		} else {
 			newsettings := fn(callback, settings)
-			botdb.SetChatSettings(chat, newsettings)
+			_ = botdb.SetChatSettings(chat, newsettings)
 
-			b.Edit(callback.Message, generateSettingsMessageText(chat, newsettings), &tb.SendOptions{
+			_, _ = b.Edit(callback.Message, generateSettingsMessageText(chat, newsettings), &tb.SendOptions{
 				ParseMode:             tb.ModeMarkdown,
 				ReplyMarkup:           generateSettingsReplyMarkup(chat, newsettings),
 				DisableWebPagePreview: true,
 			})
 
-			b.Respond(callback, &tb.CallbackResponse{
+			_ = b.Respond(callback, &tb.CallbackResponse{
 				Text:      "Ok",
 				ShowAlert: false,
 			})

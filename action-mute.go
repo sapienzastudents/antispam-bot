@@ -7,9 +7,9 @@ import (
 
 // Useful to mute an user
 func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
-	chatsettings, err := botdb.GetChatSetting(message.Chat)
+	chatsettings, err := botdb.GetChatSetting(b, message.Chat)
 	if err != nil {
-		logger.Critical(err)
+		logger.WithError(err).Error("error getting chat settings")
 		return false
 	}
 
@@ -20,16 +20,16 @@ func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
 
 	member, err := b.ChatMemberOf(chat, user)
 	if err != nil {
-		logger.Criticalf("Cannot get the member object for user %s (%s %s) in chat %s %s: %s",
-			user.Username, user.FirstName, user.LastName, chat.Title, err.Error())
+		logger.WithError(err).Errorf("Cannot get the member object for user %s (%s %s) in chat %s",
+			user.Username, user.FirstName, user.LastName, chat.Title)
 	} else {
 		member.CanSendMedia = false
 		member.CanSendMessages = false
 		member.CanSendOther = false
 		err = b.Restrict(chat, member)
 		if err != nil {
-			logger.Criticalf("Cannot save member restriction for user %s (%s %s) in chat %s %s: %s",
-				user.Username, user.FirstName, user.LastName, chat.Title, err.Error())
+			logger.WithError(err).Errorf("Cannot save member restriction for user %s (%s %s) in chat %s",
+				user.Username, user.FirstName, user.LastName, chat.Title)
 		} else if message != nil {
 			// If last parameter is a system message, reply to it, otherwise don't say anything
 
@@ -45,8 +45,8 @@ func muteUser(chat *tb.Chat, user *tb.User, message *tb.Message) bool {
 				ReplyTo:             message,
 			})
 			if err != nil {
-				logger.Criticalf("Cannot send mute warning to %s (%s %s) in chat %s %s: %s",
-					user.Username, user.FirstName, user.LastName, chat.Title, err.Error())
+				logger.WithError(err).Errorf("Cannot send mute warning to %s (%s %s) in chat %s",
+					user.Username, user.FirstName, user.LastName, chat.Title)
 			}
 			return true
 		} else {

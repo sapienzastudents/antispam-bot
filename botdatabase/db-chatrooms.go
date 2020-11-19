@@ -1,4 +1,4 @@
-package main
+package botdatabase
 
 import (
 	"encoding/json"

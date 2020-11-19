@@ -1,10 +1,11 @@
 package main
 
 import (
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func onUserJoined(m *tb.Message, settings ChatSettings) {
+func onUserJoined(m *tb.Message, settings botdatabase.ChatSettings) {
 	if m.IsService() && !m.Private() && m.UserJoined.ID == b.Me.ID {
 		logger.Infof("Joining chat %s", m.Chat.Title)
 		return
@@ -31,7 +32,7 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 		}
 	}
 
-	if settings.OnBlacklistCAS.Action != ACTION_NONE && settings.OnBlacklistCAS.Action != ACTION_DELETE_MSG && IsCASBanned(m.Sender.ID) {
+	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && settings.OnBlacklistCAS.Action != botdatabase.ACTION_DELETE_MSG && IsCASBanned(m.Sender.ID) {
 		logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
 		performAction(m, m.Sender, settings.OnBlacklistCAS)
 		return
@@ -47,7 +48,7 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 	}
 
 	for _, text := range textvalues {
-		if settings.OnJoinChinese.Action != ACTION_NONE {
+		if settings.OnJoinChinese.Action != botdatabase.ACTION_NONE {
 			chinesePercent := chineseChars(text)
 			logger.Debugf("SPAM detection (%s): chinese %f", text, chinesePercent)
 			if chinesePercent > 0.5 {
@@ -56,7 +57,7 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 			}
 		}
 
-		if settings.OnJoinArabic.Action != ACTION_NONE {
+		if settings.OnJoinArabic.Action != botdatabase.ACTION_NONE {
 			arabicPercent := arabicChars(text)
 			logger.Debugf("SPAM detection (%s): arabic %f", text, arabicPercent)
 			if arabicPercent > 0.5 {
@@ -69,7 +70,7 @@ func onUserJoined(m *tb.Message, settings ChatSettings) {
 	if settings.OnJoinDelete {
 		err := b.Delete(m)
 		if err != nil {
-			logger.Critical("Cannot delete join message: ", err)
+			logger.WithError(err).Error("Cannot delete join message")
 		}
 	}
 }

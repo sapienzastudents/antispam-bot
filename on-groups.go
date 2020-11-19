@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
 	"strings"
 )
 
-func onGroups(m *tb.Message, _ ChatSettings) {
+func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 	logger.Debugf("My chat room requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 
 	chatrooms, err := botdb.ListMyChatrooms()
 	if err != nil {
-		logger.Criticalf("Error getting chatroom list: %s", err.Error())
+		logger.WithError(err).Error("Error getting chatroom list")
 	} else {
 		sort.Slice(chatrooms, func(i, j int) bool {
 			return chatrooms[i].Title < chatrooms[j].Title
@@ -20,9 +21,9 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 
 		msg := strings.Builder{}
 		for _, v := range chatrooms {
-			settings, err := botdb.GetChatSetting(v)
+			settings, err := botdb.GetChatSetting(b, v)
 			if err != nil {
-				logger.Criticalf("Error getting chatroom config: %s", err.Error())
+				logger.WithError(err).Error("Error getting chatroom config")
 				continue
 			}
 			if settings.Hidden {
@@ -49,7 +50,7 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 					logger.Warning("can't get chat info ", err)
 					continue
 				}
-				botdb.UpdateMyChatroomList(v)
+				_ = botdb.UpdateMyChatroomList(v)
 			}
 
 			msg.WriteString("<b>")
@@ -69,6 +70,6 @@ func onGroups(m *tb.Message, _ ChatSettings) {
 	}
 
 	if !m.Private() {
-		b.Send(m.Chat, "🇮🇹 Ti ho scritto in privato!\n\n🇬🇧 I sent you a direct message!", &tb.SendOptions{ReplyTo: m})
+		_, _ = b.Send(m.Chat, "🇮🇹 Ti ho scritto in privato!\n\n🇬🇧 I sent you a direct message!", &tb.SendOptions{ReplyTo: m})
 	}
 }

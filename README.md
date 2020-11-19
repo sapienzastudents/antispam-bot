@@ -31,7 +31,8 @@ Also, in ToDo list:
 * [ ] Clean up the code
     * [ ] Do not use global variables (!!!)
     * [ ] Handle errors correctly (!!!)
-* [ ] Switch to `logrus` for structured logging
+* [x] Switch to `logrus` for structured logging
+    * [ ] Use structured logging fields for logging
 * [ ] Expose HTTP endpoint (optionally)
 * [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, int64, etc)
 

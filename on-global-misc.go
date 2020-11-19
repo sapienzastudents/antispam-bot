@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func onEmergencyRemove(m *tb.Message, _ ChatSettings) {
+func onEmergencyRemove(m *tb.Message, _ botdatabase.ChatSettings) {
 	err := b.Delete(m.ReplyTo)
 	if err != nil {
 		logger.Error("Can't delete messages ", err)
@@ -18,7 +19,7 @@ func onEmergencyRemove(m *tb.Message, _ ChatSettings) {
 	}
 }
 
-func onEmergencyElevate(m *tb.Message, _ ChatSettings) {
+func onEmergencyElevate(m *tb.Message, _ botdatabase.ChatSettings) {
 	err := b.Delete(m)
 	if err != nil {
 		logger.Error("Can't delete messages ", err)
@@ -42,16 +43,17 @@ func onEmergencyElevate(m *tb.Message, _ ChatSettings) {
 	}
 }
 
-func onSigHup(m *tb.Message, _ ChatSettings) {
-	err := botdb.DoCacheUpdate()
+func onSigHup(m *tb.Message, _ botdatabase.ChatSettings) {
+	err := botdb.DoCacheUpdate(b)
 	if err != nil {
-		b.Send(m.Chat, "Errore: "+err.Error())
+		logger.WithError(err).Warning("can't handle sighup / refresh data")
+		_, _ = b.Send(m.Chat, "Errore: "+err.Error())
 	} else {
-		b.Send(m.Chat, "Reload OK")
+		_, _ = b.Send(m.Chat, "Reload OK")
 	}
 }
 
-func onVersion(m *tb.Message, _ ChatSettings) {
+func onVersion(m *tb.Message, _ botdatabase.ChatSettings) {
 	msg := fmt.Sprintf("Version %s", APP_VERSION)
 	_, _ = b.Send(m.Chat, msg)
 }

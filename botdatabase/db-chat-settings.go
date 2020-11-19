@@ -1,4 +1,4 @@
-package main
+package botdatabase
 
 import (
 	"encoding/json"
@@ -71,7 +71,7 @@ type ChatSettings struct {
 	ChatAdmins ChatAdminList `json:"chat_admins"`
 }
 
-func (db *_botDatabase) GetChatSetting(chat *tb.Chat) (ChatSettings, error) {
+func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error) {
 	settings := ChatSettings{}
 	jsonb, err := db.redisconn.HGet("settings", fmt.Sprintf("%d", chat.ID)).Result()
 	if err == redis.Nil {
@@ -115,6 +115,9 @@ func (db *_botDatabase) GetChatSetting(chat *tb.Chat) (ChatSettings, error) {
 		settings.ChatAdmins.SetFromChat(chatAdmins)
 
 		err = db.SetChatSettings(chat, settings)
+		if err != nil {
+			return ChatSettings{}, err
+		}
 	} else if err != nil {
 		return ChatSettings{}, err
 	} else {

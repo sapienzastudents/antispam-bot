@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/joho/godotenv"
-	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"time"
@@ -12,20 +13,37 @@ import (
 var APP_VERSION = "dev"
 
 var b *tb.Bot = nil
-var logger *logging.Logger = nil
-var botdb BOTDatabase = nil
+var logger *logrus.Entry = nil
+var botdb botdatabase.BOTDatabase = nil
 
 func main() {
 	_ = godotenv.Load()
 	var err error
 
-	// Logging init
-	logger = logging.MustGetLogger("goinfostudapi")
+	/*discordbot, err := NewDiscordBot()
+	if err != nil {
+		panic(err)
+	}
+	err = discordbot.Test()
+	if err != nil {
+		panic(err)
+	}
 
-	// To add logging to file, edit this section and implement a system based on environmental variables
-	backend1Leveled := logging.AddModuleLevel(logging.NewLogBackend(os.Stdout, "", 0))
-	backend1Leveled.SetLevel(logging.DEBUG, "")
-	logger.SetBackend(backend1Leveled)
+	time.Sleep(60 * time.Second)
+
+	discordbot.Stop()
+	return*/
+
+	// Logging init
+	logrusLogger := logrus.New()
+	logrusLogger.SetOutput(os.Stdout)
+	logrusLogger.SetLevel(logrus.DebugLevel) // TODO
+	// TODO: logger.SetFormatter(&logrus.JSONFormatter{})
+
+	hostname, _ := os.Hostname()
+	logger = logrusLogger.WithFields(logrus.Fields{
+		"hostname": hostname,
+	})
 
 	logger.Info("Initializing...")
 	// Initial checks
@@ -39,7 +57,7 @@ func main() {
 	}
 
 	// Initialize Redis database
-	botdb, err = NewBotDatabase()
+	botdb, err = botdatabase.New(logger)
 	if err != nil {
 		logger.Fatalf("Unable to initialize the database, exiting: %s", err.Error())
 		return
@@ -64,7 +82,7 @@ func main() {
 	b.Handle(tb.OnPhoto, RefreshDBInfo(onAnyMessage))
 	b.Handle(tb.OnText, RefreshDBInfo(onAnyMessage))
 	b.Handle(tb.OnUserJoined, RefreshDBInfo(onUserJoined))
-	b.Handle(tb.OnAddedToGroup, RefreshDBInfo(func(_ *tb.Message, _ ChatSettings) {}))
+	b.Handle(tb.OnAddedToGroup, RefreshDBInfo(func(_ *tb.Message, _ botdatabase.ChatSettings) {}))
 	b.Handle(tb.OnUserLeft, RefreshDBInfo(onUserLeft))
 
 	// Register commands
@@ -85,7 +103,7 @@ func main() {
 	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
 
 	// Utilities
-	b.Handle("/id", RefreshDBInfo(func(m *tb.Message, _ ChatSettings) {
+	b.Handle("/id", RefreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
 		_, _ = b.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
 	}))
 
@@ -96,9 +114,9 @@ func main() {
 		t := time.NewTicker(10 * time.Minute)
 		for {
 			<-t.C
-			err := botdb.DoCacheUpdate()
+			err := botdb.DoCacheUpdate(b)
 			if err != nil {
-				logger.Critical(err)
+				logger.WithError(err).Error("erorr cycling for data refresh")
 			}
 		}
 	}()
@@ -113,25 +131,25 @@ func main() {
 
 // This wrapper is refreshing the info for the chat in the database
 // (due the fact that Telegram APIs does not support listing chats)
-func RefreshDBInfo(actionHandler func(*tb.Message, ChatSettings)) func(m *tb.Message) {
+func RefreshDBInfo(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(m *tb.Message) {
 	return func(m *tb.Message) {
 		if !m.Private() {
 			err := botdb.UpdateMyChatroomList(m.Chat)
 			if err != nil {
-				logger.Critical("Cannot update my chatroom list:", err)
+				logger.WithError(err).Error("Cannot update my chatroom list")
 				return
 			}
 
-			settings, err := botdb.GetChatSetting(m.Chat)
+			settings, err := botdb.GetChatSetting(b, m.Chat)
 			if err != nil {
-				logger.Critical("Cannot get chat settings:", err)
+				logger.WithError(err).Error("Cannot get chat settings")
 			} else if !settings.BotEnabled && !botdb.IsGlobalAdmin(m.Sender) {
 				logger.Debugf("Bot not enabled for chat %d %s", m.Chat.ID, m.Chat.Title)
 			} else {
 				actionHandler(m, settings)
 			}
 		} else {
-			actionHandler(m, ChatSettings{})
+			actionHandler(m, botdatabase.ChatSettings{})
 		}
 	}
 }
@@ -145,8 +163,8 @@ func CheckGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
 	}
 }
 
-func CheckGroupAdmin(actionHandler func(*tb.Message, ChatSettings)) func(*tb.Message, ChatSettings) {
-	return func(m *tb.Message, settings ChatSettings) {
+func CheckGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(*tb.Message, botdatabase.ChatSettings) {
+	return func(m *tb.Message, settings botdatabase.ChatSettings) {
 		if !settings.ChatAdmins.IsAdmin(m.Sender) && !botdb.IsGlobalAdmin(m.Sender) {
 			_, _ = b.Send(m.Chat, "Sorry, only group admins can use this command")
 			return

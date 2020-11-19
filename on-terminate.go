@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
 )
 
-func onTerminate(m *tb.Message, settings ChatSettings) {
+func onTerminate(m *tb.Message, settings botdatabase.ChatSettings) {
 	_ = b.Delete(m)
 	if m.ReplyTo == nil || m.Private() {
 		// We need an handle
@@ -32,7 +33,7 @@ func onTerminate(m *tb.Message, settings ChatSettings) {
 
 		member, err := b.ChatMemberOf(m.Chat, m.ReplyTo.Sender)
 		if err != nil {
-			logger.Errorf("Can't ban user %d: %s", m.ReplyTo.Sender, err)
+			logger.WithError(err).Error("Can't ban user ", m.ReplyTo.Sender)
 			return
 		}
 

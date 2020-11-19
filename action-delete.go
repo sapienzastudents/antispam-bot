@@ -5,9 +5,9 @@ import (
 )
 
 func actionDelete(m *tb.Message) bool {
-	chatsettings, err := botdb.GetChatSetting(m.Chat)
+	chatsettings, err := botdb.GetChatSetting(b, m.Chat)
 	if err != nil {
-		logger.Critical(err)
+		logger.WithError(err).Error("error getting chat settings")
 		return false
 	}
 
@@ -18,8 +18,8 @@ func actionDelete(m *tb.Message) bool {
 
 	err = b.Delete(m)
 	if err != nil {
-		logger.Criticalf("Cannot delete message from user %s %s (%s) in chat %s (%d): %s",
-			m.Sender.FirstName, m.Sender.LastName, m.Sender.Username, m.Chat.Title, m.Chat.ID, err.Error())
+		logger.WithError(err).Errorf("Cannot delete message from user %s %s (%s) in chat %s",
+			m.Sender.FirstName, m.Sender.LastName, m.Sender.Username, m.Chat.Title)
 		return false
 	} else {
 		return true
