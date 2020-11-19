@@ -100,7 +100,7 @@ func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 
 	// Update the file
 	msg, _ = b.Edit(msg, "✅ Prepare group list\n✅ Cloning\n⚙️ Create file")
-	err = ioutil.WriteFile(filepath.Join(gitTempDir, "content", "social.md"), []byte(groupList), 0644)
+	err = ioutil.WriteFile(filepath.Join(gitTempDir, "content", "social.md"), []byte(groupList), 0600)
 	if err != nil {
 		_, _ = b.Edit(msg, "✅ Prepare group list\n✅ Cloning\n❌ Create file\n\n"+err.Error())
 		logger.WithError(err).Error("can't write to file")
