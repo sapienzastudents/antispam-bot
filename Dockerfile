@@ -2,9 +2,6 @@ FROM golang:1.12 as builder
 
 # Prerequisites for builds and scratch
 RUN apt-get update && apt-get install -y upx-ucl zip ca-certificates tzdata
-WORKDIR /usr/share/zoneinfo
-RUN zip -r -0 /zoneinfo.zip .
-RUN adduser --home /app/ --no-create-home --disabled-password --quiet appuser
 
 WORKDIR /src/
 
@@ -14,7 +11,7 @@ ARG APPVERSION
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
-COPY *.go ./
+COPY . .
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.APP_VERSION=${APPVERSION}" -a -installsuffix cgo -o antispam-telegram-bot . && \
@@ -23,15 +20,18 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.
 
 
 # From empty container
-FROM scratch
-
-ENV ZONEINFO /zoneinfo.zip
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /zoneinfo.zip /
-COPY --from=builder /etc/passwd /etc/passwd
+FROM debian:buster
 
 WORKDIR /app/
+
+RUN apt-get update && \
+    apt-get install -y ca-certificates tzdata ssh-client && \
+    rm -rf /var/cache/apt/* && \
+    useradd -d /app/ -M appuser
+
+WORKDIR /app/
+COPY docker-cmd.sh .
 COPY --from=builder /src/antispam-telegram-bot .
 
 USER appuser
-CMD ["/app/antispam-telegram-bot"]
+CMD ["/app/docker-cmd.sh", "/app/antispam-telegram-bot"]
