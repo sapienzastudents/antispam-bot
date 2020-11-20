@@ -43,6 +43,30 @@ func onEmergencyElevate(m *tb.Message, _ botdatabase.ChatSettings) {
 	}
 }
 
+func onEmergencyReduce(m *tb.Message, _ botdatabase.ChatSettings) {
+	err := b.Delete(m)
+	if err != nil {
+		logger.Error("Can't delete messages ", err)
+		return
+	}
+
+	member, err := b.ChatMemberOf(m.Chat, m.Sender)
+	if err != nil {
+		logger.Error("Can't get member of ", err)
+	} else {
+		member.CanDeleteMessages = false
+		member.CanChangeInfo = false
+		member.CanInviteUsers = false
+		member.CanPinMessages = false
+		member.CanRestrictMembers = false
+		member.CanPromoteMembers = false
+		err = b.Promote(m.Chat, member)
+		if err != nil {
+			logger.Error("Can't reduce ", err)
+		}
+	}
+}
+
 func onSigHup(m *tb.Message, _ botdatabase.ChatSettings) {
 	err := botdb.DoCacheUpdate(b)
 	if err != nil {

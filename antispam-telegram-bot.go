@@ -98,6 +98,7 @@ func main() {
 	// Global-administrative commands
 	b.Handle("/emergency_remove", CheckGlobalAdmin(RefreshDBInfo(onEmergencyRemove)))
 	b.Handle("/emergency_elevate", CheckGlobalAdmin(RefreshDBInfo(onEmergencyElevate)))
+	b.Handle("/emergency_reduce", CheckGlobalAdmin(RefreshDBInfo(onEmergencyReduce)))
 	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
 	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
 	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
