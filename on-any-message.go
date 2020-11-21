@@ -27,6 +27,8 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 			settings.MainCategory = categories[0]
 			if len(categories) > 1 {
 				settings.SubCategory = categories[1]
+			} else {
+				settings.SubCategory = ""
 			}
 			err = botdb.SetChatSettings(chat, settings)
 			if err != nil {

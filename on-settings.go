@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -310,6 +311,10 @@ func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 			logger.WithError(err).Error("cant get chatroom list")
 			return
 		}
+
+		sort.Slice(chatrooms, func(i, j int) bool {
+			return chatrooms[i].Title < chatrooms[j].Title
+		})
 
 		isGlobalAdmin := botdb.IsGlobalAdmin(m.Sender)
 

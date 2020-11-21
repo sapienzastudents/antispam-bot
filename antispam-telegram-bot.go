@@ -7,6 +7,8 @@ import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -128,6 +130,13 @@ func main() {
 	if os.Getenv("DISABLE_CAS") == "" {
 		go CASWorker()
 	}
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGTERM)
+	go func() {
+		<-sigchan
+		b.Stop()
+	}()
 
 	// Let's go!
 	b.Start()
