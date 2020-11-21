@@ -18,7 +18,7 @@ var b *tb.Bot = nil
 var logger *logrus.Entry = nil
 var botdb botdatabase.BOTDatabase = nil
 
-var globaleditcat = map[int]int64{}
+var globaleditcat = map[int]InlineCategoryEdit{}
 
 func main() {
 	_ = godotenv.Load()

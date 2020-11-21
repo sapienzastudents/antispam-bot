@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+type InlineCategoryEdit struct {
+	ChatID   int64
+	Category string
+}
+
 func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSettings) string {
 	reply := strings.Builder{}
 
@@ -123,13 +128,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 		Text:   editCategoryButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&editCategoryButton, func(callback *tb.Callback) {
-		_ = b.Respond(callback)
-		_, _ = b.Edit(callback.Message, "Scrivi il nome del corso di laurea. Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\nInformatica\n\noppure\n\nInformatica\nPrimo anno")
-
-		chatId, _ := strconv.Atoi(callback.Data)
-		globaleditcat[callback.Sender.ID] = int64(chatId)
-	})
+	b.Handle(&editCategoryButton, handleChangeCategory)
 
 	// Delete join and part messages
 	deleteJoinMessagesText := "✅ Del join msgs"
@@ -383,7 +382,7 @@ func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabas
 				Text:      "Internal error",
 				ShowAlert: true,
 			})
-		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) {
+		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !botdb.IsGlobalAdmin(callback.Sender) {
 			logger.Warning("Non-admin is using a callback from the admin:", callback.Sender)
 			_ = b.Respond(callback, &tb.CallbackResponse{
 				Text:      "Not authorized",
@@ -406,4 +405,135 @@ func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabas
 		}
 
 	}
+}
+
+func handleChangeCategory(callback *tb.Callback) {
+	_ = b.Respond(callback)
+	chatId, _ := strconv.Atoi(callback.Data)
+
+	categories, err := botdb.GetChatTree(b)
+	if err != nil {
+		logger.WithError(err).WithField("chat", chatId).Error("can't get category tree")
+		return
+	}
+
+	customCategoryBt := tb.InlineButton{
+		Text:   "✏️ Aggiungine una nuova",
+		Unique: "settings_add_new_category",
+		Data:   callback.Data,
+	}
+	b.Handle(&customCategoryBt, func(callback *tb.Callback) {
+		_ = b.Respond(callback)
+		chatId, _ := strconv.Atoi(callback.Data)
+		_, _ = b.Edit(callback.Message,
+			"Scrivi il nome del corso di laurea.\n"+
+				"Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\n"+
+				"Informatica (triennale)\n\noppure\n\nInformatica\nPrimo anno")
+
+		globaleditcat[callback.Sender.ID] = InlineCategoryEdit{
+			ChatID: int64(chatId),
+		}
+	})
+
+	buttons := [][]tb.InlineButton{{customCategoryBt}}
+	for _, cat := range categories.GetSubCategoryList() {
+		bt := tb.InlineButton{
+			Text:   cat,
+			Unique: Sha1(cat),
+			Data:   callback.Data,
+		}
+		b.Handle(&bt, func(callback *tb.Callback) {
+			handleChangeSubCategory(callback, cat, categories.SubCategories[cat])
+		})
+		buttons = append(buttons, []tb.InlineButton{bt})
+	}
+
+	_, _ = b.Edit(callback.Message, "Seleziona la categoria principale", &tb.ReplyMarkup{
+		InlineKeyboard: buttons,
+	})
+}
+
+func handleChangeSubCategory(callback *tb.Callback, maincat string, subcategories botdatabase.ChatCategoryTree) {
+	_ = b.Respond(callback)
+	chatId, _ := strconv.Atoi(callback.Data)
+	settings, _ := botdb.GetChatSetting(b, &tb.Chat{ID: int64(chatId)})
+	settings.MainCategory = maincat
+	botdb.SetChatSettings(&tb.Chat{ID: int64(chatId)}, settings)
+
+	customCategoryBt := tb.InlineButton{
+		Text:   "✏️ Aggiungine una nuova",
+		Unique: "settings_add_new_subcategory",
+		Data:   callback.Data,
+	}
+	b.Handle(&customCategoryBt, func(callback *tb.Callback) {
+		_ = b.Respond(callback)
+		chatId, _ := strconv.Atoi(callback.Data)
+		_, _ = b.Edit(callback.Message, "Scrivi il nome della sotto-categoria.\n\nEsempio: Primo anno")
+
+		globaleditcat[callback.Sender.ID] = InlineCategoryEdit{
+			ChatID:   int64(chatId),
+			Category: maincat,
+		}
+	})
+
+	noCategoryBt := tb.InlineButton{
+		Text:   "Nessuna sotto-categoria",
+		Unique: "settings_no_sub_cat",
+		Data:   callback.Data,
+	}
+	b.Handle(&noCategoryBt, func(callback *tb.Callback) {
+		_ = b.Respond(callback)
+		chatId, _ := strconv.Atoi(callback.Data)
+		settings, _ := botdb.GetChatSetting(b, &tb.Chat{ID: int64(chatId)})
+		settings.SubCategory = ""
+		botdb.SetChatSettings(&tb.Chat{ID: int64(chatId)}, settings)
+
+		settingsBt := tb.InlineButton{
+			Text:   "Torna alle impostazioni",
+			Unique: "back_to_settings",
+			Data:   callback.Data,
+		}
+		b.Handle(&settingsBt, backToSettingsFromCallback)
+		_, _ = b.Edit(callback.Message, "Impostazioni salvate", &tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{{settingsBt}},
+		})
+	})
+
+	buttons := [][]tb.InlineButton{{customCategoryBt, noCategoryBt}}
+	for _, cat := range subcategories.GetSubCategoryList() {
+		bt := tb.InlineButton{
+			Text:   cat,
+			Unique: Sha1(maincat + cat),
+			Data:   callback.Data,
+		}
+		b.Handle(&bt, func(callback *tb.Callback) {
+			_ = b.Respond(callback)
+			chatId, _ := strconv.Atoi(callback.Data)
+			settings, _ := botdb.GetChatSetting(b, &tb.Chat{ID: int64(chatId)})
+			settings.SubCategory = cat
+			botdb.SetChatSettings(&tb.Chat{ID: int64(chatId)}, settings)
+
+			settingsBt := tb.InlineButton{
+				Text:   "Torna alle impostazioni",
+				Unique: "back_to_settings",
+				Data:   callback.Data,
+			}
+			b.Handle(&settingsBt, backToSettingsFromCallback)
+			_, _ = b.Edit(callback.Message, "Impostazioni salvate", &tb.ReplyMarkup{
+				InlineKeyboard: [][]tb.InlineButton{{settingsBt}},
+			})
+		})
+		buttons = append(buttons, []tb.InlineButton{bt})
+	}
+
+	_, _ = b.Edit(callback.Message, "Seleziona la categoria interna", &tb.ReplyMarkup{
+		InlineKeyboard: buttons,
+	})
+}
+
+func backToSettingsFromCallback(callback *tb.Callback) {
+	_ = b.Delete(callback.Message)
+	chatId, _ := strconv.Atoi(callback.Data)
+	settings, _ := botdb.GetChatSetting(b, &tb.Chat{ID: int64(chatId)})
+	onSettings(callback.Message, settings)
 }

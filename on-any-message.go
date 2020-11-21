@@ -8,13 +8,13 @@ import (
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
-	chatId, isForEdit := globaleditcat[m.Sender.ID]
+	chatEdit, isForEdit := globaleditcat[m.Sender.ID]
 
-	if isForEdit && m.Text != "" && (m.Private() || m.Chat.ID == chatId) {
+	if isForEdit && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
 		delete(globaleditcat, m.Sender.ID)
-		chat, err := b.ChatByID(fmt.Sprint(chatId))
+		chat, err := b.ChatByID(fmt.Sprint(chatEdit.ChatID))
 		if err != nil {
-			logger.WithError(err).WithField("chat", chatId).Warn("can't get chat info")
+			logger.WithError(err).WithField("chat", chatEdit.ChatID).Warn("can't get chat info")
 			return
 		}
 
@@ -22,7 +22,9 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 		if err != nil {
 			logger.WithError(err).WithField("chat", chat.ID).Warn("can't get chat settings")
 			return
-		} else {
+		}
+
+		if chatEdit.Category == "" {
 			categories := strings.Split(m.Text, "\n")
 			settings.MainCategory = categories[0]
 			if len(categories) > 1 {
@@ -30,10 +32,15 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 			} else {
 				settings.SubCategory = ""
 			}
-			err = botdb.SetChatSettings(chat, settings)
-			if err != nil {
-				logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
-			}
+		} else {
+			categories := strings.Split(m.Text, "\n")
+			settings.MainCategory = chatEdit.Category
+			settings.SubCategory = categories[0]
+		}
+
+		err = botdb.SetChatSettings(chat, settings)
+		if err != nil {
+			logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
 		}
 
 		settingsbt := tb.InlineButton{
@@ -41,10 +48,7 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 			Unique: "back_to_settings",
 		}
 
-		b.Handle(&settingsbt, func(callback *tb.Callback) {
-			_ = b.Delete(callback.Message)
-			onSettings(m, settings)
-		})
+		b.Handle(&settingsbt, backToSettingsFromCallback)
 
 		_, _ = b.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
 			InlineKeyboard: [][]tb.InlineButton{
