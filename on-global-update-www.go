@@ -155,12 +155,16 @@ func prepareGroupListForWeb() (string, error) {
 	msg.WriteString("\"\n+++\n\n# Gruppi Telegram\n\n")
 
 	for _, category := range categories.GetSubCategoryList() {
+		var l1cat = categories.SubCategories[category]
+		if len(l1cat.Chats) == 0 {
+			continue
+		}
+
 		msg.WriteString("\n## ")
 		msg.WriteString(html.EscapeString(category))
 		msg.WriteString("\n")
 
-		var l1cat = categories.SubCategories[category]
-		for _, v := range l1cat.Chats {
+		for _, v := range l1cat.GetChats() {
 			_ = printChatsInMarkdown(&msg, v)
 		}
 		for _, subcat := range l1cat.GetSubCategoryList() {
@@ -168,15 +172,18 @@ func prepareGroupListForWeb() (string, error) {
 			msg.WriteString(html.EscapeString(subcat))
 			msg.WriteString("\n")
 			var l2cat = l1cat.SubCategories[subcat]
-			for _, v := range l2cat.Chats {
+			for _, v := range l2cat.GetChats() {
 				_ = printChatsInMarkdown(&msg, v)
 			}
 		}
 	}
 
-	msg.WriteString("## Senza categoria\n")
-	for _, v := range categories.Chats {
-		_ = printChatsInMarkdown(&msg, v)
+	if len(categories.Chats) > 0 {
+		msg.WriteString("## Senza categoria\n")
+
+		for _, v := range categories.GetChats() {
+			_ = printChatsInMarkdown(&msg, v)
+		}
 	}
 
 	return msg.String(), nil

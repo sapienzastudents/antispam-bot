@@ -1,8 +1,8 @@
 # AntiSPAM Telegram Bot
 
-This is a simple anti-spam telegram bot designed for groups.
+This is a simple anti-spam/helper telegram bot designed for Sapienza groups.
 
-Note that this bot will not have some features that you can find in other bots like `GroupHelp`.
+Note that this bot will not have features that you can find in other bots like `GroupHelp`.
 
 **WORK IN PROGRESS**
 
@@ -16,8 +16,9 @@ Features (when not ticked, they're planned):
     * [X] Detect Arabic messages
     * [ ] Detect spam links with some heuristic
     * [ ] Detect people that are sending multiple messages for a single phrase
+    * [ ] Auto-kick deleted accounts
 * [x] Index all groups and provide invite links (opt-out by group admin)
-    * [ ] Split groups by course (degree program)
+    * [X] Split groups by course (degree program)
 * [ ] Create an instance for other networks with all those services:
     * [ ] Discord
 * [ ] Create a way to index answers and try to provide some clues (maybe some AI/NLP?)
@@ -34,7 +35,7 @@ Also, in ToDo list:
 * [x] Switch to `logrus` for structured logging
     * [ ] Use structured logging fields for logging
 * [ ] Expose HTTP endpoint (optionally)
-* [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, int64, etc)
+* [ ] Rewrite the `telebot` library to fix some structural issues (such as error handling, fields, int64, stateful buttons, etc)
 
 ## Commands
 
@@ -43,6 +44,12 @@ groups - List all groups of the network
 settings - Group settings
 terminate - Ban an user from a group with a 60s delay
 ```
+
+## Permissions
+
+The bot requires all admin permissions (except for "post anonymously") for the above stated features.
+It requires also the "Add admins" permission an user-bot will be implemented for some features
+(antispam, kick deleted accounts, etc) that are not available in classic bot APIs.
 
 ## How to build
 
@@ -58,16 +65,13 @@ The executable needs these environment variables set:
 
 * `BOT_TOKEN`: the bot token that you get from `BotFather`
 * `REDIS_URL`: the URL for a Redis server instance
+* `DISABLE_CAS`: optional, disable CAS blacklist completely
+* `GIT_TEMP_DIR`: optional, temporary directory for website update
+* `GIT_SSH_KEY`: optional, Git SSH key path for website update
 
-To launch the executable, do the following:
-```
-$ export BOT_TOKEN=aaaaaaaaaaaaaa
-$ export REDIS_URL=redis://localhost:6379/0
-$ ./antispam-telegram-bot
-```
+The executable supports `.env` file for environment variables.
 
-However is strongly suggested to build a Docker container.
-A pre-built one is hosted on Docker Hub at the address `enrico204/antispam-telegram-bot`.
+A pre-built Docker container is hosted on Docker Hub at the address `enrico204/antispam-telegram-bot`.
 
 ## Contributions
 

@@ -32,6 +32,10 @@ func showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgenera
 		}
 	}
 
+	if msg.Len() == 0 {
+		msg.WriteString("Nessun gruppo in questa categoria")
+	}
+
 	_, err := b.Edit(m, msg.String(), &tb.SendOptions{
 		ParseMode:             tb.ModeHTML,
 		DisableWebPagePreview: true,
