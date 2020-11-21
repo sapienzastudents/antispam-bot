@@ -82,7 +82,7 @@ func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 }
 
 func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
-	categoryTree, err := botdb.GetChatTree()
+	categoryTree, err := botdb.GetChatTree(b)
 	if err != nil {
 		logger.WithError(err).Error("Error getting chatroom list")
 		_, _ = b.Send(m.Chat, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")

@@ -16,6 +16,8 @@ var b *tb.Bot = nil
 var logger *logrus.Entry = nil
 var botdb botdatabase.BOTDatabase = nil
 
+var globaleditcat = map[int]int64{}
+
 func main() {
 	_ = godotenv.Load()
 	var err error
@@ -167,10 +169,10 @@ func CheckGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
 
 func CheckGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(*tb.Message, botdatabase.ChatSettings) {
 	return func(m *tb.Message, settings botdatabase.ChatSettings) {
-		if !settings.ChatAdmins.IsAdmin(m.Sender) && !botdb.IsGlobalAdmin(m.Sender) {
-			_, _ = b.Send(m.Chat, "Sorry, only group admins can use this command")
+		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || botdb.IsGlobalAdmin(m.Sender) {
+			actionHandler(m, settings)
 			return
 		}
-		actionHandler(m, settings)
+		_, _ = b.Send(m.Chat, "Sorry, only group admins can use this command")
 	}
 }

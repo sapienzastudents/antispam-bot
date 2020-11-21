@@ -1,11 +1,58 @@
 package main
 
 import (
+	"fmt"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strings"
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
+	chatId, isForEdit := globaleditcat[m.Sender.ID]
+
+	if isForEdit && m.Text != "" && (m.Private() || m.Chat.ID == chatId) {
+		delete(globaleditcat, m.Sender.ID)
+		chat, err := b.ChatByID(fmt.Sprint(chatId))
+		if err != nil {
+			logger.WithError(err).WithField("chat", chatId).Warn("can't get chat info")
+			return
+		}
+
+		settings, err := botdb.GetChatSetting(b, chat)
+		if err != nil {
+			logger.WithError(err).WithField("chat", chat.ID).Warn("can't get chat settings")
+			return
+		} else {
+			categories := strings.Split(m.Text, "\n")
+			settings.MainCategory = categories[0]
+			if len(categories) > 1 {
+				settings.SubCategory = categories[1]
+			}
+			err = botdb.SetChatSettings(chat, settings)
+			if err != nil {
+				logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
+			}
+		}
+
+		settingsbt := tb.InlineButton{
+			Text:   "Torna alle impostazioni",
+			Unique: "back_to_settings",
+		}
+
+		b.Handle(&settingsbt, func(callback *tb.Callback) {
+			_ = b.Delete(callback.Message)
+			onSettings(m, settings)
+		})
+
+		_, _ = b.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{
+				{settingsbt},
+			},
+		})
+
+		return
+	}
+
 	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
 		if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && IsCASBanned(m.Sender.ID) {

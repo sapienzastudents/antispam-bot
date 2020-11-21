@@ -2,24 +2,10 @@ package botdatabase
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
-	"strings"
 )
-
-const ChatCategorySeparator = "||"
-
-type ChatCategory string
-
-func (c *ChatCategory) Set(s []string) {
-	*c = ChatCategory(strings.Join(s, ChatCategorySeparator))
-}
-
-func (c *ChatCategory) Get() []string {
-	return strings.Split(string(*c), ChatCategorySeparator)
-}
 
 type ChatCategoryTree struct {
 	Chats         []*tb.Chat
@@ -44,19 +30,7 @@ func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 	return c.Chats
 }
 
-func (db *_botDatabase) GetChatCategory(c *tb.Chat) (ChatCategory, error) {
-	category, err := db.redisconn.HGet("chat-categories", fmt.Sprint(c.ID)).Result()
-	if err == redis.Nil {
-		return "", nil
-	}
-	return ChatCategory(category), err
-}
-
-func (db *_botDatabase) SetChatCategory(c *tb.Chat, cat ChatCategory) error {
-	return db.redisconn.HSet("chat-categories", fmt.Sprint(c.ID), cat).Err()
-}
-
-func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
+func (db *_botDatabase) GetChatTree(b *tb.Bot) (ChatCategoryTree, error) {
 	var ret = ChatCategoryTree{}
 
 	chatrooms, err := db.ListMyChatrooms()
@@ -65,36 +39,35 @@ func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
 	}
 
 	for _, v := range chatrooms {
-		category, err := db.GetChatCategory(v)
+		settings, err := db.GetChatSetting(b, v)
 		if err != nil {
 			return ret, errors.Wrap(err, fmt.Sprintf("can't get chat category for chat %d", v.ID))
 		}
-		categoryLevels := category.Get()
-		if category == "" {
+		if settings.MainCategory == "" {
 			ret.Chats = append(ret.Chats, v)
 		} else {
 			if ret.SubCategories == nil {
 				ret.SubCategories = map[string]ChatCategoryTree{}
 			}
-			if _, ok := ret.SubCategories[categoryLevels[0]]; !ok {
-				ret.SubCategories[categoryLevels[0]] = ChatCategoryTree{}
+			if _, ok := ret.SubCategories[settings.MainCategory]; !ok {
+				ret.SubCategories[settings.MainCategory] = ChatCategoryTree{}
 			}
-			var maincat = ret.SubCategories[categoryLevels[0]]
+			var maincat = ret.SubCategories[settings.MainCategory]
 
-			if len(categoryLevels) == 1 {
+			if settings.SubCategory == "" {
 				maincat.Chats = append(maincat.Chats, v)
 			} else {
 				if maincat.SubCategories == nil {
 					maincat.SubCategories = map[string]ChatCategoryTree{}
 				}
-				if _, ok := maincat.SubCategories[categoryLevels[1]]; !ok {
-					maincat.SubCategories[categoryLevels[1]] = ChatCategoryTree{}
+				if _, ok := maincat.SubCategories[settings.SubCategory]; !ok {
+					maincat.SubCategories[settings.SubCategory] = ChatCategoryTree{}
 				}
-				var subcat = maincat.SubCategories[categoryLevels[1]]
+				var subcat = maincat.SubCategories[settings.SubCategory]
 				subcat.Chats = append(subcat.Chats, v)
-				maincat.SubCategories[categoryLevels[1]] = subcat
+				maincat.SubCategories[settings.SubCategory] = subcat
 			}
-			ret.SubCategories[categoryLevels[0]] = maincat
+			ret.SubCategories[settings.MainCategory] = maincat
 		}
 	}
 

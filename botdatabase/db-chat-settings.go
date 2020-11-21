@@ -69,6 +69,9 @@ type ChatSettings struct {
 
 	// Chat admins
 	ChatAdmins ChatAdminList `json:"chat_admins"`
+
+	MainCategory string `json:"main_category"`
+	SubCategory  string `json:"sub_category"`
 }
 
 func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error) {

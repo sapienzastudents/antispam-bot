@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,6 +24,17 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	} else {
 		reply.WriteString("⛔️ Group hidden\n")
 	}
+
+	reply.WriteString("\nCategory: ")
+	if settings.MainCategory == "" {
+		reply.WriteString("none\n")
+	} else {
+		reply.WriteString(settings.MainCategory)
+		reply.WriteString(" ")
+		reply.WriteString(settings.SubCategory)
+		reply.WriteString("\n")
+	}
+	reply.WriteString("\n")
 
 	if settings.OnJoinDelete {
 		reply.WriteString("✅ Delete join message (after spam detection)\n")
@@ -102,6 +114,21 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 		settings.Hidden = !settings.Hidden
 		return settings
 	}))
+
+	// Edit category
+	editCategoryButtonText := "✏️ Edit category"
+	editCategoryButton := tb.InlineButton{
+		Unique: "settings_edit_group_category",
+		Text:   editCategoryButtonText,
+		Data:   fmt.Sprintf("%d", chat.ID),
+	}
+	b.Handle(&editCategoryButton, func(callback *tb.Callback) {
+		_ = b.Respond(callback)
+		_, _ = b.Edit(callback.Message, "Scrivi il nome del corso di laurea. Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\nInformatica\n\noppure\n\nInformatica\nPrimo anno")
+
+		chatId, _ := strconv.Atoi(callback.Data)
+		globaleditcat[callback.Sender.ID] = int64(chatId)
+	})
 
 	// Delete join and part messages
 	deleteJoinMessagesText := "✅ Del join msgs"
@@ -258,7 +285,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 	return &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{settingsRefreshButton, enableDisableBotButton},
-			{hideShowBotButton},
+			{hideShowBotButton, editCategoryButton},
 			{deleteJoinMessages, deleteLeaveMessages},
 			{onJoinChineseKickButton, onJoinArabicKickButton},
 			{onMessageChineseKickButton, onMessageArabicKickButton},

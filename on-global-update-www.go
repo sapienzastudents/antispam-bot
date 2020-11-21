@@ -144,7 +144,7 @@ func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 
 func prepareGroupListForWeb() (string, error) {
 	// Get all categories
-	categories, err := botdb.GetChatTree()
+	categories, err := botdb.GetChatTree(b)
 	if err != nil {
 		return "", err
 	}
