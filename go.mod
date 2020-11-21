@@ -12,6 +12,7 @@ require (
 	github.com/levigross/grequests v0.0.0-20190130132859-37c80f76a0da
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.3 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.7.0
 	gopkg.in/tucnak/telebot.v2 v2.3.5
