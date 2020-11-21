@@ -314,7 +314,12 @@ func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 		isGlobalAdmin := botdb.IsGlobalAdmin(m.Sender)
 
 		for _, x := range chatrooms {
-			if chatsettings, err := botdb.GetChatSetting(b, x); !isGlobalAdmin || err != nil || !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
+			chatsettings, err := botdb.GetChatSetting(b, x)
+			if err != nil {
+				logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
+				continue
+			}
+			if !isGlobalAdmin && !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
 				continue
 			}
 
