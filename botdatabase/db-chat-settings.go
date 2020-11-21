@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -113,20 +114,20 @@ func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, 
 
 		chatAdmins, err := b.AdminsOf(chat)
 		if err != nil {
-			return ChatSettings{}, err
+			return ChatSettings{}, errors.Wrap(err, "can't get admin list for chat")
 		}
 		settings.ChatAdmins.SetFromChat(chatAdmins)
 
 		err = db.SetChatSettings(chat, settings)
 		if err != nil {
-			return ChatSettings{}, err
+			return ChatSettings{}, errors.Wrap(err, "can't save chat settings for new chat")
 		}
 	} else if err != nil {
 		return ChatSettings{}, err
 	} else {
 		err = json.Unmarshal([]byte(jsonb), &settings)
 		if err != nil {
-			return ChatSettings{}, err
+			return ChatSettings{}, errors.Wrap(err, "error decoding chat settings from JSON")
 		}
 	}
 

@@ -90,21 +90,6 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 	}
 
 	var buttons [][]tb.InlineButton
-	if len(categoryTree.Chats) > 0 {
-		var bt = tb.InlineButton{
-			Unique: "gruppi_generali_sapienza",
-			Text:   "Gruppi generali Sapienza",
-		}
-		buttons = append(buttons, []tb.InlineButton{bt})
-
-		b.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
-			return func(callback *tb.Callback) {
-				_ = b.Respond(callback)
-
-				showCategory(callback.Message, cat, true)
-			}
-		}(categoryTree))
-	}
 
 	for _, category := range categoryTree.GetSubCategoryList() {
 		var bt = tb.InlineButton{
@@ -120,6 +105,22 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 				showCategory(callback.Message, cat, false)
 			}
 		}(categoryTree.SubCategories[category]))
+	}
+
+	if len(categoryTree.Chats) > 0 {
+		var bt = tb.InlineButton{
+			Unique: "groups_no_category",
+			Text:   "Senza categoria",
+		}
+		buttons = append(buttons, []tb.InlineButton{bt})
+
+		b.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
+			return func(callback *tb.Callback) {
+				_ = b.Respond(callback)
+
+				showCategory(callback.Message, cat, true)
+			}
+		}(categoryTree))
 	}
 
 	_, err = b.Send(m.Sender, "Seleziona il corso di laurea", &tb.SendOptions{
