@@ -24,6 +24,9 @@ type BOTDatabase interface {
 
 	DoCacheUpdate(b *tb.Bot) error
 	DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error
+
+	GetChatCategory(c *tb.Chat) (string, error)
+	SetChatCategory(c *tb.Chat, cat string) error
 }
 
 func New(logger *logrus.Entry) (BOTDatabase, error) {

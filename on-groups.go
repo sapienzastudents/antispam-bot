@@ -8,18 +8,17 @@ import (
 	"strings"
 )
 
-func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
-	logger.Debugf("My chat room requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
+const ChatCategorySeparator = "||"
 
+func showCategory(m *tb.Message, category string) {
 	chatrooms, err := botdb.ListMyChatrooms()
 	if err != nil {
 		logger.WithError(err).Error("Error getting chatroom list")
 	} else {
-		sort.Slice(chatrooms, func(i, j int) bool {
-			return chatrooms[i].Title < chatrooms[j].Title
-		})
 
 		msg := strings.Builder{}
+		subCategoriesChat := map[string][]*tb.Chat{}
+		subCategories := Set{}
 		for _, v := range chatrooms {
 			settings, err := botdb.GetChatSetting(b, v)
 			if err != nil {
@@ -28,6 +27,19 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 			}
 			if settings.Hidden {
 				continue
+			}
+			chatCategory, err := botdb.GetChatCategory(v)
+			if err != nil {
+				logger.WithError(err).WithField("chat", v.ID).Error("Error getting chatroom category")
+				continue
+			}
+			chatCategoryLevels := strings.Split(chatCategory, ChatCategorySeparator)
+			if category != chatCategoryLevels[0] {
+				continue
+			}
+			subCategory := ""
+			if len(chatCategoryLevels) > 1 {
+				subCategory = chatCategoryLevels[1]
 			}
 
 			if v.InviteLink == "" {
@@ -53,16 +65,106 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 				_ = botdb.UpdateMyChatroomList(v)
 			}
 
-			msg.WriteString("<b>")
-			msg.WriteString(v.Title)
-			msg.WriteString("</b>\n")
-			msg.WriteString(v.InviteLink)
-			msg.WriteString("\n\n")
+			subCategoriesChat[subCategory] = append(subCategoriesChat[subCategory], v)
+			subCategories.Add(subCategory)
 		}
 
-		_, err = b.Send(m.Sender, msg.String(), &tb.SendOptions{
+		// Show general groups before others
+		if groups, ok := subCategoriesChat[""]; ok {
+			sort.Slice(groups, func(i, j int) bool {
+				return groups[i].Title < groups[j].Title
+			})
+			for _, v := range groups {
+				msg.WriteString(v.Title)
+				msg.WriteString(": ")
+				msg.WriteString(v.InviteLink)
+				msg.WriteString("\n")
+			}
+			msg.WriteString("\n")
+		}
+
+		for _, subcat := range subCategories.GetAsOrderedList() {
+			if subcat == "" {
+				continue
+			}
+			groups := subCategoriesChat[subcat]
+
+			sort.Slice(groups, func(i, j int) bool {
+				return groups[i].Title < groups[j].Title
+			})
+			msg.WriteString("<b>")
+			msg.WriteString(subcat)
+			msg.WriteString("</b>\n")
+			for _, v := range groups {
+				msg.WriteString(v.Title)
+				msg.WriteString(": ")
+				msg.WriteString(v.InviteLink)
+				msg.WriteString("\n")
+			}
+			msg.WriteString("\n")
+		}
+
+		_, err = b.Edit(m, msg.String(), &tb.SendOptions{
 			ParseMode:             tb.ModeHTML,
 			DisableWebPagePreview: true,
+		})
+		if err != nil {
+			logger.Warning("can't send message to the user ", err)
+		}
+	}
+}
+
+func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
+	chatrooms, err := botdb.ListMyChatrooms()
+	if err != nil {
+		logger.WithError(err).Error("Error getting chatroom list")
+	} else {
+		categories := Set{}
+		for _, v := range chatrooms {
+			settings, err := botdb.GetChatSetting(b, v)
+			if err != nil {
+				logger.WithError(err).Error("Error getting chatroom config")
+				continue
+			}
+			if settings.Hidden {
+				continue
+			}
+			category, err := botdb.GetChatCategory(v)
+			if err != nil {
+				logger.WithError(err).Error("Can't get chat category")
+				continue
+			}
+			categoryLevels := strings.Split(category, ChatCategorySeparator)
+			categories.Add(categoryLevels[0])
+		}
+
+		var buttons [][]tb.InlineButton
+		for _, category := range categories.GetAsOrderedList() {
+			label := category
+			if label == "" {
+				label = "Gruppi generali Sapienza"
+			}
+			var bt = tb.InlineButton{
+				Unique: Sha1(category),
+				Text:   label,
+			}
+			buttons = append(buttons, []tb.InlineButton{bt})
+
+			b.Handle(&bt, func(cat string) func(callback *tb.Callback) {
+				return func(callback *tb.Callback) {
+					_ = b.Respond(callback)
+
+					showCategory(callback.Message, cat)
+				}
+			}(category))
+		}
+
+		_, err = b.Send(m.Sender, "Seleziona il corso di laurea", &tb.SendOptions{
+			ParseMode:             tb.ModeHTML,
+			DisableWebPagePreview: true,
+			ReplyMarkup: &tb.ReplyMarkup{
+				InlineKeyboard: buttons,
+			},
 		})
 		if err != nil {
 			logger.Warning("can't send message to the user ", err)
