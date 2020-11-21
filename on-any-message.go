@@ -9,55 +9,56 @@ import (
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 	chatEditVal, isForEdit := globaleditcat.Get(fmt.Sprint(m.Sender.ID))
-	chatEdit := chatEditVal.(InlineCategoryEdit)
-
-	if isForEdit && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
-		globaleditcat.Delete(fmt.Sprint(m.Sender.ID))
-		chat, err := b.ChatByID(fmt.Sprint(chatEdit.ChatID))
-		if err != nil {
-			logger.WithError(err).WithField("chat", chatEdit.ChatID).Warn("can't get chat info")
-			return
-		}
-
-		settings, err := botdb.GetChatSetting(b, chat)
-		if err != nil {
-			logger.WithError(err).WithField("chat", chat.ID).Warn("can't get chat settings")
-			return
-		}
-
-		if chatEdit.Category == "" {
-			categories := strings.Split(m.Text, "\n")
-			settings.MainCategory = categories[0]
-			if len(categories) > 1 {
-				settings.SubCategory = categories[1]
-			} else {
-				settings.SubCategory = ""
+	if isForEdit {
+		chatEdit, chatEditOk := chatEditVal.(InlineCategoryEdit)
+		if chatEditOk && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
+			globaleditcat.Delete(fmt.Sprint(m.Sender.ID))
+			chat, err := b.ChatByID(fmt.Sprint(chatEdit.ChatID))
+			if err != nil {
+				logger.WithError(err).WithField("chat", chatEdit.ChatID).Warn("can't get chat info")
+				return
 			}
-		} else {
-			categories := strings.Split(m.Text, "\n")
-			settings.MainCategory = chatEdit.Category
-			settings.SubCategory = categories[0]
+
+			settings, err := botdb.GetChatSetting(b, chat)
+			if err != nil {
+				logger.WithError(err).WithField("chat", chat.ID).Warn("can't get chat settings")
+				return
+			}
+
+			if chatEdit.Category == "" {
+				categories := strings.Split(m.Text, "\n")
+				settings.MainCategory = categories[0]
+				if len(categories) > 1 {
+					settings.SubCategory = categories[1]
+				} else {
+					settings.SubCategory = ""
+				}
+			} else {
+				categories := strings.Split(m.Text, "\n")
+				settings.MainCategory = chatEdit.Category
+				settings.SubCategory = categories[0]
+			}
+
+			err = botdb.SetChatSettings(chat, settings)
+			if err != nil {
+				logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
+			}
+
+			settingsbt := tb.InlineButton{
+				Text:   "Torna alle impostazioni",
+				Unique: "back_to_settings",
+			}
+
+			b.Handle(&settingsbt, backToSettingsFromCallback)
+
+			_, _ = b.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
+				InlineKeyboard: [][]tb.InlineButton{
+					{settingsbt},
+				},
+			})
+
+			return
 		}
-
-		err = botdb.SetChatSettings(chat, settings)
-		if err != nil {
-			logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
-		}
-
-		settingsbt := tb.InlineButton{
-			Text:   "Torna alle impostazioni",
-			Unique: "back_to_settings",
-		}
-
-		b.Handle(&settingsbt, backToSettingsFromCallback)
-
-		_, _ = b.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
-			InlineKeyboard: [][]tb.InlineButton{
-				{settingsbt},
-			},
-		})
-
-		return
 	}
 
 	// Note: this will not scale very well - keep an eye on it
