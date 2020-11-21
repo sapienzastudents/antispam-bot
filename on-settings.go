@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
@@ -430,9 +431,9 @@ func handleChangeCategory(callback *tb.Callback) {
 				"Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\n"+
 				"Informatica (triennale)\n\noppure\n\nInformatica\nPrimo anno")
 
-		globaleditcat[callback.Sender.ID] = InlineCategoryEdit{
+		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), InlineCategoryEdit{
 			ChatID: int64(chatId),
-		}
+		}, cache.DefaultExpiration)
 	})
 
 	buttons := [][]tb.InlineButton{{customCategoryBt}}
@@ -485,10 +486,10 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 		_ = b.Respond(callback)
 		_, _ = b.Edit(callback.Message, "Scrivi il nome della sotto-categoria.\n\nEsempio: Primo anno")
 
-		globaleditcat[callback.Sender.ID] = InlineCategoryEdit{
+		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), InlineCategoryEdit{
 			ChatID:   state.Chat.ID,
 			Category: state.Category,
-		}
+		}, cache.DefaultExpiration)
 	}))
 
 	noCategoryState := NewCallbackState(State{

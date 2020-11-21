@@ -8,10 +8,11 @@ import (
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
-	chatEdit, isForEdit := globaleditcat[m.Sender.ID]
+	chatEditVal, isForEdit := globaleditcat.Get(fmt.Sprint(m.Sender.ID))
+	chatEdit := chatEditVal.(InlineCategoryEdit)
 
 	if isForEdit && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
-		delete(globaleditcat, m.Sender.ID)
+		globaleditcat.Delete(fmt.Sprint(m.Sender.ID))
 		chat, err := b.ChatByID(fmt.Sprint(chatEdit.ChatID))
 		if err != nil {
 			logger.WithError(err).WithField("chat", chatEdit.ChatID).Warn("can't get chat info")

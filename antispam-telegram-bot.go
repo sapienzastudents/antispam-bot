@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -19,8 +20,7 @@ var b *tb.Bot = nil
 var logger *logrus.Entry = nil
 var botdb botdatabase.BOTDatabase = nil
 
-// TODO: Use go-cache to avoid leaks
-var globaleditcat = map[int]InlineCategoryEdit{}
+var globaleditcat = cache.New(1*time.Minute, 1*time.Minute)
 
 func main() {
 	rand.Seed(time.Now().UnixNano())

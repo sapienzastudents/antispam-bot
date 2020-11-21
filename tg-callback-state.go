@@ -24,12 +24,14 @@ func CallbackStateful(fn func(callback *tb.Callback, state State)) func(callback
 	return func(callback *tb.Callback) {
 		state, ok := statemgmt.Get(callback.Data)
 		if !ok {
-			state = State{}
-		}
-		if statemap, ok := state.(State); ok {
-			fn(callback, statemap)
+			_ = b.Respond(callback)
 		} else {
-			fn(callback, State{})
+			statemgmt.Delete(callback.Data)
+			if statemap, ok := state.(State); ok {
+				fn(callback, statemap)
+			} else {
+				_ = b.Respond(callback)
+			}
 		}
 	}
 }
