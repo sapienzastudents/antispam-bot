@@ -9,10 +9,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"html"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 )
@@ -143,60 +143,82 @@ func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 }
 
 func prepareGroupListForWeb() (string, error) {
-	chatrooms, err := botdb.ListMyChatrooms()
+	// Get all categories
+	categories, err := botdb.GetChatTree()
 	if err != nil {
-		logger.WithError(err).Error("Error getting chatroom list")
 		return "", err
-	} else {
-		sort.Slice(chatrooms, func(i, j int) bool {
-			return chatrooms[i].Title < chatrooms[j].Title
-		})
-
-		msg := strings.Builder{}
-		msg.WriteString("+++\ndescription = \"Pagina contenenti link ai gruppi social\"\ntitle = \"Link gruppi social\"\ntype = \"post\"\ndate = \"")
-		msg.WriteString(time.Now().Format("2006-01-02"))
-		msg.WriteString("\"\n+++\n\n# Gruppi Telegram\n\n")
-
-		for _, v := range chatrooms {
-			settings, err := botdb.GetChatSetting(b, v)
-			if err != nil {
-				logger.WithError(err).Error("Error getting chatroom config")
-				continue
-			}
-			if settings.Hidden {
-				continue
-			}
-
-			if v.InviteLink == "" {
-				v.InviteLink, err = b.GetInviteLink(v)
-
-				if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-					apierr, _ := err.(*tb.APIError)
-					v, err = b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
-					if err != nil {
-						logger.Warning("can't get chat info ", err)
-						continue
-					}
-
-					v.InviteLink, err = b.GetInviteLink(v)
-					if err != nil {
-						logger.Warning("can't get invite link ", err)
-						continue
-					}
-				} else if err != nil {
-					logger.Warning("can't get chat info ", err)
-					continue
-				}
-				_ = botdb.UpdateMyChatroomList(v)
-			}
-
-			msg.WriteString("* [")
-			msg.WriteString(v.Title)
-			msg.WriteString("](")
-			msg.WriteString(v.InviteLink)
-			msg.WriteString(")\n")
-		}
-
-		return msg.String(), nil
 	}
+
+	msg := strings.Builder{}
+	msg.WriteString("+++\ndescription = \"Pagina contenenti link ai gruppi social\"\ntitle = \"Link gruppi social\"\ntype = \"post\"\ndate = \"")
+	msg.WriteString(time.Now().Format("2006-01-02"))
+	msg.WriteString("\"\n+++\n\n# Gruppi Telegram\n\n")
+
+	msg.WriteString("## Gruppi generali Sapienza\n")
+	for _, v := range categories.Chats {
+		_ = printChatsInMarkdown(&msg, v)
+	}
+
+	for _, category := range categories.GetSubCategoryList() {
+		msg.WriteString("\n## ")
+		msg.WriteString(html.EscapeString(category))
+		msg.WriteString("\n")
+
+		var l1cat = categories.SubCategories[category]
+		for _, v := range l1cat.Chats {
+			_ = printChatsInMarkdown(&msg, v)
+		}
+		for _, subcat := range l1cat.GetSubCategoryList() {
+			msg.WriteString("\n### ")
+			msg.WriteString(html.EscapeString(subcat))
+			msg.WriteString("\n")
+			var l2cat = l1cat.SubCategories[subcat]
+			for _, v := range l2cat.Chats {
+				_ = printChatsInMarkdown(&msg, v)
+			}
+		}
+	}
+
+	return msg.String(), nil
+}
+
+func printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
+	settings, err := botdb.GetChatSetting(b, v)
+	if err != nil {
+		logger.WithError(err).Error("Error getting chatroom config")
+		return err
+	}
+	if settings.Hidden {
+		return nil
+	}
+
+	if v.InviteLink == "" {
+		v.InviteLink, err = b.GetInviteLink(v)
+
+		if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
+			apierr, _ := err.(*tb.APIError)
+			v, err = b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
+			if err != nil {
+				logger.Warning("can't get chat info ", err)
+				return err
+			}
+
+			v.InviteLink, err = b.GetInviteLink(v)
+			if err != nil {
+				logger.Warning("can't get invite link ", err)
+				return err
+			}
+		} else if err != nil {
+			logger.Warning("can't get chat info ", err)
+			return err
+		}
+		_ = botdb.UpdateMyChatroomList(v)
+	}
+
+	msg.WriteString("* [")
+	msg.WriteString(v.Title)
+	msg.WriteString("](")
+	msg.WriteString(v.InviteLink)
+	msg.WriteString(")\n")
+	return nil
 }
