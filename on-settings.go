@@ -283,6 +283,23 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 		_ = b.Delete(callback.Message)
 	})
 
+	// reloadGroupInfo
+	// Enable CAS
+	reloadGroupInfoBt := tb.InlineButton{
+		Unique: "reload_group_info",
+		Text:   "Reload group info",
+		Data:   fmt.Sprintf("%d", chat.ID),
+	}
+	b.Handle(&reloadGroupInfoBt, func(callback *tb.Callback) {
+		chatId, _ := strconv.Atoi(callback.Data)
+
+		_ = botdb.DoCacheUpdateForChat(b, &tb.Chat{ID: int64(chatId)})
+
+		_ = b.Respond(callback, &tb.CallbackResponse{
+			Text: "OK",
+		})
+	})
+
 	return &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{settingsRefreshButton, enableDisableBotButton},
@@ -290,7 +307,7 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 			{deleteJoinMessages, deleteLeaveMessages},
 			{onJoinChineseKickButton, onJoinArabicKickButton},
 			{onMessageChineseKickButton, onMessageArabicKickButton},
-			{enableCASbutton},
+			{enableCASbutton, reloadGroupInfoBt},
 			{closeBtn},
 		},
 	}

@@ -9,6 +9,7 @@ Note that this bot will not have features that you can find in other bots like `
 Features (when not ticked, they're planned):
 
 * [X] Use CAS blacklist
+* [ ] Multilanguage!
 * [ ] Write an help/welcome message
 * [ ] Merge "chatrooms" and "settings" sets in Redis
 * [ ] Per-group configurable checks

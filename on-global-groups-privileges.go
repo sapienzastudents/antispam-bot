@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 )
 
 func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
@@ -85,11 +86,21 @@ func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
 					msg.WriteString("❌\n")
 				}
 			}
+
+			_, err = b.Edit(waitingmsg, msg.String())
+			if err != nil {
+				logger.Warning("[global] can't edit message to the user ", err)
+			}
+
+			// Do not trigger Telegram rate limit
+			time.Sleep(500 * time.Millisecond)
 		}
+
+		msg.WriteString("\ndone")
 
 		_, err = b.Edit(waitingmsg, msg.String())
 		if err != nil {
-			logger.Warning("can't send message to the user ", err)
+			logger.Warning("[global] can't edit final message to the user ", err)
 		}
 	}
 }

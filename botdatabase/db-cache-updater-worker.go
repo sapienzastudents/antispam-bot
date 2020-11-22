@@ -23,7 +23,7 @@ func (db *_botDatabase) DoCacheUpdate(b *tb.Bot) error {
 		}
 
 		// Do not ask too quickly
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	db.logger.Infof("Chat admin scan done in %.3f seconds", time.Since(startms).Seconds())

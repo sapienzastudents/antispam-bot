@@ -41,14 +41,14 @@ func showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgenera
 		DisableWebPagePreview: true,
 	})
 	if err != nil {
-		logger.Warning("can't send message to the user ", err)
+		logger.WithError(err).Warning("can't edit message to the user")
 	}
 }
 
 func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 	settings, err := botdb.GetChatSetting(b, v)
 	if err != nil {
-		logger.WithError(err).Error("Error getting chatroom config")
+		logger.WithError(err).WithField("chat", v.ID).Error("Error getting chatroom config")
 		return err
 	}
 	if settings.Hidden {
@@ -60,19 +60,20 @@ func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 
 		if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
 			apierr, _ := err.(*tb.APIError)
-			v, err = b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
+			newChatInfo, err := b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
 			if err != nil {
-				logger.Warning("can't get chat info ", err)
+				logger.WithError(err).WithField("chat", v.ID).Warning("can't get chat info for migrated supergroup")
 				return err
 			}
+			v = newChatInfo
 
 			v.InviteLink, err = b.GetInviteLink(v)
 			if err != nil {
-				logger.Warning("can't get invite link ", err)
+				logger.WithError(err).WithField("chat", v.ID).Warning("can't get invite link")
 				return err
 			}
 		} else if err != nil {
-			logger.Warning("can't get chat info ", err)
+			logger.WithError(err).WithField("chat", v.ID).Warning("can't get chat info")
 			return err
 		}
 		_ = botdb.UpdateMyChatroomList(v)
@@ -135,7 +136,7 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 		},
 	})
 	if err != nil {
-		logger.Warning("can't send message to the user ", err)
+		logger.WithError(err).Warning("can't send group list message to the user")
 	}
 
 	if !m.Private() {
