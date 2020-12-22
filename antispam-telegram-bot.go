@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/patrickmn/go-cache"
-	"github.com/sirupsen/logrus"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/patrickmn/go-cache"
+	"github.com/sirupsen/logrus"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 var APP_VERSION = "dev"
@@ -125,7 +126,7 @@ func main() {
 			<-t.C
 			err := botdb.DoCacheUpdate(b)
 			if err != nil {
-				logger.WithError(err).Error("erorr cycling for data refresh")
+				logger.WithError(err).Error("error cycling for data refresh")
 			}
 		}
 	}()

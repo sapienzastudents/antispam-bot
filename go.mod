@@ -2,8 +2,6 @@ module gitlab.com/sapienzastudents/antispam-telegram-bot
 
 go 1.12
 
-replace gopkg.in/tucnak/telebot.v2 v2.3.5 => github.com/Enrico204/telebot v0.0.0-20201115170532-3dbe92edf98a
-
 require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-redis/redis v6.15.2+incompatible
@@ -17,3 +15,5 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	gopkg.in/tucnak/telebot.v2 v2.3.5
 )
+
+replace gopkg.in/tucnak/telebot.v2 => github.com/Enrico204/telebot v0.0.0-20201222212616-8da2bc712c92
