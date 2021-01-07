@@ -91,7 +91,8 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 	categoryTree, err := botdb.GetChatTree(b)
 	if err != nil {
 		logger.WithError(err).Error("Error getting chatroom list")
-		_, _ = b.Send(m.Chat, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
+		msg, _ := b.Send(m.Chat, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
+		SetMessageExpiration(msg, 30*time.Second)
 		return
 	}
 
@@ -140,12 +141,8 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 		replyMessage, _ := b.Send(m.Chat, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!", &tb.SendOptions{ReplyTo: m})
 
 		// Self destruct message in 10s
-		t := time.NewTimer(10 * time.Second)
-		go func(m *tb.Message, m2 *tb.Message) {
-			<-t.C
-			_ = b.Delete(m)
-			_ = b.Delete(m2)
-		}(m, replyMessage)
+		SetMessageExpiration(m, 10*time.Second)
+		SetMessageExpiration(replyMessage, 10*time.Second)
 	} else if err != nil {
 		logger.WithError(err).Warning("can't send group list message to the user")
 	} else if !m.Private() {

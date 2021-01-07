@@ -187,6 +187,8 @@ func CheckGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) 
 			actionHandler(m, settings)
 			return
 		}
-		_, _ = b.Send(m.Chat, "Sorry, only group admins can use this command")
+		_ = b.Delete(m)
+		msg, _ := b.Send(m.Chat, "Sorry, only group admins can use this command")
+		SetMessageExpiration(msg, 10*time.Second)
 	}
 }

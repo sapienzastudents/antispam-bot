@@ -10,7 +10,7 @@ Features (when not ticked, they're planned):
 
 * [X] Use CAS blacklist
 * [ ] Multilanguage!
-* [ ] Write an help/welcome message
+* [X] Write an help/welcome message
 * [ ] Merge "chatrooms" and "settings" sets in Redis
 * [ ] Per-group configurable checks
     * [x] Detect Chinese messages (when Chinese chars are higher than a given threshold)
