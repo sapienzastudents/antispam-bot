@@ -150,9 +150,21 @@ func prepareGroupListForWeb() (string, error) {
 	}
 
 	msg := strings.Builder{}
-	msg.WriteString("+++\ndescription = \"Pagina contenenti link ai gruppi social\"\ntitle = \"Link gruppi social\"\ntype = \"post\"\ndate = \"")
+	msg.WriteString(`+++
+description = "Pagina contenenti link ai gruppi social"
+title = "Link gruppi social"
+type = "post"
+date = "`)
 	msg.WriteString(time.Now().Format("2006-01-02"))
-	msg.WriteString("\"\n+++\n\n# Gruppi Telegram\n\n")
+	msg.WriteString(`"
++++
+
+# Gruppi Telegram
+
+Qui di seguito trovi un indice di gruppi di studenti della Sapienza su Telegram. Se vuoi aggiungere il tuo gruppo, segui
+le [indicazioni in questa pagina!](/social_add/)
+
+`)
 
 	for _, category := range categories.GetSubCategoryList() {
 		var l1cat = categories.SubCategories[category]
