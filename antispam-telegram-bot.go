@@ -109,6 +109,7 @@ func main() {
 	b.Handle("/emergency_reduce", CheckGlobalAdmin(RefreshDBInfo(onEmergencyReduce)))
 	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
 	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
+	b.Handle("/groupsnotifyperm", CheckGlobalAdmin(RefreshDBInfo(onGroupsNotifyMissingPermissions)))
 	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
 	b.Handle("/updatewww", CheckGlobalAdmin(RefreshDBInfo(onGlobalUpdateWww)))
 

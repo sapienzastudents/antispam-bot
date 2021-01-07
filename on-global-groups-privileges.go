@@ -10,16 +10,57 @@ import (
 	"time"
 )
 
-func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
-	logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
+var botPermissionsTag = map[string]string{
+	"can_change_info":      "C",
+	"can_delete_messages":  "D",
+	"can_invite_users":     "I",
+	"can_restrict_members": "R",
+	"can_pin_messages":     "N",
+	"can_promote_members":  "P",
+}
 
-	var botpermissions = map[string]string{
-		"can_change_info":      "C",
-		"can_delete_messages":  "D",
-		"can_invite_users":     "I",
-		"can_restrict_members": "R",
-		"can_pin_messages":     "N",
-		"can_promote_members":  "P",
+var botPermissionsText = map[string]string{
+	"can_change_info":      "Change group info",
+	"can_delete_messages":  "Delete messages",
+	"can_invite_users":     "Invite users via link",
+	"can_restrict_members": "Restrict/ban users",
+	"can_pin_messages":     "Pin messages",
+	"can_promote_members":  "Add new admins",
+}
+
+func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
+	onGroupsPrivilegesFunc(m, false)
+}
+
+func onGroupsNotifyMissingPermissions(m *tb.Message, _ botdatabase.ChatSettings) {
+	onGroupsPrivilegesFunc(m, true)
+}
+
+func synthetizePrivileges(user *tb.ChatMember) []string {
+	var ret []string
+	t := reflect.TypeOf(user.Rights)
+	right := reflect.ValueOf(user.Rights)
+	for i := 0; i < t.NumField(); i++ {
+		k := t.Field(i).Tag.Get("json")
+		_, ok := botPermissionsTag[k]
+		if !ok {
+			// Skip this field
+			continue
+		}
+
+		f := right.Field(i)
+		if !f.Bool() {
+			ret = append(ret, k)
+		}
+	}
+	return ret
+}
+
+func onGroupsPrivilegesFunc(m *tb.Message, notify bool) {
+	if notify {
+		logger.Debugf("Missing privilege notification requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
+	} else {
+		logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 	}
 
 	waitingmsg, _ := b.Send(m.Chat, "Work in progress...")
@@ -33,7 +74,7 @@ func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
 		})
 
 		msg := strings.Builder{}
-		for k, v := range botpermissions {
+		for k, v := range botPermissionsTag {
 			msg.WriteString(k)
 			msg.WriteString(" -> ")
 			msg.WriteString(v)
@@ -60,30 +101,23 @@ func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
 			msg.WriteString(" : ")
 			if me.Role != tb.Administrator {
 				msg.WriteString("❌ not admin\n")
-			} else {
-				var permissionsOk = true
 
-				t := reflect.TypeOf(me.Rights)
-				right := reflect.ValueOf(me.Rights)
-				for i := 0; i < t.NumField(); i++ {
-					k := t.Field(i).Tag.Get("json")
-					tag, ok := botpermissions[k]
-					if !ok {
-						// Skip this field
-						continue
-					}
-
-					f := right.Field(i)
-					if !f.Bool() {
-						msg.WriteString(tag)
-						permissionsOk = false
-					}
+				if notify {
+					_, _ = b.Send(v, "Oops, mi mancano i permessi di admin per funzionare! L'indicizzazione non sta funzionando!\n\nPer gli admin del gruppo: contattatemi in privato scrivendo /settings per vedere quali permessi mancano")
 				}
-
-				if permissionsOk {
+			} else {
+				var missingPrivileges = synthetizePrivileges(me)
+				if len(missingPrivileges) == 0 {
 					msg.WriteString("✅\n")
 				} else {
+					for _, k := range missingPrivileges {
+						msg.WriteString(botPermissionsTag[k])
+					}
 					msg.WriteString("❌\n")
+
+					if notify {
+						_, _ = b.Send(v, "Oops, mi mancano alcuni permessi per funzionare!\n\nPer gli admin del gruppo: contattatemi in privato scrivendo /settings per vedere quali permessi mancano")
+					}
 				}
 			}
 

@@ -16,10 +16,27 @@ type InlineCategoryEdit struct {
 	Category string
 }
 
-func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSettings) string {
+func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSettings) (string, bool) {
 	reply := strings.Builder{}
 
 	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chat.Title, chat.ID))
+
+	// Check permissions
+	me, _ := b.ChatMemberOf(chat, b.Me)
+	if me.Role != tb.Administrator {
+		reply.WriteString("❌❌❌ The bot is not an admin!")
+		return reply.String(), false
+	} else {
+		var missingPrivileges = synthetizePrivileges(me)
+		if len(missingPrivileges) != 0 {
+			reply.WriteString("❌ Missing permissions:\n")
+			for _, k := range missingPrivileges {
+				reply.WriteString(botPermissionsText[k])
+			}
+			return reply.String(), false
+		}
+	}
+
 	if settings.BotEnabled {
 		reply.WriteString("✅ Bot enabled\n")
 	} else {
@@ -78,10 +95,10 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 
 	reply.WriteString("\nGenerated at: ")
 	reply.WriteString(time.Now().String())
-	return reply.String()
+	return reply.String(), true
 }
 
-func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSettings) *tb.ReplyMarkup {
+func generateSettingsReplyMarkup(botHasRightPermissions bool, chat *tb.Chat, settings botdatabase.ChatSettings) *tb.ReplyMarkup {
 	// TODO: move button creations in init function (eg. global buttons objects and handler)
 	settingsRefreshButton := tb.InlineButton{
 		Unique: "settings_message_refresh",
@@ -91,6 +108,48 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 	b.Handle(&settingsRefreshButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		return settings
 	}))
+
+	// reloadGroupInfo
+	reloadGroupInfoBt := tb.InlineButton{
+		Unique: "reload_group_info",
+		Text:   "Reload group info",
+		Data:   fmt.Sprintf("%d", chat.ID),
+	}
+	b.Handle(&reloadGroupInfoBt, func(callback *tb.Callback) {
+		chatId, _ := strconv.Atoi(callback.Data)
+
+		_ = botdb.DoCacheUpdateForChat(b, &tb.Chat{ID: int64(chatId)})
+
+		_ = b.Respond(callback, &tb.CallbackResponse{
+			Text: "Group information reloaded",
+		})
+
+		settings, _ := botdb.GetChatSetting(b, chat)
+		settingsMsg, botHasRightPermissions := generateSettingsMessageText(chat, settings)
+		_, _ = b.Edit(callback.Message, settingsMsg, &tb.SendOptions{
+			ParseMode:             tb.ModeMarkdown,
+			ReplyMarkup:           generateSettingsReplyMarkup(botHasRightPermissions, chat, settings),
+			DisableWebPagePreview: true,
+		})
+	})
+
+	// Close settings
+	closeBtn := tb.InlineButton{
+		Unique: "settings_close",
+		Text:   "Close",
+	}
+	b.Handle(&closeBtn, func(callback *tb.Callback) {
+		_ = b.Delete(callback.Message)
+	})
+
+	if !botHasRightPermissions {
+		return &tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{
+				{settingsRefreshButton, reloadGroupInfoBt},
+				{closeBtn},
+			},
+		}
+	}
 
 	// Enable / Disable bot button
 	enableDisableButtonText := "✅ Enable bot"
@@ -275,31 +334,6 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 		return settings
 	}))
 
-	closeBtn := tb.InlineButton{
-		Unique: "settings_close",
-		Text:   "Close",
-	}
-	b.Handle(&closeBtn, func(callback *tb.Callback) {
-		_ = b.Delete(callback.Message)
-	})
-
-	// reloadGroupInfo
-	// Enable CAS
-	reloadGroupInfoBt := tb.InlineButton{
-		Unique: "reload_group_info",
-		Text:   "Reload group info",
-		Data:   fmt.Sprintf("%d", chat.ID),
-	}
-	b.Handle(&reloadGroupInfoBt, func(callback *tb.Callback) {
-		chatId, _ := strconv.Atoi(callback.Data)
-
-		_ = botdb.DoCacheUpdateForChat(b, &tb.Chat{ID: int64(chatId)})
-
-		_ = b.Respond(callback, &tb.CallbackResponse{
-			Text: "OK",
-		})
-	})
-
 	return &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{settingsRefreshButton, enableDisableBotButton},
@@ -316,9 +350,10 @@ func generateSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.ChatSetting
 func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 	// Messages in a chat
 	if !m.Private() && botdb.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
-		_, _ = b.Send(m.Chat, generateSettingsMessageText(m.Chat, settings), &tb.SendOptions{
+		settingsMsg, botHasRightPermissions := generateSettingsMessageText(m.Chat, settings)
+		_, _ = b.Send(m.Chat, settingsMsg, &tb.SendOptions{
 			ParseMode:             tb.ModeMarkdown,
-			ReplyMarkup:           generateSettingsReplyMarkup(m.Chat, settings),
+			ReplyMarkup:           generateSettingsReplyMarkup(botHasRightPermissions, m.Chat, settings),
 			DisableWebPagePreview: true,
 		})
 	} else if m.Private() {
@@ -355,9 +390,10 @@ func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 				_ = b.Delete(callback.Message)
 
 				settings, _ := botdb.GetChatSetting(b, newchat)
-				_, _ = b.Send(callback.Message.Chat, generateSettingsMessageText(newchat, settings), &tb.SendOptions{
+				settingsMsg, botHasRightPermissions := generateSettingsMessageText(newchat, settings)
+				_, _ = b.Send(callback.Message.Chat, settingsMsg, &tb.SendOptions{
 					ParseMode:             tb.ModeMarkdown,
-					ReplyMarkup:           generateSettingsReplyMarkup(newchat, settings),
+					ReplyMarkup:           generateSettingsReplyMarkup(botHasRightPermissions, newchat, settings),
 					DisableWebPagePreview: true,
 				})
 			})
@@ -410,9 +446,10 @@ func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabas
 			newsettings := fn(callback, settings)
 			_ = botdb.SetChatSettings(chat, newsettings)
 
-			_, _ = b.Edit(callback.Message, generateSettingsMessageText(chat, newsettings), &tb.SendOptions{
+			settingsMsg, botHasRightPermissions := generateSettingsMessageText(chat, settings)
+			_, _ = b.Edit(callback.Message, settingsMsg, &tb.SendOptions{
 				ParseMode:             tb.ModeMarkdown,
-				ReplyMarkup:           generateSettingsReplyMarkup(chat, newsettings),
+				ReplyMarkup:           generateSettingsReplyMarkup(botHasRightPermissions, chat, newsettings),
 				DisableWebPagePreview: true,
 			})
 

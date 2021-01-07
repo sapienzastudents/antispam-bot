@@ -5,6 +5,7 @@ import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"strings"
+	"time"
 )
 
 func showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool) {
@@ -135,11 +136,20 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 			InlineKeyboard: buttons,
 		},
 	})
-	if err != nil {
-		logger.WithError(err).Warning("can't send group list message to the user")
-	}
+	if err == tb.ErrNotStartedByUser || err == tb.ErrBlockedByUser {
+		replyMessage, _ := b.Send(m.Chat, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!", &tb.SendOptions{ReplyTo: m})
 
-	if !m.Private() {
-		_, _ = b.Send(m.Chat, "🇮🇹 Ti ho scritto in privato!\n\n🇬🇧 I sent you a direct message!", &tb.SendOptions{ReplyTo: m})
+		// Self destruct message in 10s
+		t := time.NewTimer(10 * time.Second)
+		go func(m *tb.Message, m2 *tb.Message) {
+			<-t.C
+			_ = b.Delete(m)
+			_ = b.Delete(m2)
+		}(m, replyMessage)
+	} else if err != nil {
+		logger.WithError(err).Warning("can't send group list message to the user")
+	} else if !m.Private() {
+		// User contacted in private before, and command in a public group -> remove user public messages
+		_ = b.Delete(m)
 	}
 }
