@@ -168,7 +168,7 @@ le [indicazioni in questa pagina!](/social_add/)
 
 	for _, category := range categories.GetSubCategoryList() {
 		var l1cat = categories.SubCategories[category]
-		if len(l1cat.Chats) == 0 {
+		if len(l1cat.Chats) == 0 && len(l1cat.GetSubCategoryList()) == 0 {
 			continue
 		}
 
