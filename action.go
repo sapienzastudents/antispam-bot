@@ -44,7 +44,7 @@ func prettyActionName(action botdatabase.BotAction) string {
 	case botdatabase.ACTION_KICK:
 		return "❗️ Kick"
 	case botdatabase.ACTION_NONE:
-		return "❌ Do nothing"
+		return "💤 Do nothing"
 	default:
 		return "n/a"
 	}

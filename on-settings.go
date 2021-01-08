@@ -22,6 +22,7 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chat.Title, chat.ID))
 
 	// Check permissions
+	// TODO: enable/disable settings "sections" based on permissions
 	me, _ := b.ChatMemberOf(chat, b.Me)
 	if me.Role != tb.Administrator {
 		reply.WriteString("❌❌❌ The bot is not an admin!")
@@ -29,9 +30,9 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	} else {
 		var missingPrivileges = synthetizePrivileges(me)
 		if len(missingPrivileges) != 0 {
-			reply.WriteString("❌ Missing permissions:\n")
+			reply.WriteString("❌❌❌ Missing permissions:\n")
 			for _, k := range missingPrivileges {
-				reply.WriteString(botPermissionsText[k])
+				reply.WriteString(botPermissionsText[k] + "\n")
 			}
 			return reply.String(), false
 		}
@@ -40,7 +41,7 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	if settings.BotEnabled {
 		reply.WriteString("✅ Bot enabled\n")
 	} else {
-		reply.WriteString("❌ Bot disabled\n")
+		reply.WriteString("💤 Bot disabled\n")
 	}
 
 	if !settings.Hidden {
@@ -63,13 +64,13 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	if settings.OnJoinDelete {
 		reply.WriteString("✅ Delete join message (after spam detection)\n")
 	} else {
-		reply.WriteString("❌ Do not delete join messages (after spam detection)\n")
+		reply.WriteString("💤 Do not delete join messages (after spam detection)\n")
 	}
 
 	if settings.OnLeaveDelete {
 		reply.WriteString("✅ Delete leave message\n")
 	} else {
-		reply.WriteString("❌ Do not delete leave messages\n")
+		reply.WriteString("💤 Do not delete leave messages\n")
 	}
 
 	reply.WriteString("\n🇨🇳 *Chinese* blocker:\n")
@@ -88,13 +89,15 @@ func generateSettingsMessageText(chat *tb.Chat, settings botdatabase.ChatSetting
 	reply.WriteString(prettyActionName(settings.OnMessageArabic))
 	reply.WriteString("*\n")
 
+	/* TODO: disabled as CAS ban API is dead right now
 	reply.WriteString("\nCAS-ban (see https://combot.org/cas/ ):\n")
 	reply.WriteString("On any action: *")
 	reply.WriteString(prettyActionName(settings.OnBlacklistCAS))
 	reply.WriteString("*\n")
+	*/
 
-	reply.WriteString("\nGenerated at: ")
-	reply.WriteString(time.Now().String())
+	reply.WriteString("\nLast update: ")
+	reply.WriteString(time.Now().Format(time.RFC1123Z))
 	return reply.String(), true
 }
 
