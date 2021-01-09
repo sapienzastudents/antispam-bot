@@ -152,7 +152,7 @@ func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSen
 	}
 	msg := "Seleziona il corso di laurea"
 	if messageToEdit == nil {
-		_, err = b.Send(chatToSend, msg, &sendOptions)
+		_, err = b.Send(sender, msg, &sendOptions)
 	} else {
 		_, err = b.Edit(messageToEdit, msg, &sendOptions)
 	}
