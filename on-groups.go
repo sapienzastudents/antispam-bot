@@ -88,10 +88,14 @@ func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 }
 
 func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
+	sendGroupListForLinks(m.Sender, nil, m.Chat, m)
+}
+
+func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, messageFromUser *tb.Message) {
 	categoryTree, err := botdb.GetChatTree(b)
 	if err != nil {
 		logger.WithError(err).Error("Error getting chatroom list")
-		msg, _ := b.Send(m.Chat, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
+		msg, _ := b.Send(chatToSend, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
 		SetMessageExpiration(msg, 30*time.Second)
 		return
 	}
@@ -114,7 +118,7 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 		}(categoryTree.SubCategories[category]))
 	}
 
-	if len(categoryTree.Chats) > 0 {
+	if botdb.IsGlobalAdmin(sender) {
 		var bt = tb.InlineButton{
 			Unique: "groups_no_category",
 			Text:   "Senza categoria",
@@ -129,24 +133,42 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 			}
 		}(categoryTree))
 	}
+	var bt = tb.InlineButton{
+		Unique: "groups_list_close",
+		Text:   "Close / Chiudi",
+	}
+	buttons = append(buttons, []tb.InlineButton{bt})
+	b.Handle(&bt, func(callback *tb.Callback) {
+		_ = b.Respond(callback)
+		_ = b.Delete(callback.Message)
+	})
 
-	_, err = b.Send(m.Sender, "Seleziona il corso di laurea", &tb.SendOptions{
+	var sendOptions = tb.SendOptions{
 		ParseMode:             tb.ModeHTML,
 		DisableWebPagePreview: true,
 		ReplyMarkup: &tb.ReplyMarkup{
 			InlineKeyboard: buttons,
 		},
-	})
-	if err == tb.ErrNotStartedByUser || err == tb.ErrBlockedByUser {
-		replyMessage, _ := b.Send(m.Chat, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!", &tb.SendOptions{ReplyTo: m})
+	}
+	msg := "Seleziona il corso di laurea"
+	if messageToEdit == nil {
+		_, err = b.Send(chatToSend, msg, &sendOptions)
+	} else {
+		_, err = b.Edit(messageToEdit, msg, &sendOptions)
+	}
+	if messageFromUser != nil {
+		if err == tb.ErrNotStartedByUser || err == tb.ErrBlockedByUser {
+			replyMessage, _ := b.Send(chatToSend, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!",
+				&tb.SendOptions{ReplyTo: messageFromUser})
 
-		// Self destruct message in 10s
-		SetMessageExpiration(m, 10*time.Second)
-		SetMessageExpiration(replyMessage, 10*time.Second)
-	} else if err != nil {
-		logger.WithError(err).Warning("can't send group list message to the user")
-	} else if !m.Private() {
-		// User contacted in private before, and command in a public group -> remove user public messages
-		_ = b.Delete(m)
+			// Self destruct message in 10s
+			SetMessageExpiration(messageFromUser, 10*time.Second)
+			SetMessageExpiration(replyMessage, 10*time.Second)
+		} else if err != nil {
+			logger.WithError(err).Warning("can't send group list message to the user")
+		} else if !messageFromUser.Private() {
+			// User contacted in private before, and command in a public group -> remove user public messages
+			_ = b.Delete(messageFromUser)
+		}
 	}
 }

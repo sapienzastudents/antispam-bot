@@ -230,57 +230,83 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 }
 
 func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
-	// Messages in a chat
 	if !m.Private() && botdb.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
+		// Messages in a chatroom
 		sendSettingsMessage(nil, m.Chat, m.Chat, settings)
-	} else if m.Private() {
-		chatButtons := [][]tb.InlineButton{}
-		chatrooms, err := botdb.ListMyChatrooms()
+	} else {
+		// Private message
+		sendGroupListForSettings(m.Sender, nil, m.Chat)
+	}
+}
+
+func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat) {
+	chatButtons := [][]tb.InlineButton{}
+	chatrooms, err := botdb.ListMyChatrooms()
+	if err != nil {
+		logger.WithError(err).Error("cant get chatroom list")
+		return
+	}
+
+	sort.Slice(chatrooms, func(i, j int) bool {
+		return chatrooms[i].Title < chatrooms[j].Title
+	})
+
+	isGlobalAdmin := botdb.IsGlobalAdmin(sender)
+
+	for _, x := range chatrooms {
+		chatsettings, err := botdb.GetChatSetting(b, x)
 		if err != nil {
-			logger.WithError(err).Error("cant get chatroom list")
-			return
+			logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
+			continue
+		}
+		if !isGlobalAdmin && !chatsettings.ChatAdmins.IsAdmin(sender) {
+			continue
 		}
 
-		sort.Slice(chatrooms, func(i, j int) bool {
-			return chatrooms[i].Title < chatrooms[j].Title
+		btn := tb.InlineButton{
+			Unique: fmt.Sprintf("select_chatid_%d", x.ID*-1),
+			Text:   x.Title,
+			Data:   fmt.Sprintf("%d", x.ID),
+		}
+		b.Handle(&btn, func(callback *tb.Callback) {
+			newchat, _ := b.ChatByID(callback.Data)
+
+			settings, _ := botdb.GetChatSetting(b, newchat)
+			sendSettingsMessage(callback.Message, callback.Message.Chat, newchat, settings)
+		})
+		chatButtons = append(chatButtons, []tb.InlineButton{btn})
+	}
+
+	var sendOptions = tb.SendOptions{}
+	var msg = ""
+	if len(chatButtons) == 0 {
+		msg = "You are not an admin in a chat where the bot is."
+	} else {
+		var bt = tb.InlineButton{
+			Unique: "groups_settings_list_close",
+			Text:   "Close / Chiudi",
+		}
+		chatButtons = append(chatButtons, []tb.InlineButton{bt})
+		b.Handle(&bt, func(callback *tb.Callback) {
+			_ = b.Respond(callback)
+			_ = b.Delete(callback.Message)
 		})
 
-		isGlobalAdmin := botdb.IsGlobalAdmin(m.Sender)
-
-		for _, x := range chatrooms {
-			chatsettings, err := botdb.GetChatSetting(b, x)
-			if err != nil {
-				logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
-				continue
-			}
-			if !isGlobalAdmin && !chatsettings.ChatAdmins.IsAdmin(m.Sender) {
-				continue
-			}
-
-			btn := tb.InlineButton{
-				Unique: fmt.Sprintf("select_chatid_%d", x.ID*-1),
-				Text:   x.Title,
-				Data:   fmt.Sprintf("%d", x.ID),
-			}
-			b.Handle(&btn, func(callback *tb.Callback) {
-				newchat, _ := b.ChatByID(callback.Data)
-
-				settings, _ := botdb.GetChatSetting(b, newchat)
-				sendSettingsMessage(callback.Message, callback.Message.Chat, newchat, settings)
-			})
-			chatButtons = append(chatButtons, []tb.InlineButton{btn})
+		msg = "Please select the chatroom:"
+		sendOptions = tb.SendOptions{
+			ParseMode: tb.ModeMarkdown,
+			ReplyMarkup: &tb.ReplyMarkup{
+				InlineKeyboard: chatButtons,
+			},
 		}
-
-		if len(chatButtons) == 0 {
-			_, _ = b.Send(m.Chat, "You are not an admin in a chat where the bot is.")
-		} else {
-			_, _ = b.Send(m.Chat, "Please select the chatroom:", &tb.SendOptions{
-				ParseMode: tb.ModeMarkdown,
-				ReplyMarkup: &tb.ReplyMarkup{
-					InlineKeyboard: chatButtons,
-				},
-			})
-		}
+	}
+	if messageToEdit == nil {
+		_, err = b.Send(chatToSend, msg, &sendOptions)
+	} else {
+		_, err = b.Edit(messageToEdit, msg, &sendOptions)
+	}
+	if err != nil {
+		logger.WithError(err).WithField("chatid", chatToSend.ID).Error("can't send/edit message for chat")
 	}
 }
 
@@ -486,8 +512,11 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 }
 
 func backToSettingsFromCallback(callback *tb.Callback) {
-	_ = b.Delete(callback.Message)
-	chatId, _ := strconv.Atoi(callback.Data)
-	settings, _ := botdb.GetChatSetting(b, &tb.Chat{ID: int64(chatId)})
-	onSettings(callback.Message, settings)
+	chat, err := b.ChatByID(callback.Data)
+	if err != nil {
+		logger.WithError(err).Error("can't get chat information in backToSettingsFromCallback")
+		return
+	}
+	settings, _ := botdb.GetChatSetting(b, chat)
+	sendSettingsMessage(callback.Message, callback.Message.Chat, chat, settings)
 }

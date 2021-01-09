@@ -16,7 +16,7 @@ func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 		b.Handle(&groupsBt, func(callback *tb.Callback) {
 			_ = b.Respond(callback)
 			// Note that the second parameter is always ignored in onGroups, so we can avoid a db lookup
-			onGroups(m, botdatabase.ChatSettings{})
+			sendGroupListForLinks(callback.Sender, callback.Message, callback.Message.Chat, nil)
 		})
 		buttons = append(buttons, []tb.InlineButton{groupsBt})
 
@@ -53,10 +53,20 @@ func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 				_ = b.Respond(callback)
 				// Note that the second parameter is always ignored in onSettings when asking from a direct message, so we
 				// can avoid a db lookup
-				onSettings(m, botdatabase.ChatSettings{})
+				sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat)
 			})
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
+
+		var bt = tb.InlineButton{
+			Unique: "help_close",
+			Text:   "Close / Chiudi",
+		}
+		buttons = append(buttons, []tb.InlineButton{bt})
+		b.Handle(&bt, func(callback *tb.Callback) {
+			_ = b.Respond(callback)
+			_ = b.Delete(callback.Message)
+		})
 
 		_, err := b.Send(m.Sender, "🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?", &tb.SendOptions{
 			ReplyMarkup: &tb.ReplyMarkup{

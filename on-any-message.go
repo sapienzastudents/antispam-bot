@@ -47,6 +47,7 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 			settingsbt := tb.InlineButton{
 				Text:   "Torna alle impostazioni",
 				Unique: "back_to_settings",
+				Data:   fmt.Sprint(chat.ID),
 			}
 
 			b.Handle(&settingsbt, backToSettingsFromCallback)
