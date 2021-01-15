@@ -45,7 +45,7 @@ var (
 	groupMessagesCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "bot_group_messages_count",
 		Help: "The total number of messages per group",
-	}, []string{"chatid", "chatname", "hour"})
+	}, []string{"chatid", "chatname"})
 	userMessageCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "bot_user_messages_count",
 		Help: "The total number of messages per user",
@@ -88,7 +88,7 @@ func metrics(fn func(m *tb.Message)) func(m *tb.Message) {
 		fn(m)
 		messageProcessedTotal.Inc()
 		if !m.Private() {
-			groupMessagesCount.WithLabelValues(fmt.Sprint(m.Chat.ID), m.Chat.Title, fmt.Sprint(time.Now().UTC().Hour())).Inc()
+			groupMessagesCount.WithLabelValues(fmt.Sprint(m.Chat.ID), m.Chat.Title).Inc()
 			var userName string
 			if m.Sender.Username == "" {
 				userName = strings.TrimSpace(m.Sender.FirstName + " " + m.Sender.LastName)
