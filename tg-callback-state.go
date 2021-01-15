@@ -1,15 +1,17 @@
 package main
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/patrickmn/go-cache"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"math/rand"
-	"time"
 )
 
 var statemgmt = cache.New(1*time.Minute, 1*time.Minute)
 
+// State represent a state for telegram callback
 type State struct {
 	Chat *tb.Chat
 
@@ -36,15 +38,15 @@ func CallbackStateful(fn func(callback *tb.Callback, state State)) func(callback
 	}
 }
 
-func NewCallbackState(state State) string {
-	stateId := RandStringRunes(20)
-	statemgmt.Set(stateId, state, cache.DefaultExpiration)
-	return stateId
+func newCallbackState(state State) string {
+	stateID := randStringRunes(20)
+	statemgmt.Set(stateID, state, cache.DefaultExpiration)
+	return stateID
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func RandStringRunes(n int) string {
+func randStringRunes(n int) string {
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]

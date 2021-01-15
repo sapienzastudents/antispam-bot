@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"time"
 )
 
 func onTerminate(m *tb.Message, settings botdatabase.ChatSettings) {
+	botCommandsRequestsTotal.WithLabelValues("terminate").Inc()
+
 	_ = b.Delete(m)
 	if m.ReplyTo == nil || m.Private() {
 		// We need an handle

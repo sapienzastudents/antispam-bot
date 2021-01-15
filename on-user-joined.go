@@ -32,7 +32,7 @@ func onUserJoined(m *tb.Message, settings botdatabase.ChatSettings) {
 		}
 	}
 
-	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && settings.OnBlacklistCAS.Action != botdatabase.ACTION_DELETE_MSG && IsCASBanned(m.Sender.ID) {
+	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && settings.OnBlacklistCAS.Action != botdatabase.ACTION_DELETE_MSG && isCASBanned(m.Sender.ID) {
 		logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
 		performAction(m, m.Sender, settings.OnBlacklistCAS)
 		return

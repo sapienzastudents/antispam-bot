@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"strings"
 	"time"
+
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 func showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool) {
@@ -92,11 +93,13 @@ func onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
 }
 
 func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, messageFromUser *tb.Message) {
+	botCommandsRequestsTotal.WithLabelValues("groups").Inc()
+
 	categoryTree, err := botdb.GetChatTree(b)
 	if err != nil {
 		logger.WithError(err).Error("Error getting chatroom list")
 		msg, _ := b.Send(chatToSend, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
-		SetMessageExpiration(msg, 30*time.Second)
+		setMessageExpiration(msg, 30*time.Second)
 		return
 	}
 
@@ -104,7 +107,7 @@ func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSen
 
 	for _, category := range categoryTree.GetSubCategoryList() {
 		var bt = tb.InlineButton{
-			Unique: Sha1(category),
+			Unique: sha1string(category),
 			Text:   category,
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
@@ -162,8 +165,8 @@ func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSen
 				&tb.SendOptions{ReplyTo: messageFromUser})
 
 			// Self destruct message in 10s
-			SetMessageExpiration(messageFromUser, 10*time.Second)
-			SetMessageExpiration(replyMessage, 10*time.Second)
+			setMessageExpiration(messageFromUser, 10*time.Second)
+			setMessageExpiration(replyMessage, 10*time.Second)
 		} else if err != nil {
 			logger.WithError(err).Warning("can't send group list message to the user")
 		} else if !messageFromUser.Private() {

@@ -2,7 +2,7 @@
 .PHONY: docker clean dev push
 
 antispam-telegram-bot:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.APP_VERSION=${shell git describe --tags --dirty}" -a -installsuffix cgo -o antispam-telegram-bot .
+	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.AppVersion=${shell git describe --tags --dirty}" -a -installsuffix cgo -o antispam-telegram-bot .
 	strip antispam-telegram-bot
 	upx -9 antispam-telegram-bot
 

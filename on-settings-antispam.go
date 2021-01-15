@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"strings"
 )
 
 func sendAntispamSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings botdatabase.ChatSettings) {
@@ -77,7 +78,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 		Text:   onJoinChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onJoinChineseKickButton, CallbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&onJoinChineseKickButton, callbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		if settings.OnJoinChinese.Action == botdatabase.ACTION_NONE {
 			settings.OnJoinChinese = botdatabase.BotAction{
 				Action: botdatabase.ACTION_BAN,
@@ -100,7 +101,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 		Text:   onJoinArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onJoinArabicKickButton, CallbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&onJoinArabicKickButton, callbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		if settings.OnJoinArabic.Action == botdatabase.ACTION_NONE {
 			settings.OnJoinArabic = botdatabase.BotAction{
 				Action: botdatabase.ACTION_BAN,
@@ -123,7 +124,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 		Text:   onMessageChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onMessageChineseKickButton, CallbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&onMessageChineseKickButton, callbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		if settings.OnMessageChinese.Action == botdatabase.ACTION_NONE {
 			settings.OnMessageChinese = botdatabase.BotAction{
 				Action: botdatabase.ACTION_KICK,
@@ -146,7 +147,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 		Text:   onMessageArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&onMessageArabicKickButton, CallbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&onMessageArabicKickButton, callbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		if settings.OnMessageArabic.Action == botdatabase.ACTION_NONE {
 			settings.OnMessageArabic = botdatabase.BotAction{
 				Action: botdatabase.ACTION_KICK,
@@ -169,7 +170,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 		Text:   enableCASbuttonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	b.Handle(&enableCASbutton, CallbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&enableCASbutton, callbackAntispamSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		if settings.OnBlacklistCAS.Action == botdatabase.ACTION_NONE {
 			settings.OnBlacklistCAS = botdatabase.BotAction{
 				Action: botdatabase.ACTION_KICK,
@@ -192,7 +193,7 @@ func generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings botdatabase.Cha
 	}
 }
 
-func CallbackAntispamSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
+func callbackAntispamSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
 	return func(callback *tb.Callback) {
 		var err error
 		chat := callback.Message.Chat

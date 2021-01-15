@@ -3,12 +3,14 @@ package botdatabase
 import (
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/go-redis/redis"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 type BOTDatabase interface {
@@ -18,11 +20,15 @@ type BOTDatabase interface {
 	SetChatSettings(*tb.Chat, ChatSettings) error
 
 	ListMyChatrooms() ([]*tb.Chat, error)
+	ChatroomsCount() (int64, error)
 
 	UpdateMyChatroomList(c *tb.Chat) error
 	LeftChatroom(c *tb.Chat) error
 
-	DoCacheUpdate(b *tb.Bot) error
+	// I know that it's wrong to have this whole function here. It's also wrong
+	// to have bot<->database and prometheus<->database inter-dependencies.
+	// You're free to submit a patch for this, I'm too lazy to fix it now
+	DoCacheUpdate(b *tb.Bot, g *prometheus.GaugeVec) error
 	DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error
 
 	GetChatTree(b *tb.Bot) (ChatCategoryTree, error)

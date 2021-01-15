@@ -2,12 +2,14 @@ package botdatabase
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (db *_botDatabase) DoCacheUpdate(b *tb.Bot) error {
+func (db *_botDatabase) DoCacheUpdate(b *tb.Bot, g *prometheus.GaugeVec) error {
 	startms := time.Now()
 	db.logger.Info("Chat admin scan start")
 
@@ -20,6 +22,16 @@ func (db *_botDatabase) DoCacheUpdate(b *tb.Bot) error {
 		err = db.DoCacheUpdateForChat(b, chat)
 		if err != nil {
 			db.logger.WithError(err).WithField("chat_id", chat.ID).Warning("Error updating chat ", chat.Title)
+		}
+
+		// Do not ask too quickly
+		time.Sleep(500 * time.Millisecond)
+
+		members, err := b.Len(chat)
+		if err != nil {
+			db.logger.WithError(err).WithField("chat_id", chat.ID).Warning("Error getting members count for ", chat.Title)
+		} else {
+			g.WithLabelValues(fmt.Sprint(chat.ID), chat.Title).Set(float64(members))
 		}
 
 		// Do not ask too quickly

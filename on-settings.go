@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/patrickmn/go-cache"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/patrickmn/go-cache"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-type InlineCategoryEdit struct {
+type inlineCategoryEdit struct {
 	ChatID   int64
 	Category string
 }
@@ -55,7 +56,7 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 				Text:   enableDisableButtonText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			b.Handle(&enableDisableBotButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			b.Handle(&enableDisableBotButton, callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 				settings.BotEnabled = !settings.BotEnabled
 				return settings
 			}))
@@ -97,7 +98,7 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 				Text:   hideShowButtonText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			b.Handle(&hideShowBotButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			b.Handle(&hideShowBotButton, callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 				settings.Hidden = !settings.Hidden
 				return settings
 			}))
@@ -140,7 +141,7 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 				Text:   deleteJoinMessagesText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			b.Handle(&deleteJoinMessages, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			b.Handle(&deleteJoinMessages, callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 				settings.OnJoinDelete = !settings.OnJoinDelete
 				return settings
 			}))
@@ -160,7 +161,7 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 				Text:   deleteLeaveMessagesText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			b.Handle(&deleteLeaveMessages, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			b.Handle(&deleteLeaveMessages, callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 				settings.OnLeaveDelete = !settings.OnLeaveDelete
 				return settings
 			}))
@@ -180,10 +181,10 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 		Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 	}
 	b.Handle(&reloadGroupInfoBt, func(callback *tb.Callback) {
-		chatId, _ := strconv.Atoi(callback.Data)
+		chatID, _ := strconv.Atoi(callback.Data)
 		chatToConfigure, _ := b.ChatByID(callback.Data)
 
-		_ = botdb.DoCacheUpdateForChat(b, &tb.Chat{ID: int64(chatId)})
+		_ = botdb.DoCacheUpdateForChat(b, &tb.Chat{ID: int64(chatID)})
 
 		_ = b.Respond(callback, &tb.CallbackResponse{
 			Text: "Group information reloaded",
@@ -199,7 +200,7 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 		Text:   "🔄 Refresh",
 		Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 	}
-	b.Handle(&settingsRefreshButton, CallbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	b.Handle(&settingsRefreshButton, callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
 		return settings
 	}))
 
@@ -230,6 +231,8 @@ func sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToC
 }
 
 func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
+	botCommandsRequestsTotal.WithLabelValues("settings").Inc()
+
 	if !m.Private() && botdb.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
 		// Messages in a chatroom
 		sendSettingsMessage(nil, m.Chat, m.Chat, settings)
@@ -278,7 +281,7 @@ func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatTo
 	}
 
 	var sendOptions = tb.SendOptions{}
-	var msg = ""
+	var msg string
 	if len(chatButtons) == 0 {
 		msg = "You are not an admin in a chat where the bot is."
 	} else {
@@ -310,7 +313,7 @@ func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatTo
 	}
 }
 
-func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
+func callbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
 	return func(callback *tb.Callback) {
 		var err error
 		chat := callback.Message.Chat
@@ -356,11 +359,11 @@ func CallbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabas
 
 func handleChangeCategory(callback *tb.Callback) {
 	_ = b.Respond(callback)
-	chatId, _ := strconv.Atoi(callback.Data)
+	chatID, _ := strconv.Atoi(callback.Data)
 
 	categories, err := botdb.GetChatTree(b)
 	if err != nil {
-		logger.WithError(err).WithField("chat", chatId).Error("can't get category tree")
+		logger.WithError(err).WithField("chat", chatID).Error("can't get category tree")
 		return
 	}
 
@@ -371,28 +374,28 @@ func handleChangeCategory(callback *tb.Callback) {
 	}
 	b.Handle(&customCategoryBt, func(callback *tb.Callback) {
 		_ = b.Respond(callback)
-		chatId, _ := strconv.Atoi(callback.Data)
+		chatID, _ := strconv.Atoi(callback.Data)
 		_, _ = b.Edit(callback.Message,
 			"Scrivi il nome del corso di laurea.\n"+
 				"Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\n"+
 				"Informatica (triennale)\n\noppure\n\nInformatica\nPrimo anno")
 
-		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), InlineCategoryEdit{
-			ChatID: int64(chatId),
+		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), inlineCategoryEdit{
+			ChatID: int64(chatID),
 		}, cache.DefaultExpiration)
 	})
 
 	buttons := [][]tb.InlineButton{{customCategoryBt}}
 	for _, cat := range categories.GetSubCategoryList() {
-		stateId := NewCallbackState(State{
-			Chat:          &tb.Chat{ID: int64(chatId)}, // TODO: pass a chat type
+		stateID := newCallbackState(State{
+			Chat:          &tb.Chat{ID: int64(chatID)}, // TODO: pass a chat type
 			Category:      cat,
 			SubCategories: categories.SubCategories[cat],
 		})
 		bt := tb.InlineButton{
 			Text:   cat,
-			Unique: Sha1(cat),
-			Data:   stateId,
+			Unique: sha1string(cat),
+			Data:   stateID,
 		}
 
 		b.Handle(&bt, CallbackStateful(func(callback *tb.Callback, state State) {
@@ -419,7 +422,7 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 		return
 	}
 
-	customCategorystate := NewCallbackState(State{
+	customCategorystate := newCallbackState(State{
 		Chat:     state.Chat,
 		Category: state.Category,
 	})
@@ -432,13 +435,13 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 		_ = b.Respond(callback)
 		_, _ = b.Edit(callback.Message, "Scrivi il nome della sotto-categoria.\n\nEsempio: Primo anno")
 
-		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), InlineCategoryEdit{
+		globaleditcat.Set(fmt.Sprint(callback.Sender.ID), inlineCategoryEdit{
 			ChatID:   state.Chat.ID,
 			Category: state.Category,
 		}, cache.DefaultExpiration)
 	}))
 
-	noCategoryState := NewCallbackState(State{
+	noCategoryState := newCallbackState(State{
 		Chat:     state.Chat,
 		Category: state.Category,
 	})
@@ -470,14 +473,14 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 
 	buttons := [][]tb.InlineButton{{customCategoryBt, noCategoryBt}}
 	for _, cat := range state.SubCategories.GetSubCategoryList() {
-		stateBt := NewCallbackState(State{
+		stateBt := newCallbackState(State{
 			Chat:        state.Chat,
 			Category:    state.Category,
 			SubCategory: cat,
 		})
 		bt := tb.InlineButton{
 			Text:   cat,
-			Unique: Sha1(state.Category + cat),
+			Unique: sha1string(state.Category + cat),
 			Data:   stateBt,
 		}
 		b.Handle(&bt, CallbackStateful(func(callback *tb.Callback, state State) {

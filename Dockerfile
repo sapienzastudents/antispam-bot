@@ -1,4 +1,4 @@
-FROM golang:1.12 as builder
+FROM golang:1.15 as builder
 
 # Prerequisites for builds and scratch
 RUN apt-get update && apt-get install -y upx-ucl zip ca-certificates tzdata
@@ -14,13 +14,15 @@ RUN go mod download
 COPY . .
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.APP_VERSION=${APPVERSION}" -a -installsuffix cgo -o antispam-telegram-bot . && \
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.AppVersion=${APPVERSION}" -a -installsuffix cgo -o antispam-telegram-bot . && \
 	strip antispam-telegram-bot && \
 	upx -9 antispam-telegram-bot
 
 
 # From empty container
 FROM debian:buster
+
+EXPOSE 3000
 
 WORKDIR /app/
 

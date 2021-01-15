@@ -18,9 +18,9 @@ func chineseChars(str string) float64 {
 	for _, runeValue := range str {
 		if unicode.Is(unicode.Han, runeValue) {
 			// Chinese character
-			badchars += 1
+			badchars++
 		}
-		totalchars += 1
+		totalchars++
 	}
 
 	return float64(badchars) / float64(totalchars)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -68,7 +69,7 @@ func onEmergencyReduce(m *tb.Message, _ botdatabase.ChatSettings) {
 }
 
 func onSigHup(m *tb.Message, _ botdatabase.ChatSettings) {
-	err := botdb.DoCacheUpdate(b)
+	err := botdb.DoCacheUpdate(b, groupUserCount)
 	if err != nil {
 		logger.WithError(err).Warning("can't handle sighup / refresh data")
 		_, _ = b.Send(m.Chat, "Errore: "+err.Error())
@@ -78,6 +79,6 @@ func onSigHup(m *tb.Message, _ botdatabase.ChatSettings) {
 }
 
 func onVersion(m *tb.Message, _ botdatabase.ChatSettings) {
-	msg := fmt.Sprintf("Version %s", APP_VERSION)
+	msg := fmt.Sprintf("Version %s", AppVersion)
 	_, _ = b.Send(m.Chat, msg)
 }

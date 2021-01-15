@@ -9,6 +9,14 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+func (db *_botDatabase) ChatroomsCount() (int64, error) {
+	ret, err := db.redisconn.HLen("chatrooms").Result()
+	if err == redis.Nil {
+		return 0, nil
+	}
+	return ret, err
+}
+
 func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 	chatrooms := []*tb.Chat{}
 

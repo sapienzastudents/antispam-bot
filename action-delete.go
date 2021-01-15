@@ -21,7 +21,6 @@ func actionDelete(m *tb.Message) bool {
 		logger.WithError(err).Errorf("Cannot delete message from user %s %s (%s) in chat %s",
 			m.Sender.FirstName, m.Sender.LastName, m.Sender.Username, m.Chat.Title)
 		return false
-	} else {
-		return true
 	}
+	return true
 }

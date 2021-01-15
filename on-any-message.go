@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"strings"
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 	chatEditVal, isForEdit := globaleditcat.Get(fmt.Sprint(m.Sender.ID))
 	if isForEdit {
-		chatEdit, chatEditOk := chatEditVal.(InlineCategoryEdit)
+		chatEdit, chatEditOk := chatEditVal.(inlineCategoryEdit)
 		if chatEditOk && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
 			globaleditcat.Delete(fmt.Sprint(m.Sender.ID))
 			chat, err := b.ChatByID(fmt.Sprint(chatEdit.ChatID))
@@ -64,7 +65,7 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 
 	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
-		if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && IsCASBanned(m.Sender.ID) {
+		if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && isCASBanned(m.Sender.ID) {
 			logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
 			performAction(m, m.Sender, settings.OnBlacklistCAS)
 			return

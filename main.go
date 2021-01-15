@@ -15,7 +15,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var APP_VERSION = "dev"
+// AppVersion is the app version injected by the compiler
+var AppVersion = "dev"
 
 var b *tb.Bot = nil
 var logger *logrus.Entry = nil
@@ -27,6 +28,8 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	_ = godotenv.Load()
 	var err error
+
+	go mainHTTP()
 
 	/*discordbot, err := NewDiscordBot()
 	if err != nil {
@@ -82,41 +85,42 @@ func main() {
 	}
 
 	// Registering internal/utils handlers (mostly for: spam detection, chat refresh)
-	b.Handle(tb.OnVoice, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnVideo, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnEdited, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnDocument, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnAudio, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnPhoto, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnText, RefreshDBInfo(onAnyMessage))
-	b.Handle(tb.OnUserJoined, RefreshDBInfo(onUserJoined))
-	b.Handle(tb.OnAddedToGroup, RefreshDBInfo(func(_ *tb.Message, _ botdatabase.ChatSettings) {}))
-	b.Handle(tb.OnUserLeft, RefreshDBInfo(onUserLeft))
+	b.Handle(tb.OnVoice, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnVideo, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnEdited, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnDocument, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnAudio, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnPhoto, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnText, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnUserJoined, metrics(refreshDBInfo(onUserJoined)))
+	b.Handle(tb.OnAddedToGroup, metrics(refreshDBInfo(func(_ *tb.Message, _ botdatabase.ChatSettings) {})))
+	b.Handle(tb.OnUserLeft, metrics(refreshDBInfo(onUserLeft)))
 
 	// Register commands
-	b.Handle("/help", RefreshDBInfo(onHelp))
-	b.Handle("/start", RefreshDBInfo(onHelp))
-	b.Handle("/groups", RefreshDBInfo(onGroups))
+	b.Handle("/help", metrics(refreshDBInfo(onHelp)))
+	b.Handle("/start", metrics(refreshDBInfo(onHelp)))
+	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 
 	// Chat-admin commands
-	b.Handle("/settings", RefreshDBInfo(CheckGroupAdmin(onSettings)))
-	b.Handle("/terminate", RefreshDBInfo(CheckGroupAdmin(onTerminate)))
-	b.Handle("/reload", RefreshDBInfo(CheckGroupAdmin(onReloadGroup)))
+	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
+	b.Handle("/terminate", metrics(refreshDBInfo(checkGroupAdmin(onTerminate))))
+	b.Handle("/reload", metrics(refreshDBInfo(checkGroupAdmin(onReloadGroup))))
 
 	// Global-administrative commands
-	b.Handle("/emergency_remove", CheckGlobalAdmin(RefreshDBInfo(onEmergencyRemove)))
-	b.Handle("/emergency_elevate", CheckGlobalAdmin(RefreshDBInfo(onEmergencyElevate)))
-	b.Handle("/emergency_reduce", CheckGlobalAdmin(RefreshDBInfo(onEmergencyReduce)))
-	b.Handle("/sighup", CheckGlobalAdmin(RefreshDBInfo(onSigHup)))
-	b.Handle("/groupscheck", CheckGlobalAdmin(RefreshDBInfo(onGroupsPrivileges)))
-	b.Handle("/groupsnotifyperm", CheckGlobalAdmin(RefreshDBInfo(onGroupsNotifyMissingPermissions)))
-	b.Handle("/version", CheckGlobalAdmin(RefreshDBInfo(onVersion)))
-	b.Handle("/updatewww", CheckGlobalAdmin(RefreshDBInfo(onGlobalUpdateWww)))
+	b.Handle("/emergency_remove", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyRemove))))
+	b.Handle("/emergency_elevate", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyElevate))))
+	b.Handle("/emergency_reduce", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyReduce))))
+	b.Handle("/sighup", metrics(checkGlobalAdmin(refreshDBInfo(onSigHup))))
+	b.Handle("/groupscheck", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsPrivileges))))
+	b.Handle("/groupsnotifyperm", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsNotifyMissingPermissions))))
+	b.Handle("/version", metrics(checkGlobalAdmin(refreshDBInfo(onVersion))))
+	b.Handle("/updatewww", metrics(checkGlobalAdmin(refreshDBInfo(onGlobalUpdateWww))))
 
 	// Utilities
-	b.Handle("/id", RefreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
+	b.Handle("/id", metrics(refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
+		botCommandsRequestsTotal.WithLabelValues("id").Inc()
 		_, _ = b.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
-	}))
+	})))
 
 	logger.Info("Init ok, starting bot")
 
@@ -125,15 +129,17 @@ func main() {
 		t := time.NewTicker(10 * time.Minute)
 		for {
 			<-t.C
-			err := botdb.DoCacheUpdate(b)
+			startms := time.Now()
+			err := botdb.DoCacheUpdate(b, groupUserCount)
 			if err != nil {
 				logger.WithError(err).Error("error cycling for data refresh")
 			}
+			backgroundRefreshElapsed.Set(float64(time.Since(startms) / time.Millisecond))
 		}
 	}()
 
 	if os.Getenv("DISABLE_CAS") == "" {
-		go CASWorker()
+		go casWorker()
 	}
 
 	sigchan := make(chan os.Signal, 1)
@@ -147,9 +153,9 @@ func main() {
 	b.Start()
 }
 
-// This wrapper is refreshing the info for the chat in the database
+// refreshDBInfo wrapper is refreshing the info for the chat in the database
 // (due the fact that Telegram APIs does not support listing chats)
-func RefreshDBInfo(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(m *tb.Message) {
+func refreshDBInfo(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(m *tb.Message) {
 	return func(m *tb.Message) {
 		if !m.Private() {
 			err := botdb.UpdateMyChatroomList(m.Chat)
@@ -172,7 +178,8 @@ func RefreshDBInfo(actionHandler func(*tb.Message, botdatabase.ChatSettings)) fu
 	}
 }
 
-func CheckGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
+// checkGlobalAdmin is a "firewall" for global admin only functions
+func checkGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
 	return func(m *tb.Message) {
 		if !botdb.IsGlobalAdmin(m.Sender) {
 			return
@@ -181,7 +188,8 @@ func CheckGlobalAdmin(actionHandler func(m *tb.Message)) func(m *tb.Message) {
 	}
 }
 
-func CheckGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(*tb.Message, botdatabase.ChatSettings) {
+// checkGroupAdmin is a "firewall" for group admin only functions
+func checkGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) func(*tb.Message, botdatabase.ChatSettings) {
 	return func(m *tb.Message, settings botdatabase.ChatSettings) {
 		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || botdb.IsGlobalAdmin(m.Sender) {
 			actionHandler(m, settings)
@@ -189,6 +197,6 @@ func CheckGroupAdmin(actionHandler func(*tb.Message, botdatabase.ChatSettings)) 
 		}
 		_ = b.Delete(m)
 		msg, _ := b.Send(m.Chat, "Sorry, only group admins can use this command")
-		SetMessageExpiration(msg, 10*time.Second)
+		setMessageExpiration(msg, 10*time.Second)
 	}
 }

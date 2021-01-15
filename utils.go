@@ -3,13 +3,14 @@ package main
 import (
 	"crypto/sha1" // #nosec G505 not used for cryptographic purposes
 	"encoding/hex"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"path/filepath"
 	"time"
+
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func RemoveContents(dir string) error {
+func removeContents(dir string) error {
 	d, err := os.Open(dir) // #nosec: G304 - The path is from a configuration, not from the user
 	if err != nil {
 		return err
@@ -31,13 +32,13 @@ func RemoveContents(dir string) error {
 	return nil
 }
 
-func Sha1(str string) string {
+func sha1string(str string) string {
 	s := sha1.New() // #nosec G401 not used for cryptographic purposes
 	_, _ = s.Write([]byte(str))
 	return hex.EncodeToString(s.Sum(nil))
 }
 
-func SetMessageExpiration(m *tb.Message, d time.Duration) {
+func setMessageExpiration(m *tb.Message, d time.Duration) {
 	t := time.NewTimer(d)
 	go func(m *tb.Message) {
 		<-t.C

@@ -7,6 +7,8 @@ import (
 
 func onReloadGroup(m *tb.Message, _ botdatabase.ChatSettings) {
 	if !m.Private() {
+		botCommandsRequestsTotal.WithLabelValues("reload").Inc()
+
 		err := botdb.DoCacheUpdateForChat(b, m.Chat)
 		if err != nil {
 			_, _ = b.Send(m.Chat, "Error during bot reload")

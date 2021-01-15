@@ -2,6 +2,13 @@ package main
 
 import (
 	"fmt"
+	"html"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -9,18 +16,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"html"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 	gitTempDir := os.Getenv("GIT_TEMP_DIR")
-	gitSshKeyFile := os.Getenv("GIT_SSH_KEY")
-	if gitTempDir == "" || gitSshKeyFile == "" {
+	gitSSHKeyFile := os.Getenv("GIT_SSH_KEY")
+	if gitTempDir == "" || gitSSHKeyFile == "" {
 		_, _ = b.Send(m.Chat, "Website updater not configured")
 		logger.Warning("Website update requested but the configuration is missing")
 		return
@@ -38,7 +39,7 @@ func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 
 	// Creating temp dir
 	_ = os.Mkdir(gitTempDir, 0750)
-	err = RemoveContents(gitTempDir)
+	err = removeContents(gitTempDir)
 	if err != nil {
 		_, _ = b.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
 		logger.WithError(err).Error("can't clean up the temp directory")
@@ -46,7 +47,7 @@ func onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
 	}
 
 	// Authentication
-	pubkeys, err := ssh.NewPublicKeysFromFile("git", gitSshKeyFile, os.Getenv("GIT_SSH_KEY_PASS"))
+	pubkeys, err := ssh.NewPublicKeysFromFile("git", gitSSHKeyFile, os.Getenv("GIT_SSH_KEY_PASS"))
 	if err != nil {
 		_, _ = b.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
 		logger.WithError(err).Error("can't load SSH keys")

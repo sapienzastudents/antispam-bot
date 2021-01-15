@@ -6,6 +6,8 @@ import (
 )
 
 func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
+	botCommandsRequestsTotal.WithLabelValues("start").Inc()
+
 	if m.Private() {
 		// === GROUPS button
 		var buttons [][]tb.InlineButton

@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/levigross/grequests"
+	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/levigross/grequests"
 )
 
 /*
@@ -12,30 +14,41 @@ import (
  * You can find more info here: https://combot.org/cas/
  */
 
-type CASDB map[int]int8
+type casDB map[int]int8
 
-var casdb = CASDB{}
+var casdb = casDB{}
 
 // This function downloads and replace current in-memory CAS database
 // and returns the list of added and removed items, or nil,nil in case
 // of error
-func LoadCAS() (CASDB, CASDB) {
+func loadCAS() (casDB, casDB) {
+	startms := time.Now()
+
 	resp, err := grequests.Get("https://api.cas.chat/export.csv", &grequests.RequestOptions{
-		UserAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0",
+		UserAgent:      "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0",
+		RequestTimeout: 1 * time.Minute,
 	})
 	if err != nil {
-		logger.WithError(err).Error("CAS database download error")
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			casDatabaseDownloadTime.Set(float64(time.Since(startms) / time.Millisecond))
+			logger.WithError(err).Error("CAS database download error: timeout")
+		} else {
+			logger.WithError(err).Error("CAS database download error")
+		}
 		return nil, nil
 	}
+
 	if strings.Contains(resp.String(), "cloudflare") {
 		logger.Error("CAS database download error: CloudFlare limited")
 		logger.Debug(resp.String())
 		return nil, nil
 	}
 
-	var newcas = CASDB{}
-	var added = CASDB{}
-	var deleted = CASDB{}
+	casDatabaseDownloadTime.Set(float64(time.Since(startms) / time.Millisecond))
+
+	var newcas = casDB{}
+	var added = casDB{}
+	var deleted = casDB{}
 
 	// Pre-load deleted array
 	for id := range casdb {
@@ -67,23 +80,26 @@ func LoadCAS() (CASDB, CASDB) {
 
 	if len(newcas) > 0 {
 		casdb = newcas
+		casDatabaseSize.Set(float64(len(casdb)))
 		logger.Debugf("CAS Database updated - items:%d, added:%d, deleted:%d", len(casdb), len(added), len(deleted))
 		return added, deleted
-	} else {
-		logger.Warning("New CAS database is empty - keeping old values")
-		return CASDB{}, CASDB{}
 	}
+	logger.Warning("New CAS database is empty - keeping old values")
+	return casDB{}, casDB{}
 }
 
-func IsCASBanned(uid int) bool {
+func isCASBanned(uid int) bool {
 	_, found := casdb[uid]
+	if found {
+		casDatabaseMatch.Inc()
+	}
 	return found
 }
 
-func CASWorker() {
+func casWorker() {
 	t := time.NewTicker(1 * time.Hour)
 	for {
-		_, _ = LoadCAS()
+		_, _ = loadCAS()
 
 		// Here we might automatically ban newly CAS-banned users, but for now we limit the bot to
 		// react when an user do some action (to avoid flooding Telegram APIs)
