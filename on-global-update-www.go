@@ -162,8 +162,9 @@ date = "`)
 
 # Gruppi Telegram
 
-Qui di seguito trovi un indice di gruppi di studenti della Sapienza su Telegram. Se vuoi aggiungere il tuo gruppo, segui
-le [indicazioni in questa pagina!](/social_add/)
+Qui di seguito trovi un indice di gruppi di studenti della Sapienza su Telegram. **Clicca su START dopo che si è aperto Telegram per avere il link**.
+
+Se vuoi aggiungere il tuo gruppo, segui le [indicazioni in questa pagina!](/social_add/)
 
 `)
 
@@ -212,6 +213,8 @@ func printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 		return nil
 	}
 
+	var chatID = v.ID
+
 	if v.InviteLink == "" {
 		v.InviteLink, err = b.GetInviteLink(v)
 
@@ -228,6 +231,7 @@ func printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 				logger.Warning("can't get invite link ", err)
 				return err
 			}
+			chatID = v.ID
 		} else if err != nil {
 			logger.Warning("can't get chat info ", err)
 			return err
@@ -235,10 +239,15 @@ func printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 		_ = botdb.UpdateMyChatroomList(v)
 	}
 
+	chatUUID, err := botdb.GetUUIDFromChat(chatID)
+	if err != nil {
+		return err
+	}
+
 	msg.WriteString("* [")
 	msg.WriteString(v.Title)
 	msg.WriteString("](")
-	msg.WriteString(v.InviteLink)
+	msg.WriteString("https://telegram.me/SapienzaStudentsBot?start=" + chatUUID.String())
 	msg.WriteString(")\n")
 	return nil
 }

@@ -1,14 +1,51 @@
 package main
 
 import (
+	"strings"
+
+	"github.com/google/uuid"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+func startFromWeb(payload string, sender *tb.User) {
+	chatUUID, err := uuid.Parse(payload)
+	if err != nil {
+		logger.WithError(err).Error("error parsing chat UUID")
+		return
+	}
+	chatID, err := botdb.GetChatIDFromUUID(chatUUID)
+	if err != nil {
+		logger.WithError(err).Error("chat not found for UUID " + chatUUID.String())
+		return
+	}
+	inviteLink, err := b.GetInviteLink(&tb.Chat{ID: chatID})
+	var msg string
+	if err != nil {
+		logger.WithError(err).Error("error getting invite link for chat")
+		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
+	} else {
+		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto:\n\n🇬🇧 Hi! The invite link is the following:\n\n" + inviteLink
+	}
+
+	_, err = b.Send(sender, msg)
+	if err != nil {
+		logger.WithError(err).Warn("can't send message on help from web")
+	}
+}
+
 func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 	botCommandsRequestsTotal.WithLabelValues("start").Inc()
+	_ = b.Delete(m)
 
 	if m.Private() {
+		payload := strings.TrimSpace(m.Text)
+		if strings.ContainsRune(payload, ' ') {
+			parts := strings.Split(m.Text, " ")
+			startFromWeb(parts[1], m.Sender)
+			return
+		}
+
 		// === GROUPS button
 		var buttons [][]tb.InlineButton
 		var groupsBt = tb.InlineButton{

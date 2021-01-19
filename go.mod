@@ -9,6 +9,7 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/go-cmp v0.5.4 // indirect
+	github.com/google/uuid v1.1.5
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect

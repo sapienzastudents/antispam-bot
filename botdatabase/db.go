@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-redis/redis"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -32,6 +33,9 @@ type BOTDatabase interface {
 	DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error
 
 	GetChatTree(b *tb.Bot) (ChatCategoryTree, error)
+
+	GetUUIDFromChat(int64) (uuid.UUID, error)
+	GetChatIDFromUUID(uuid.UUID) (int64, error)
 }
 
 func New(logger *logrus.Entry) (BOTDatabase, error) {
