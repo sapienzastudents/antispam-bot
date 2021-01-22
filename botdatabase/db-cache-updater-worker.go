@@ -53,13 +53,6 @@ func (db *_botDatabase) DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error {
 	}
 	chat = newChatInfo
 
-	inviteLink, err := b.GetInviteLink(chat)
-	if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-		// We have both the old group and the new group, remove the old one only
-		return db.LeftChatroom(chat)
-	}
-	chat.InviteLink = inviteLink
-
 	admins, err := b.AdminsOf(chat)
 	if err != nil {
 		db.logger.WithError(err).WithField("chat_id", chat.ID).Error("Error getting admins for chat ", chat.Title)

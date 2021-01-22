@@ -57,33 +57,14 @@ func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 		return nil
 	}
 
-	if v.InviteLink == "" {
-		v.InviteLink, err = b.GetInviteLink(v)
-
-		if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-			apierr, _ := err.(*tb.APIError)
-			newChatInfo, err := b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
-			if err != nil {
-				logger.WithError(err).WithField("chat", v.ID).Warning("can't get chat info for migrated supergroup")
-				return err
-			}
-			v = newChatInfo
-
-			v.InviteLink, err = b.GetInviteLink(v)
-			if err != nil {
-				logger.WithError(err).WithField("chat", v.ID).Warning("can't get invite link")
-				return err
-			}
-		} else if err != nil {
-			logger.WithError(err).WithField("chat", v.ID).Warning("can't get chat info")
-			return err
-		}
-		_ = botdb.UpdateMyChatroomList(v)
+	chatUUID, err := botdb.GetUUIDFromChat(v.ID)
+	if err != nil {
+		return err
 	}
 
 	msg.WriteString(v.Title)
 	msg.WriteString(": ")
-	msg.WriteString(v.InviteLink)
+	msg.WriteString(fmt.Sprintf("<a href=\"https://telegram.me/%s?start=%s\">[clicca qui e poi premi START]</a>", b.Me.Username, chatUUID.String()))
 	msg.WriteString("\n")
 	return nil
 }

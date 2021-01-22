@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -8,23 +9,42 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func startFromWeb(payload string, sender *tb.User) {
+func startFromUUID(payload string, sender *tb.User) {
 	chatUUID, err := uuid.Parse(payload)
 	if err != nil {
 		logger.WithError(err).Error("error parsing chat UUID")
 		return
 	}
+
 	chatID, err := botdb.GetChatIDFromUUID(chatUUID)
 	if err != nil {
 		logger.WithError(err).Error("chat not found for UUID " + chatUUID.String())
 		return
 	}
-	inviteLink, err := b.GetInviteLink(&tb.Chat{ID: chatID})
+
 	var msg string
-	if err != nil {
-		logger.WithError(err).Error("error getting invite link for chat")
+	inviteLink, err := b.GetInviteLink(&tb.Chat{ID: chatID})
+	if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
+		apierr, _ := err.(*tb.APIError)
+		newChatInfo, err := b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
+		if err != nil {
+			logger.WithError(err).WithField("chat", chatID).Warning("can't get chat info for migrated supergroup")
+			msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
+		}
+
+		_ = botdb.UpdateMyChatroomList(newChatInfo)
+
+		inviteLink, err = b.GetInviteLink(newChatInfo)
+		if err != nil {
+			logger.WithError(err).WithField("chat", chatID).Warning("can't get invite link")
+			msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
+		}
+	} else if err != nil {
+		logger.WithError(err).WithField("chat", chatID).Warning("can't get chat info")
 		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
-	} else {
+	}
+
+	if msg == "" {
 		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto:\n\n🇬🇧 Hi! The invite link is the following:\n\n" + inviteLink
 	}
 
@@ -42,7 +62,7 @@ func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 		payload := strings.TrimSpace(m.Text)
 		if strings.ContainsRune(payload, ' ') {
 			parts := strings.Split(m.Text, " ")
-			startFromWeb(parts[1], m.Sender)
+			startFromUUID(parts[1], m.Sender)
 			return
 		}
 

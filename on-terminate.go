@@ -18,7 +18,7 @@ func onTerminate(m *tb.Message, settings botdatabase.ChatSettings) {
 	}
 
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) {
+	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || botdb.IsGlobalAdmin(m.ReplyTo.Sender) {
 		return
 	}
 

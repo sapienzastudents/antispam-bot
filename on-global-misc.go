@@ -8,15 +8,18 @@ import (
 )
 
 func onEmergencyRemove(m *tb.Message, _ botdatabase.ChatSettings) {
-	err := b.Delete(m.ReplyTo)
+	err := b.Delete(m)
 	if err != nil {
 		logger.Error("Can't delete messages ", err)
 		return
 	}
-	err = b.Delete(m)
-	if err != nil {
-		logger.Error("Can't delete messages ", err)
-		return
+
+	if m.ReplyTo != nil {
+		err = b.Delete(m.ReplyTo)
+		if err != nil {
+			logger.Error("Can't delete messages ", err)
+			return
+		}
 	}
 }
 

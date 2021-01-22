@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
 	"strings"
 	"time"
+
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
@@ -71,12 +72,16 @@ func onGroupsPrivilegesFunc(m *tb.Message, notify bool) {
 				if len(missingPrivileges) == 0 {
 					msg.WriteString("✅\n")
 				} else {
+					var warnMsg bool = false
 					for _, k := range missingPrivileges {
+						if k == "can_delete_messages" || k == "can_invite_users" || k == "can_restrict_members" {
+							warnMsg = true
+						}
 						msg.WriteString(botPermissionsTag[k])
 					}
 					msg.WriteString("❌\n")
 
-					if notify {
+					if notify && warnMsg {
 						_, _ = b.Send(v, "Oops, mi mancano alcuni permessi per funzionare!\n\nPer gli admin del gruppo: contattatemi in privato scrivendo /settings per vedere quali permessi mancano")
 					}
 				}

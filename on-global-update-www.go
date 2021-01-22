@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html"
 	"io/ioutil"
 	"os"
@@ -213,33 +212,7 @@ func printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 		return nil
 	}
 
-	var chatID = v.ID
-
-	if v.InviteLink == "" {
-		v.InviteLink, err = b.GetInviteLink(v)
-
-		if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-			apierr, _ := err.(*tb.APIError)
-			v, err = b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
-			if err != nil {
-				logger.Warning("can't get chat info ", err)
-				return err
-			}
-
-			v.InviteLink, err = b.GetInviteLink(v)
-			if err != nil {
-				logger.Warning("can't get invite link ", err)
-				return err
-			}
-			chatID = v.ID
-		} else if err != nil {
-			logger.Warning("can't get chat info ", err)
-			return err
-		}
-		_ = botdb.UpdateMyChatroomList(v)
-	}
-
-	chatUUID, err := botdb.GetUUIDFromChat(chatID)
+	chatUUID, err := botdb.GetUUIDFromChat(v.ID)
 	if err != nil {
 		return err
 	}
