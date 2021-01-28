@@ -27,6 +27,7 @@ Features (when not ticked, they're planned):
 * [ ] Public log channel with actions (for auditing)
 * [X] Group activity metrics (export to InfluxDB/Prometheus/whatever and expose via Grafana)
 * [ ] Notify on error (via Telegram? via logging?)
+* [ ] Restore direct telegram link in group index (web/bot): during first indexing or periodically, get the link from the chat info. If empty, generate a new link
 
 Also, in ToDo list:
 

@@ -39,13 +39,16 @@ func startFromUUID(payload string, sender *tb.User) {
 			logger.WithError(err).WithField("chat", chatID).Warning("can't get invite link")
 			msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
 		}
+	} else if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
+		logger.WithError(err).WithField("chat", chatID).Warning("no permissions for invite link")
+		msg = "Ooops, qualcuno mi ha tolto i permessi per generare i link di invito, riprova tra qualche ora :-("
 	} else if err != nil {
-		logger.WithError(err).WithField("chat", chatID).Warning("can't get chat info")
+		logger.WithError(err).WithField("chat", chatID).Warning("can't get invite link")
 		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
 	}
 
 	if msg == "" {
-		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto:\n\n🇬🇧 Hi! The invite link is the following:\n\n" + inviteLink
+		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto (se dice che non è funzionante, riprova ad usarlo tra 1-2 minuti):\n\n🇬🇧 Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):\n\n" + inviteLink
 	}
 
 	_, err = b.Send(sender, msg)

@@ -100,8 +100,10 @@ func main() {
 	b.Handle("/help", metrics(refreshDBInfo(onHelp)))
 	b.Handle("/start", metrics(refreshDBInfo(onHelp)))
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
+	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
 	// Chat-admin commands
+	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/terminate", metrics(refreshDBInfo(checkGroupAdmin(onTerminate))))
 	b.Handle("/reload", metrics(refreshDBInfo(checkGroupAdmin(onReloadGroup))))
