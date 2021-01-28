@@ -63,5 +63,13 @@ func (db *_botDatabase) UpdateMyChatroomList(c *tb.Chat) error {
 }
 
 func (db *_botDatabase) LeftChatroom(c *tb.Chat) error {
-	return db.redisconn.HDel("chatrooms", fmt.Sprintf("%d", c.ID)).Err()
+	err := db.redisconn.HDel("chatrooms", fmt.Sprintf("%d", c.ID)).Err()
+	if err != nil {
+		return err
+	}
+	err = db.redisconn.HDel("settings", fmt.Sprintf("%d", c.ID)).Err()
+	if err != nil {
+		return err
+	}
+	return db.redisconn.HDel("public-links", fmt.Sprint(c.ID)).Err()
 }
