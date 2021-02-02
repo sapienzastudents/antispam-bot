@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -23,31 +22,12 @@ func startFromUUID(payload string, sender *tb.User) {
 	}
 
 	var msg string
-	inviteLink, err := b.GetInviteLink(&tb.Chat{ID: chatID})
-	if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-		apierr, _ := err.(*tb.APIError)
-		newChatInfo, err := b.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
-		if err != nil {
-			logger.WithError(err).WithField("chat", chatID).Warning("can't get chat info for migrated supergroup")
-			msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
-		}
 
-		_ = botdb.UpdateMyChatroomList(newChatInfo)
-
-		inviteLink, err = b.GetInviteLink(newChatInfo)
-		if err != nil {
-			logger.WithError(err).WithField("chat", chatID).Warning("can't get invite link")
-			msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
-		}
-	} else if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
-		logger.WithError(err).WithField("chat", chatID).Warning("no permissions for invite link")
-		msg = "Ooops, qualcuno mi ha tolto i permessi per generare i link di invito, riprova tra qualche ora :-("
-	} else if err != nil {
-		logger.WithError(err).WithField("chat", chatID).Warning("can't get invite link")
+	inviteLink, err := getInviteLink(&tb.Chat{ID: chatID})
+	if err != nil {
+		logger.WithError(err).WithField("chat", chatID).Warning("can't generate invite link")
 		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
-	}
-
-	if msg == "" {
+	} else {
 		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto (se dice che non è funzionante, riprova ad usarlo tra 1-2 minuti):\n\n🇬🇧 Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):\n\n" + inviteLink
 	}
 

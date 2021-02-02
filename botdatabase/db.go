@@ -34,6 +34,9 @@ type BOTDatabase interface {
 
 	GetChatTree(b *tb.Bot) (ChatCategoryTree, error)
 
+	GetInviteLink(chatID int64) (string, error)
+	SetInviteLink(chatID int64, inviteLink string) error
+
 	GetUUIDFromChat(int64) (uuid.UUID, error)
 	GetChatIDFromUUID(uuid.UUID) (int64, error)
 }

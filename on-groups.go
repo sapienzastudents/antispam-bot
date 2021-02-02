@@ -57,14 +57,14 @@ func printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 		return nil
 	}
 
-	chatUUID, err := botdb.GetUUIDFromChat(v.ID)
+	inviteLink, err := getInviteLink(v)
 	if err != nil {
 		return err
 	}
 
 	msg.WriteString(v.Title)
 	msg.WriteString(": ")
-	msg.WriteString(fmt.Sprintf("<a href=\"https://telegram.me/%s?start=%s\">[clicca qui e poi premi START]</a>", b.Me.Username, chatUUID.String()))
+	msg.WriteString(fmt.Sprintf("<a href=\"%s\">[ENTRA]</a>", inviteLink))
 	msg.WriteString("\n")
 	return nil
 }
@@ -95,9 +95,8 @@ func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSen
 
 		b.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
 			return func(callback *tb.Callback) {
-				_ = b.Respond(callback)
-
 				showCategory(callback.Message, cat, false)
+				_ = b.Respond(callback)
 			}
 		}(categoryTree.SubCategories[category]))
 	}
@@ -111,9 +110,8 @@ func sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSen
 
 		b.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
 			return func(callback *tb.Callback) {
-				_ = b.Respond(callback)
-
 				showCategory(callback.Message, cat, true)
+				_ = b.Respond(callback)
 			}
 		}(categoryTree))
 	}
