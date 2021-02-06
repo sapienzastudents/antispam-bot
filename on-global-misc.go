@@ -2,10 +2,55 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
+
+func onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
+	_ = b.Delete(m)
+	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
+		return
+	} else if m.ReplyTo != nil && m.ReplyTo.Sender != nil {
+		if botdb.IsGlobalAdmin(m.ReplyTo.Sender) {
+			logger.WithField("chatid", m.Chat.ID).Warn("Won't g-line a global admin")
+			return
+		}
+		_ = b.Delete(m.ReplyTo)
+		banUser(m.Chat, m.ReplyTo.Sender)
+		botdb.SetUserBanned(int64(m.ReplyTo.Sender.ID))
+		_, _ = b.Send(m.Sender, fmt.Sprint("GLine ok for ", m.ReplyTo.Sender))
+		logger.WithFields(logrus.Fields{
+			"chatid":     m.Chat.ID,
+			"adminid":    m.Sender.ID,
+			"targetuser": m.ReplyTo.Sender.ID,
+		}).Info("g-line user")
+	} else if m.Text != "" {
+		payload := strings.TrimSpace(m.Text)
+		if strings.ContainsRune(payload, ' ') {
+			parts := strings.Split(m.Text, " ")
+			userID, err := strconv.ParseInt(parts[1], 10, 64)
+			if err != nil {
+				_, _ = b.Send(m.Chat, "Invalid ID specified")
+				return
+			}
+			if botdb.IsGlobalAdmin(&tb.User{ID: int(userID)}) {
+				logger.WithField("chatid", m.Chat.ID).Warn("Won't g-line a global admin")
+				return
+			}
+			botdb.SetUserBanned(userID)
+			_, _ = b.Send(m.Sender, fmt.Sprint("GLine ok for ", userID))
+			logger.WithFields(logrus.Fields{
+				"chatid":     m.Chat.ID,
+				"adminid":    m.Sender.ID,
+				"targetuser": userID,
+			}).Info("g-line user")
+		}
+	}
+}
 
 func onEmergencyRemove(m *tb.Message, _ botdatabase.ChatSettings) {
 	err := b.Delete(m)

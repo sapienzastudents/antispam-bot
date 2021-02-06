@@ -9,6 +9,11 @@ import (
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
+	if botdb.IsGlobalAdmin(m.Sender) && m.OriginalSender != nil {
+		_, _ = b.Send(m.Chat, fmt.Sprint(m.OriginalSender))
+		return
+	}
+
 	chatEditVal, isForEdit := globaleditcat.Get(fmt.Sprint(m.Sender.ID))
 	if isForEdit {
 		chatEdit, chatEditOk := chatEditVal.(inlineCategoryEdit)
@@ -65,8 +70,16 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 
 	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
+		if banned, err := botdb.IsUserBanned(int64(m.Sender.ID)); err == nil && banned {
+			logger.Infof("User %d banned, performing ban + message deletion", m.Sender.ID)
+			_ = b.Delete(m)
+			banUser(m.Chat, m.Sender)
+			return
+		}
+
 		if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && isCASBanned(m.Sender.ID) {
 			logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
+			_ = b.Delete(m)
 			performAction(m, m.Sender, settings.OnBlacklistCAS)
 			return
 		}
@@ -94,6 +107,7 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 				chinesePercent := chineseChars(text)
 				logger.Debugf("SPAM detection (msg id %d): chinese %f", m.ID, chinesePercent)
 				if chinesePercent > 0.05 {
+					_ = b.Delete(m)
 					performAction(m, m.Sender, settings.OnMessageChinese)
 					return
 				}
@@ -103,6 +117,7 @@ func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
 				arabicPercent := arabicChars(text)
 				logger.Debugf("SPAM detection (msg id %d): arabic %f", m.ID, arabicPercent)
 				if arabicPercent > 0.05 {
+					_ = b.Delete(m)
 					performAction(m, m.Sender, settings.OnMessageArabic)
 					return
 				}

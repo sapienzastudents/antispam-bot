@@ -109,6 +109,7 @@ func main() {
 	b.Handle("/reload", metrics(refreshDBInfo(checkGroupAdmin(onReloadGroup))))
 
 	// Global-administrative commands
+	b.Handle("/gline", metrics(checkGlobalAdmin(refreshDBInfo(onGLine))))
 	b.Handle("/emergency_remove", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyRemove))))
 	b.Handle("/emergency_elevate", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyElevate))))
 	b.Handle("/emergency_reduce", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyReduce))))

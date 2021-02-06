@@ -39,6 +39,9 @@ type BOTDatabase interface {
 
 	GetUUIDFromChat(int64) (uuid.UUID, error)
 	GetChatIDFromUUID(uuid.UUID) (int64, error)
+
+	IsUserBanned(int64) (bool, error)
+	SetUserBanned(int64) error
 }
 
 func New(logger *logrus.Entry) (BOTDatabase, error) {
