@@ -9,7 +9,7 @@ import (
 )
 
 func onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
-	if botdb.IsGlobalAdmin(m.Sender) && m.OriginalSender != nil {
+	if m.Private() && m.OriginalSender != nil && botdb.IsGlobalAdmin(m.Sender) {
 		_, _ = b.Send(m.Chat, fmt.Sprint(m.OriginalSender))
 		return
 	}
