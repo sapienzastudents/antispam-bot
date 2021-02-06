@@ -92,6 +92,8 @@ func main() {
 	b.Handle(tb.OnAudio, metrics(refreshDBInfo(onAnyMessage)))
 	b.Handle(tb.OnPhoto, metrics(refreshDBInfo(onAnyMessage)))
 	b.Handle(tb.OnText, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnSticker, metrics(refreshDBInfo(onAnyMessage)))
+	b.Handle(tb.OnAnimation, metrics(refreshDBInfo(onAnyMessage)))
 	b.Handle(tb.OnUserJoined, metrics(refreshDBInfo(onUserJoined)))
 	b.Handle(tb.OnAddedToGroup, metrics(refreshDBInfo(func(_ *tb.Message, _ botdatabase.ChatSettings) {})))
 	b.Handle(tb.OnUserLeft, metrics(refreshDBInfo(onUserLeft)))
