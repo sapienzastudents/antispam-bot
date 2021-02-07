@@ -42,6 +42,8 @@ type BOTDatabase interface {
 
 	IsUserBanned(int64) (bool, error)
 	SetUserBanned(int64) error
+
+	DeleteChat(int64) error
 }
 
 func New(logger *logrus.Entry) (BOTDatabase, error) {

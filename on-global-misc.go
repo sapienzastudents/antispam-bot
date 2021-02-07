@@ -126,6 +126,22 @@ func onSigHup(m *tb.Message, _ botdatabase.ChatSettings) {
 	}
 }
 
+func onSigTerm(m *tb.Message, _ botdatabase.ChatSettings) {
+	if !m.Private() {
+		_ = b.Delete(m)
+		err := botdb.DeleteChat(m.Chat.ID)
+		if err != nil {
+			logger.WithError(err).Error("can't delete chat info from redis")
+			return
+		}
+		err = b.Leave(m.Chat)
+		if err != nil {
+			logger.WithError(err).Error("can't leave chat")
+			return
+		}
+	}
+}
+
 func onVersion(m *tb.Message, _ botdatabase.ChatSettings) {
 	msg := fmt.Sprintf("Version %s", AppVersion)
 	_, _ = b.Send(m.Chat, msg)

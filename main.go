@@ -96,7 +96,12 @@ func main() {
 	b.Handle(tb.OnAnimation, metrics(refreshDBInfo(onAnyMessage)))
 	b.Handle(tb.OnUserJoined, metrics(refreshDBInfo(onUserJoined)))
 	b.Handle(tb.OnAddedToGroup, metrics(refreshDBInfo(func(_ *tb.Message, _ botdatabase.ChatSettings) {})))
-	b.Handle(tb.OnUserLeft, metrics(refreshDBInfo(onUserLeft)))
+	b.Handle(tb.OnUserLeft, metrics(func(m *tb.Message) {
+		if m.Sender.ID == b.Me.ID {
+			return
+		}
+		refreshDBInfo(onUserLeft)(m)
+	}))
 
 	// Register commands
 	b.Handle("/help", metrics(refreshDBInfo(onHelp)))
@@ -116,6 +121,7 @@ func main() {
 	b.Handle("/emergency_elevate", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyElevate))))
 	b.Handle("/emergency_reduce", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyReduce))))
 	b.Handle("/sighup", metrics(checkGlobalAdmin(refreshDBInfo(onSigHup))))
+	b.Handle("/sigterm", metrics(checkGlobalAdmin(refreshDBInfo(onSigTerm))))
 	b.Handle("/groupscheck", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsPrivileges))))
 	b.Handle("/groupsnotifyperm", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsNotifyMissingPermissions))))
 	b.Handle("/version", metrics(checkGlobalAdmin(refreshDBInfo(onVersion))))
