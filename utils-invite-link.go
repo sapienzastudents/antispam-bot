@@ -44,5 +44,14 @@ func getInviteLink(chat *tb.Chat) (string, error) {
 	} else if err != nil {
 		return "", errors.Wrap(err, "can't get invite link from API")
 	}
+
+	err = botdb.SetInviteLink(chat.ID, inviteLink)
+	if err != nil {
+		logger.WithError(err).WithFields(logrus.Fields{
+			"chatid":     chat.ID,
+			"invitelink": inviteLink,
+		}).Warn("can't save invite link for chat")
+	}
+
 	return inviteLink, nil
 }
