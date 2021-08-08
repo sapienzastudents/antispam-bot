@@ -20,3 +20,7 @@ func (db *_botDatabase) IsUserBanned(userid int64) (bool, error) {
 func (db *_botDatabase) SetUserBanned(userid int64) error {
 	return db.redisconn.HSet("banlist", fmt.Sprint(userid), time.Now().String()).Err()
 }
+
+func (db *_botDatabase) RemoveUserBanned(userid int64) error {
+	return db.redisconn.HDel("banlist", fmt.Sprint(userid), time.Now().String()).Err()
+}

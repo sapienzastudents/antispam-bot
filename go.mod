@@ -1,6 +1,6 @@
 module gitlab.com/sapienzastudents/antispam-telegram-bot
 
-go 1.12
+go 1.16
 
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect

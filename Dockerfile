@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.16 as builder
 
 # Prerequisites for builds and scratch
 RUN apt-get update && apt-get install -y upx-ucl zip ca-certificates tzdata

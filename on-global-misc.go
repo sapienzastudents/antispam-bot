@@ -10,6 +10,32 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+func onRemoveGLine(m *tb.Message, _ botdatabase.ChatSettings) {
+	if !m.Private() {
+		return
+	}
+
+	payload := strings.TrimSpace(m.Text)
+	if !strings.ContainsRune(payload, ' ') {
+		return
+	}
+
+	parts := strings.Split(m.Text, " ")
+	userID, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		_, _ = b.Send(m.Chat, "Invalid ID specified")
+		return
+	}
+
+	err = botdb.RemoveUserBanned(userID)
+	if err != nil {
+		logger.WithField("chatid", m.Chat.ID).WithError(err).Error("can't remove g-line")
+		_, _ = b.Send(m.Chat, "Error deleting G-Line for ID: ", err)
+		return
+	}
+	_, _ = b.Send(m.Chat, "OK")
+}
+
 func onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 	_ = b.Delete(m)
 	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
@@ -21,7 +47,12 @@ func onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 		}
 		_ = b.Delete(m.ReplyTo)
 		banUser(m.Chat, m.ReplyTo.Sender)
-		botdb.SetUserBanned(int64(m.ReplyTo.Sender.ID))
+		err := botdb.SetUserBanned(int64(m.ReplyTo.Sender.ID))
+		if err != nil {
+			logger.WithField("chatid", m.Chat.ID).WithError(err).Error("can't add g-line")
+			return
+		}
+
 		_, _ = b.Send(m.Sender, fmt.Sprint("GLine ok for ", m.ReplyTo.Sender))
 		logger.WithFields(logrus.Fields{
 			"chatid":     m.Chat.ID,
@@ -41,7 +72,12 @@ func onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 				logger.WithField("chatid", m.Chat.ID).Warn("Won't g-line a global admin")
 				return
 			}
-			botdb.SetUserBanned(userID)
+			err = botdb.SetUserBanned(userID)
+			if err != nil {
+				logger.WithField("chatid", m.Chat.ID).WithError(err).Error("can't add g-line")
+				return
+			}
+
 			_, _ = b.Send(m.Sender, fmt.Sprint("GLine ok for ", userID))
 			logger.WithFields(logrus.Fields{
 				"chatid":     m.Chat.ID,
