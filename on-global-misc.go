@@ -10,6 +10,71 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+func onGetChatIds(m *tb.Message, _ botdatabase.ChatSettings) {
+	category, err := botdb.GetChatTree(b)
+	if err != nil {
+		_, _ = b.Send(m.Chat, "can't get category list")
+		return
+	}
+
+	var msg strings.Builder
+	for _, c := range category.GetChats() {
+		msg.WriteString(fmt.Sprintf("%d", c.ID))
+		msg.WriteString(" ")
+		msg.WriteString(c.Title)
+		msg.WriteString("\n")
+	}
+
+	msg.WriteString("\n")
+
+	for _, subcat := range category.GetSubCategoryList() {
+		msg.WriteString("+++ ")
+		msg.WriteString(subcat)
+		msg.WriteString("\n")
+
+		subcatTree := category.SubCategories[subcat]
+		for _, c := range subcatTree.GetChats() {
+			msg.WriteString(fmt.Sprintf("%d", c.ID))
+			msg.WriteString(" ")
+			msg.WriteString(c.Title)
+			msg.WriteString("\n")
+		}
+	}
+
+	_, _ = b.Send(m.Chat, msg.String())
+}
+
+func onCut(m *tb.Message, _ botdatabase.ChatSettings) {
+	if !m.Private() {
+		return
+	}
+
+	parts := strings.SplitN(m.Payload, " ", 2)
+	if len(parts) != 2 {
+		_, _ = b.Send(m.Chat, "missing chat ID and/or message ID")
+		return
+	}
+
+	chatId, err := b.ChatByID(parts[1])
+	if err != nil {
+		_, _ = b.Send(m.Chat, "Invalid chat ID/name specified")
+		return
+	}
+
+	messageId, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		_, _ = b.Send(m.Chat, "Invalid message ID specified")
+		return
+	}
+
+	err = b.Delete(&tb.Message{Chat: chatId, ID: int(messageId)})
+	if err != nil {
+		_, _ = b.Send(m.Chat, "Error deleting message: "+err.Error())
+	} else {
+		_, _ = b.Send(m.Chat, "Message deleted")
+	}
+}
+
 func onRemoveGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 	if !m.Private() {
 		return

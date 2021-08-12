@@ -116,6 +116,8 @@ func main() {
 	b.Handle("/reload", metrics(refreshDBInfo(checkGroupAdmin(onReloadGroup))))
 
 	// Global-administrative commands
+	b.Handle("/groupsids", metrics(checkGlobalAdmin(refreshDBInfo(onGetChatIds))))
+	b.Handle("/cut", metrics(checkGlobalAdmin(refreshDBInfo(onCut))))
 	b.Handle("/remove_gline", metrics(checkGlobalAdmin(refreshDBInfo(onRemoveGLine))))
 	b.Handle("/gline", metrics(checkGlobalAdmin(refreshDBInfo(onGLine))))
 	b.Handle("/emergency_remove", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyRemove))))
