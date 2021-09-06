@@ -109,6 +109,15 @@ func main() {
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
+	b.Handle("/dont", func(m *tb.Message, _ botdatabase.ChatSettings) {
+		const url = "https://dontasktoask.com/"
+		opts := &tb.SendOptions{}
+		if m.IsReply() {
+			opts.ReplyTo = m.ReplyTo
+		}
+		b.Send(m.Chat, url, opts)
+	})
+
 	// Chat-admin commands
 	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
