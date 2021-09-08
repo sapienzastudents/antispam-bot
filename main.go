@@ -109,6 +109,10 @@ func main() {
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
+	b.Handle("/dont", func(m *tb.Message) {
+		b.Send(m.Sender, "https://dontasktoask.com \n non chiedere di chiedere, chiedi pure :)")
+	})
+
 	// Chat-admin commands
 	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
