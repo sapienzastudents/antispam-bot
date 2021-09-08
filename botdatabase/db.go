@@ -70,19 +70,25 @@ type _botDatabase struct {
 }
 
 func (db *_botDatabase) IsGlobalAdmin(user *tb.User) bool {
-	admins, err := db.redisconn.HGet("global", "admins").Result()
+	globalAdminListExists, err := db.redisconn.HExists("global", "admins").Result()
 	if err != nil {
-		db.logger.WithError(err).Error("Cannot get global admin list")
+		db.logger.WithError(err).Error("Cannot check if global admin list exists")
 		return false
-	}
-
-	for _, sID := range strings.Split(admins, ",") {
-		ID, err := strconv.ParseInt(sID, 10, 64)
+	} else if globalAdminListExists {
+		admins, err := db.redisconn.HGet("global", "admins").Result()
 		if err != nil {
-			continue
+			db.logger.WithError(err).Error("Cannot get global admin list")
+			return false
 		}
-		if ID == int64(user.ID) {
-			return true
+
+		for _, sID := range strings.Split(admins, ",") {
+			ID, err := strconv.ParseInt(sID, 10, 64)
+			if err != nil {
+				continue
+			}
+			if ID == int64(user.ID) {
+				return true
+			}
 		}
 	}
 	return false
