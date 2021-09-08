@@ -110,9 +110,20 @@ func main() {
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
 	b.Handle("/dont", func(m *tb.Message) {
-		b.Send(m.Sender, "https://dontasktoask.com \n non chiedere di chiedere, chiedi pure :)")
-	})
+		// ifs are there to check if msg got deleted
+		_, err = b.Reply(m.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
+		if err != nil {
+			logger.WithError(err).Fatal("Cant delete msg")
+			return
+		}
 
+		err = b.Delete(m)
+		if err != nil {
+			logger.Error("Can't delete messages ", err)
+			return
+		}
+	})
+	
 	// Chat-admin commands
 	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
