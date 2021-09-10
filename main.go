@@ -110,16 +110,21 @@ func main() {
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
 	b.Handle("/dont", func(m *tb.Message) {
-		// ifs are there to check if msg got deleted
-		_, err = b.Reply(m.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
-		if err != nil {
-			logger.WithError(err).Fatal("Cant delete msg")
+		defer func() {
+			err = b.Delete(m)
+			if err != nil {
+				logger.WithError(err).Error("Failed to delete message")
+			}
+		}()
+
+		if !m.IsReply() {
+			logger.Warn("/dont command without a reply")
 			return
 		}
 
-		err = b.Delete(m)
+		_, err := b.Reply(m.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
 		if err != nil {
-			logger.Error("Can't delete messages ", err)
+			logger.WithError(err).Error("Failed to reply")
 			return
 		}
 	})
