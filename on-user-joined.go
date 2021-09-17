@@ -14,24 +14,6 @@ func onUserJoined(m *tb.Message, settings botdatabase.ChatSettings) {
 	logger.Debugf("User %d (%s %s %s) joined chat %s (%d)", m.UserJoined.ID, m.UserJoined.Username,
 		m.UserJoined.FirstName, m.UserJoined.LastName, m.Chat.Title, m.Chat.ID)
 
-	if botdb.IsGlobalAdmin(m.UserJoined) {
-		member, err := b.ChatMemberOf(m.Chat, m.Sender)
-		if err != nil {
-			logger.Error("Can't get member of ", err)
-		} else {
-			member.CanDeleteMessages = true
-			member.CanChangeInfo = true
-			member.CanInviteUsers = true
-			member.CanPinMessages = true
-			member.CanRestrictMembers = true
-			member.CanPromoteMembers = true
-			err = b.Promote(m.Chat, member)
-			if err != nil {
-				logger.Error("Can't elevate ", err)
-			}
-		}
-	}
-
 	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && settings.OnBlacklistCAS.Action != botdatabase.ACTION_DELETE_MSG && isCASBanned(m.Sender.ID) {
 		logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
 		performAction(m, m.Sender, settings.OnBlacklistCAS)
