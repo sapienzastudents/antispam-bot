@@ -109,6 +109,25 @@ func main() {
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
+	b.Handle("/dont", metrics(refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
+		defer func() {
+			err = b.Delete(m)
+			if err != nil {
+				logger.WithError(err).Error("Failed to delete message")
+			}
+		}()
+
+		if !m.IsReply() {
+			return
+		}
+
+		_, err := b.Reply(m.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
+		if err != nil {
+			logger.WithError(err).Error("Failed to reply")
+			return
+		}
+	})))
+
 	// Chat-admin commands
 	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
