@@ -109,7 +109,7 @@ func main() {
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
 
-	b.Handle("/dont", func(m *tb.Message) {
+	b.Handle("/dont", metrics(refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
 		defer func() {
 			err = b.Delete(m)
 			if err != nil {
@@ -118,7 +118,6 @@ func main() {
 		}()
 
 		if !m.IsReply() {
-			logger.Warn("/dont command without a reply")
 			return
 		}
 
@@ -127,8 +126,8 @@ func main() {
 			logger.WithError(err).Error("Failed to reply")
 			return
 		}
-	})
-	
+	})))
+
 	// Chat-admin commands
 	b.Handle("/impostazioni", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
