@@ -1,6 +1,6 @@
 FROM golang:1.16 as builder
 
-# Prerequisites for builds and scratch
+# Prerequisites for builds
 RUN apt-get update && apt-get install -y upx-ucl zip ca-certificates tzdata
 
 WORKDIR /src/
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.
 	upx -9 antispam-telegram-bot
 
 
-# From empty container
+# We need to start from Debian as we need the SSH agent
 FROM debian:buster
 
 EXPOSE 3000

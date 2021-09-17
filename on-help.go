@@ -95,7 +95,7 @@ func onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 				_ = b.Respond(callback)
 				// Note that the second parameter is always ignored in onSettings when asking from a direct message, so we
 				// can avoid a db lookup
-				sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat)
+				sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, 0)
 			})
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}

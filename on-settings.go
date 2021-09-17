@@ -12,6 +12,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+const SettingsGroupListPageSize = 10
+
 type inlineCategoryEdit struct {
 	ChatID   int64
 	Category string
@@ -238,24 +240,28 @@ func onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 		sendSettingsMessage(nil, m.Chat, m.Chat, settings)
 	} else {
 		// Private message
-		sendGroupListForSettings(m.Sender, nil, m.Chat)
+		sendGroupListForSettings(m.Sender, nil, m.Chat, 0)
 	}
 }
 
-func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat) {
-	chatButtons := [][]tb.InlineButton{}
+func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, page int) {
+	var chatButtons [][]tb.InlineButton
+	var showMore = false
 	chatrooms, err := botdb.ListMyChatrooms()
 	if err != nil {
 		logger.WithError(err).Error("cant get chatroom list")
 		return
 	}
 
+	// Sort chatrooms (to have a stable slice)
 	sort.Slice(chatrooms, func(i, j int) bool {
 		return chatrooms[i].Title < chatrooms[j].Title
 	})
 
 	isGlobalAdmin := botdb.IsGlobalAdmin(sender)
 
+	// Pick chatrooms candidates (e.g. where the user has the admin permission)
+	var candidates []*tb.Chat
 	for _, x := range chatrooms {
 		chatsettings, err := botdb.GetChatSetting(b, x)
 		if err != nil {
@@ -265,7 +271,20 @@ func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatTo
 		if !isGlobalAdmin && !chatsettings.ChatAdmins.IsAdmin(sender) {
 			continue
 		}
+		candidates = append(candidates, x)
+	}
 
+	// Slice the candidate list to the current page, if any
+	if len(candidates) > (SettingsGroupListPageSize * (page + 1)) {
+		candidates = candidates[SettingsGroupListPageSize*page : SettingsGroupListPageSize*(page+1)]
+		showMore = true
+	}
+	if page > 0 && len(candidates) > SettingsGroupListPageSize*page {
+		candidates = candidates[SettingsGroupListPageSize*page:]
+	}
+
+	// Create buttons
+	for _, x := range candidates {
 		btn := tb.InlineButton{
 			Unique: fmt.Sprintf("select_chatid_%d", x.ID*-1),
 			Text:   x.Title,
@@ -285,9 +304,34 @@ func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatTo
 	if len(chatButtons) == 0 {
 		msg = "You are not an admin in a chat where the bot is."
 	} else {
+		if showMore {
+			var bt = tb.InlineButton{
+				Unique: "groups_settings_list_next",
+				Text:   "Next ➡️",
+				Data:   strconv.Itoa(page + 1),
+			}
+			chatButtons = append(chatButtons, []tb.InlineButton{bt})
+			b.Handle(&bt, func(callback *tb.Callback) {
+				page, _ := strconv.Atoi(callback.Data)
+				sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+			})
+		}
+		if page >= 1 {
+			var bt = tb.InlineButton{
+				Unique: "groups_settings_list_prev",
+				Text:   "⬅️ Prev",
+				Data:   strconv.Itoa(page - 1),
+			}
+			chatButtons = append(chatButtons, []tb.InlineButton{bt})
+			b.Handle(&bt, func(callback *tb.Callback) {
+				page, _ := strconv.Atoi(callback.Data)
+				sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+			})
+		}
+
 		var bt = tb.InlineButton{
 			Unique: "groups_settings_list_close",
-			Text:   "Close / Chiudi",
+			Text:   "✖️ Close / Chiudi",
 		}
 		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		b.Handle(&bt, func(callback *tb.Callback) {
@@ -303,6 +347,7 @@ func sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatTo
 			},
 		}
 	}
+
 	if messageToEdit == nil {
 		_, err = b.Send(chatToSend, msg, &sendOptions)
 	} else {
@@ -517,7 +562,7 @@ func handleChangeSubCategory(callback *tb.Callback, state State) {
 func backToSettingsFromCallback(callback *tb.Callback) {
 	chat, err := b.ChatByID(callback.Data)
 	if err != nil {
-		logger.WithError(err).Error("can't get chat information in backToSettingsFromCallback")
+		logger.WithError(err).WithField("callback-data", callback.Data).Error("can't get chat information in backToSettingsFromCallback")
 		return
 	}
 	settings, _ := botdb.GetChatSetting(b, chat)
