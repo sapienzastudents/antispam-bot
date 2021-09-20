@@ -108,7 +108,6 @@ func main() {
 	b.Handle("/start", metrics(refreshDBInfo(onHelp)))
 	b.Handle("/groups", metrics(refreshDBInfo(onGroups)))
 	b.Handle("/gruppi", metrics(refreshDBInfo(onGroups)))
-
 	b.Handle("/dont", metrics(refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
 		defer func() {
 			err = b.Delete(m)
@@ -133,21 +132,20 @@ func main() {
 	b.Handle("/settings", metrics(refreshDBInfo(checkGroupAdmin(onSettings))))
 	b.Handle("/terminate", metrics(refreshDBInfo(checkGroupAdmin(onTerminate))))
 	b.Handle("/reload", metrics(refreshDBInfo(checkGroupAdmin(onReloadGroup))))
+	b.Handle("/sigterm", metrics(refreshDBInfo(checkGroupAdmin(onSigTerm))))
 
 	// Global-administrative commands
-	b.Handle("/groupsids", metrics(checkGlobalAdmin(refreshDBInfo(onGetChatIds))))
-	b.Handle("/cut", metrics(checkGlobalAdmin(refreshDBInfo(onCut))))
-	b.Handle("/remove_gline", metrics(checkGlobalAdmin(refreshDBInfo(onRemoveGLine))))
+	b.Handle("/sighup", metrics(checkGlobalAdmin(refreshDBInfo(onSigHup))))
+	b.Handle("/groupscheck", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsPrivileges))))
+	b.Handle("/version", metrics(checkGlobalAdmin(refreshDBInfo(onVersion))))
+	b.Handle("/updatewww", metrics(checkGlobalAdmin(refreshDBInfo(onGlobalUpdateWww))))
 	b.Handle("/gline", metrics(checkGlobalAdmin(refreshDBInfo(onGLine))))
+	b.Handle("/remove_gline", metrics(checkGlobalAdmin(refreshDBInfo(onRemoveGLine))))
+	// Global-administrative commands (legacy, we should replace them as soon as "admin fallback" feature is ready)
+	b.Handle("/cut", metrics(checkGlobalAdmin(refreshDBInfo(onCut))))
 	b.Handle("/emergency_remove", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyRemove))))
 	b.Handle("/emergency_elevate", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyElevate))))
 	b.Handle("/emergency_reduce", metrics(checkGlobalAdmin(refreshDBInfo(onEmergencyReduce))))
-	b.Handle("/sighup", metrics(checkGlobalAdmin(refreshDBInfo(onSigHup))))
-	b.Handle("/sigterm", metrics(checkGlobalAdmin(refreshDBInfo(onSigTerm))))
-	b.Handle("/groupscheck", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsPrivileges))))
-	b.Handle("/groupsnotifyperm", metrics(checkGlobalAdmin(refreshDBInfo(onGroupsNotifyMissingPermissions))))
-	b.Handle("/version", metrics(checkGlobalAdmin(refreshDBInfo(onVersion))))
-	b.Handle("/updatewww", metrics(checkGlobalAdmin(refreshDBInfo(onGlobalUpdateWww))))
 
 	// Utilities
 	b.Handle("/id", metrics(refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {

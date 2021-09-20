@@ -11,19 +11,7 @@ import (
 )
 
 func onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
-	onGroupsPrivilegesFunc(m, false)
-}
-
-func onGroupsNotifyMissingPermissions(m *tb.Message, _ botdatabase.ChatSettings) {
-	onGroupsPrivilegesFunc(m, true)
-}
-
-func onGroupsPrivilegesFunc(m *tb.Message, notify bool) {
-	if notify {
-		logger.Debugf("Missing privilege notification requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
-	} else {
-		logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
-	}
+	logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 
 	waitingmsg, _ := b.Send(m.Chat, "Work in progress...")
 
@@ -63,27 +51,15 @@ func onGroupsPrivilegesFunc(m *tb.Message, notify bool) {
 			msg.WriteString(" : ")
 			if me.Role != tb.Administrator {
 				msg.WriteString("❌ not admin\n")
-
-				if notify {
-					_, _ = b.Send(v, "Oops, mi mancano i permessi di admin per funzionare! L'indicizzazione non sta funzionando!\n\nPer gli admin del gruppo: contattatemi in privato scrivendo /settings per vedere quali permessi mancano")
-				}
 			} else {
 				var missingPrivileges = synthetizePrivileges(me)
 				if len(missingPrivileges) == 0 {
 					msg.WriteString("✅\n")
 				} else {
-					var warnMsg bool = false
 					for _, k := range missingPrivileges {
-						if k == "can_delete_messages" || k == "can_invite_users" || k == "can_restrict_members" {
-							warnMsg = true
-						}
 						msg.WriteString(botPermissionsTag[k])
 					}
 					msg.WriteString("❌\n")
-
-					if notify && warnMsg {
-						_, _ = b.Send(v, "Oops, mi mancano alcuni permessi per funzionare!\n\nPer gli admin del gruppo: contattatemi in privato scrivendo /settings per vedere quali permessi mancano")
-					}
 				}
 			}
 

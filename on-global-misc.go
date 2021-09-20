@@ -10,40 +10,6 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func onGetChatIds(m *tb.Message, _ botdatabase.ChatSettings) {
-	category, err := botdb.GetChatTree(b)
-	if err != nil {
-		_, _ = b.Send(m.Chat, "can't get category list")
-		return
-	}
-
-	var msg strings.Builder
-	for _, c := range category.GetChats() {
-		msg.WriteString(fmt.Sprintf("%d", c.ID))
-		msg.WriteString(" ")
-		msg.WriteString(c.Title)
-		msg.WriteString("\n")
-	}
-
-	msg.WriteString("\n")
-
-	for _, subcat := range category.GetSubCategoryList() {
-		msg.WriteString("+++ ")
-		msg.WriteString(subcat)
-		msg.WriteString("\n")
-
-		subcatTree := category.SubCategories[subcat]
-		for _, c := range subcatTree.GetChats() {
-			msg.WriteString(fmt.Sprintf("%d", c.ID))
-			msg.WriteString(" ")
-			msg.WriteString(c.Title)
-			msg.WriteString("\n")
-		}
-	}
-
-	_, _ = b.Send(m.Chat, msg.String())
-}
-
 func onCut(m *tb.Message, _ botdatabase.ChatSettings) {
 	if !m.Private() {
 		return
