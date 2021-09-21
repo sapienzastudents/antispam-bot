@@ -35,7 +35,6 @@ This bot is still a work in progress.
 | ----- | ----- |
 | `/sighup` | Do a full groups cache update |
 | `/groupscheck` | Prints a debug for all groups |
-| `/version` | Print version/build |
 | `/updatewww` | Update the group list in the website |
 | `/gline` | Ban a user globally (for spam) |
 | `/remove_gline` | Un-ban a user globally (for spam) |

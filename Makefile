@@ -1,34 +1,60 @@
+SHELL := /bin/bash
 
-.PHONY: docker clean dev push deploy test
+VERSION := $(shell git fetch --unshallow >/dev/null 2>&1; git describe --all --long --dirty 2>/dev/null)
+ifeq (${VERSION},)
+VERSION := no-git-version
+endif
 
-antispam-telegram-bot:
-	CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.AppVersion=${shell git describe --tags --dirty}" -a -installsuffix cgo -o antispam-telegram-bot .
-	strip antispam-telegram-bot
-	upx -9 antispam-telegram-bot
+BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-dev:
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o antispam-telegram-bot .
-	REDIS_URL=redis://127.0.0.1:6379/0 BOT_TOKEN="${BOT_TOKEN}" ./antispam-telegram-bot
 
+.PHONY: all
+all: docker
+
+.PHONY: docker
 docker:
-	docker build -t antispam-telegram-bot:latest --build-arg APPVERSION="${shell git describe --tags --dirty}" \
-		-f Dockerfile .
+	docker build \
+		-t antispam-telegram-bot:latest \
+		--build-arg APP_VERSION="${VERSION}" \
+		--build-arg BUILD_DATE=${BUILD_DATE} \
+		.
 
+.PHONY: push
 push:
 	docker tag antispam-telegram-bot:latest enrico204/antispam-telegram-bot:latest
 	docker push enrico204/antispam-telegram-bot:latest
-	docker rmi enrico204/antispam-telegram-bot:latest
 
-deploy:
-	kubectl -n default set image deploy/antispam-tbot antispam-tbot=enrico204/antispam-telegram-bot@$(shell skopeo inspect docker://enrico204/antispam-telegram-bot:latest | jq -r ".Digest")
+.PHONY: up-deps
+up-deps:
+	docker-compose \
+		-f demo/docker-compose.yml \
+		up
 
-clean:
-	rm -f antispam-telegram-bot
+.PHONY: stop
+stop:
+	docker-compose \
+		-f demo/docker-compose.yml \
+		stop
 
+.PHONY: down
+down:
+	docker-compose \
+		-f demo/docker-compose.yml \
+		down
+
+.PHONY: test
 test:
-	go test ./...
+	go test ./... -mod=mod
 	go vet ./...
 	gosec -quiet ./...
 	staticcheck -tests=false ./...
-	ineffassign .
+	ineffassign ./...
 	errcheck ./...
+	go list -u -m -json all | go-mod-outdated -update -direct
+
+.PHONY: deploy
+deploy:
+	kubectl -n default set image deploy/antispam-tbot antispam-tbot=enrico204/antispam-telegram-bot@$(shell skopeo inspect docker://enrico204/antispam-telegram-bot:latest | jq -r ".Digest")
+
+dev:
+	CGO_ENABLED=0 GOOS=linux REDIS_URL=redis://127.0.0.1:6379/0 BOT_TOKEN="${BOT_TOKEN}" go run ./cmd/telegram/

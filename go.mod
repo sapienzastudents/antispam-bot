@@ -13,7 +13,6 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
-	github.com/levigross/grequests v0.0.0-20190908174114-253788527a1a
 	github.com/nxadm/tail v1.4.6 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect
