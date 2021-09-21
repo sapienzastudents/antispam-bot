@@ -115,6 +115,7 @@ When not ticked, they're planned:
     should be a system capable of either promoting a new admin based on some
     algorithm, or do an election for a new admin
 * [ ] Rename "categories" as "degree programs"
+* [ ] Remove group list message after 10 minutes (as links will expire)
 
 ## How to build
 
