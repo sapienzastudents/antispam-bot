@@ -65,7 +65,7 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 		// === SETTINGS button
 		// Check if the user is an admin in at least one chat
 		var settingsVisible = false
-		if !bot.db.IsGlobalAdmin(m.Sender) {
+		if !bot.db.IsGlobalAdmin(m.Sender.ID) {
 			chatrooms, err := bot.db.ListMyChatrooms()
 			if err != nil {
 				bot.logger.WithError(err).Error("cant get chatroom list")

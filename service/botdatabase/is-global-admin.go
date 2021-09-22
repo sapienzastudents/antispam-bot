@@ -1,12 +1,11 @@
 package botdatabase
 
 import (
-	tb "gopkg.in/tucnak/telebot.v2"
 	"strconv"
 	"strings"
 )
 
-func (db *_botDatabase) IsGlobalAdmin(user *tb.User) bool {
+func (db *_botDatabase) IsGlobalAdmin(userID int) bool {
 	globalAdminListExists, err := db.redisconn.HExists("global", "admins").Result()
 	if err != nil {
 		db.logger.WithError(err).Error("Cannot check if global admin list exists")
@@ -23,7 +22,7 @@ func (db *_botDatabase) IsGlobalAdmin(user *tb.User) bool {
 			if err != nil {
 				continue
 			}
-			if ID == int64(user.ID) {
+			if ID == int64(userID) {
 				return true
 			}
 		}

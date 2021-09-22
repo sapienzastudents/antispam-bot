@@ -10,7 +10,7 @@ import (
 )
 
 func (bot *telegramBot) onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
-	if m.Private() && m.OriginalSender != nil && bot.db.IsGlobalAdmin(m.Sender) {
+	if m.Private() && m.OriginalSender != nil && bot.db.IsGlobalAdmin(m.Sender.ID) {
 		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint(m.OriginalSender))
 		return
 	}
@@ -46,7 +46,7 @@ func (bot *telegramBot) onAnyMessage(m *tb.Message, settings botdatabase.ChatSet
 				settings.SubCategory = categories[0]
 			}
 
-			err = bot.db.SetChatSettings(chat, settings)
+			err = bot.db.SetChatSettings(chat.ID, settings)
 			if err != nil {
 				bot.logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
 			}

@@ -101,7 +101,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		}(categoryTree.SubCategories[category]))
 	}
 
-	if bot.db.IsGlobalAdmin(sender) {
+	if bot.db.IsGlobalAdmin(sender.ID) {
 		var bt = tb.InlineButton{
 			Unique: "groups_no_category",
 			Text:   "Senza categoria",

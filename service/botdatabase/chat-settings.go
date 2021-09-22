@@ -118,7 +118,7 @@ func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, 
 		}
 		settings.ChatAdmins.SetFromChat(chatAdmins)
 
-		err = db.SetChatSettings(chat, settings)
+		err = db.SetChatSettings(chat.ID, settings)
 		if err != nil {
 			return ChatSettings{}, errors.Wrap(err, "can't save chat settings for new chat")
 		}
@@ -134,10 +134,10 @@ func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, 
 	return settings, err
 }
 
-func (db *_botDatabase) SetChatSettings(chat *tb.Chat, settings ChatSettings) error {
+func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) error {
 	jsonb, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet("settings", fmt.Sprintf("%d", chat.ID), jsonb).Err()
+	return db.redisconn.HSet("settings", fmt.Sprintf("%d", chatID), jsonb).Err()
 }

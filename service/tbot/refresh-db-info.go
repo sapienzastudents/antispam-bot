@@ -22,7 +22,7 @@ func (bot *telegramBot) refreshDBInfo(actionHandler refreshDBInfoFunc) func(m *t
 			settings, err := bot.db.GetChatSetting(bot.telebot, m.Chat)
 			if err != nil {
 				bot.logger.WithError(err).Error("Cannot get chat settings")
-			} else if !settings.BotEnabled && !bot.db.IsGlobalAdmin(m.Sender) {
+			} else if !settings.BotEnabled && !bot.db.IsGlobalAdmin(m.Sender.ID) {
 				bot.logger.WithFields(logrus.Fields{
 					"chatid":    m.Chat.ID,
 					"chattitle": m.Chat.Title,

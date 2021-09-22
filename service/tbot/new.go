@@ -14,7 +14,7 @@ import (
 
 type Options struct {
 	Logger   logrus.FieldLogger
-	Database botdatabase.BOTDatabase
+	Database botdatabase.Database
 	Token    string
 	CAS      cas.CAS
 }

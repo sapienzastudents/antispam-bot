@@ -62,14 +62,14 @@ func (db *_botDatabase) UpdateMyChatroomList(c *tb.Chat) error {
 	return db.redisconn.HSet("chatrooms", fmt.Sprintf("%d", c.ID), string(jsonbin)).Err()
 }
 
-func (db *_botDatabase) LeftChatroom(c *tb.Chat) error {
-	err := db.redisconn.HDel("chatrooms", fmt.Sprintf("%d", c.ID)).Err()
+func (db *_botDatabase) LeftChatroom(chatID int64) error {
+	err := db.redisconn.HDel("chatrooms", fmt.Sprintf("%d", chatID)).Err()
 	if err != nil {
 		return err
 	}
-	err = db.redisconn.HDel("settings", fmt.Sprintf("%d", c.ID)).Err()
+	err = db.redisconn.HDel("settings", fmt.Sprintf("%d", chatID)).Err()
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HDel("public-links", fmt.Sprint(c.ID)).Err()
+	return db.redisconn.HDel("public-links", fmt.Sprint(chatID)).Err()
 }

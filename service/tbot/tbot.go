@@ -18,7 +18,7 @@ type TelegramBot interface {
 
 type telegramBot struct {
 	logger logrus.FieldLogger
-	db     botdatabase.BOTDatabase
+	db     botdatabase.Database
 	cas    cas.CAS
 
 	telebot       *tb.Bot

@@ -235,7 +235,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 func (bot *telegramBot) onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("settings").Inc()
 
-	if !m.Private() && bot.db.IsGlobalAdmin(m.Sender) || settings.ChatAdmins.IsAdmin(m.Sender) {
+	if !m.Private() && bot.db.IsGlobalAdmin(m.Sender.ID) || settings.ChatAdmins.IsAdmin(m.Sender) {
 		// Messages in a chatroom
 		bot.sendSettingsMessage(nil, m.Chat, m.Chat, settings)
 	} else {
@@ -258,7 +258,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		return chatrooms[i].Title < chatrooms[j].Title
 	})
 
-	isGlobalAdmin := bot.db.IsGlobalAdmin(sender)
+	isGlobalAdmin := bot.db.IsGlobalAdmin(sender.ID)
 
 	// Pick chatrooms candidates (e.g. where the user has the admin permission)
 	var candidates []*tb.Chat
@@ -381,7 +381,7 @@ func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, botdatabase.ChatS
 				Text:      "Internal error",
 				ShowAlert: true,
 			})
-		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !bot.db.IsGlobalAdmin(callback.Sender) {
+		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !bot.db.IsGlobalAdmin(callback.Sender.ID) {
 			bot.logger.Warning("Non-admin is using a callback from the admin:", callback.Sender)
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 				Text:      "Not authorized",
@@ -389,7 +389,7 @@ func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, botdatabase.ChatS
 			})
 		} else {
 			newsettings := fn(callback, settings)
-			_ = bot.db.SetChatSettings(chat, newsettings)
+			_ = bot.db.SetChatSettings(chat.ID, newsettings)
 
 			bot.sendSettingsMessage(callback.Message, callback.Message.Chat, chat, newsettings)
 
@@ -461,7 +461,7 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 	_ = bot.telebot.Respond(callback)
 	settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
 	settings.MainCategory = state.Category
-	err := bot.db.SetChatSettings(state.Chat, settings)
+	err := bot.db.SetChatSettings(state.Chat.ID, settings)
 	if err != nil {
 		bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 		return
@@ -499,7 +499,7 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 		_ = bot.telebot.Respond(callback)
 		settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
 		settings.SubCategory = ""
-		err := bot.db.SetChatSettings(state.Chat, settings)
+		err := bot.db.SetChatSettings(state.Chat.ID, settings)
 		if err != nil {
 			bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 			return
@@ -532,7 +532,7 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 			_ = bot.telebot.Respond(callback)
 			settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
 			settings.SubCategory = state.SubCategory
-			err := bot.db.SetChatSettings(state.Chat, settings)
+			err := bot.db.SetChatSettings(state.Chat.ID, settings)
 			if err != nil {
 				bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 				return

@@ -41,7 +41,7 @@ func (bot *telegramBot) onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
 		return
 	} else if m.ReplyTo != nil && m.ReplyTo.Sender != nil {
-		if bot.db.IsGlobalAdmin(m.ReplyTo.Sender) {
+		if bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID) {
 			bot.logger.WithField("chatid", m.Chat.ID).Warn("Won't g-line a global admin")
 			return
 		}
@@ -68,7 +68,7 @@ func (bot *telegramBot) onGLine(m *tb.Message, _ botdatabase.ChatSettings) {
 				_, _ = bot.telebot.Send(m.Chat, "Invalid ID specified")
 				return
 			}
-			if bot.db.IsGlobalAdmin(&tb.User{ID: int(userID)}) {
+			if bot.db.IsGlobalAdmin(int(userID)) {
 				bot.logger.WithField("chatid", m.Chat.ID).Warn("Won't g-line a global admin")
 				return
 			}

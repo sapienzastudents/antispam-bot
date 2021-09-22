@@ -9,17 +9,17 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-type BOTDatabase interface {
-	IsGlobalAdmin(user *tb.User) bool
+type Database interface {
+	IsGlobalAdmin(userID int) bool
 
 	GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error)
-	SetChatSettings(*tb.Chat, ChatSettings) error
+	SetChatSettings(int64, ChatSettings) error
 
 	ListMyChatrooms() ([]*tb.Chat, error)
 	ChatroomsCount() (int64, error)
 
 	UpdateMyChatroomList(c *tb.Chat) error
-	LeftChatroom(c *tb.Chat) error
+	LeftChatroom(chatID int64) error
 
 	// I know that it's wrong to have this whole function here. It's also wrong
 	// to have bot<->database and prometheus<->database inter-dependencies.
@@ -47,7 +47,7 @@ type Options struct {
 	Redis  *redis.Client
 }
 
-func New(opts Options) (BOTDatabase, error) {
+func New(opts Options) (Database, error) {
 	if opts.Logger == nil {
 		return nil, errors.New("no logger specified")
 	}

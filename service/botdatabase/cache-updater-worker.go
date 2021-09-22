@@ -2,6 +2,7 @@ package botdatabase
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -29,10 +30,10 @@ func (db *_botDatabase) DoCacheUpdate(b *tb.Bot, g *prometheus.GaugeVec) error {
 		time.Sleep(500 * time.Millisecond)
 
 		members, err := b.Len(chat)
-		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
-			_ = db.LeftChatroom(chat)
+		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
+			_ = db.LeftChatroom(chat.ID)
 		} else if err != nil && strings.Contains(err.Error(), "bot is not a member of the group chat") {
-			_ = db.LeftChatroom(chat)
+			_ = db.LeftChatroom(chat.ID)
 		} else if err != nil {
 			db.logger.WithError(err).WithField("chat_id", chat.ID).Warning("Error getting members count for ", chat.Title)
 		} else {
@@ -50,8 +51,8 @@ func (db *_botDatabase) DoCacheUpdate(b *tb.Bot, g *prometheus.GaugeVec) error {
 func (db *_botDatabase) DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error {
 	newChatInfo, err := b.ChatByID(fmt.Sprint(chat.ID))
 	if err != nil {
-		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
-			_ = db.LeftChatroom(chat)
+		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
+			_ = db.LeftChatroom(chat.ID)
 			return errors.Wrap(err, fmt.Sprintf("Chat %s not found, removing configuration", chat.Title))
 		}
 		return errors.Wrap(err, fmt.Sprintf("Error getting admins for chat %d (%s): %s", chat.ID, chat.Title, err.Error()))
@@ -71,7 +72,7 @@ func (db *_botDatabase) DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error {
 	}
 
 	chatsettings.ChatAdmins.SetFromChat(admins)
-	err = db.SetChatSettings(chat, chatsettings)
+	err = db.SetChatSettings(chat.ID, chatsettings)
 	if err != nil {
 		db.logger.WithError(err).WithField("chat_id", chat.ID).Error("Cannot save chat settings for chat ", chat.Title)
 		return err

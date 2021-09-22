@@ -216,7 +216,7 @@ func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, botdataba
 				Text:      "Internal error",
 				ShowAlert: true,
 			})
-		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !bot.db.IsGlobalAdmin(callback.Sender) {
+		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !bot.db.IsGlobalAdmin(callback.Sender.ID) {
 			bot.logger.Warning("Non-admin is using a callback from the admin:", callback.Sender)
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 				Text:      "Not authorized",
@@ -224,7 +224,7 @@ func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, botdataba
 			})
 		} else {
 			newsettings := fn(callback, settings)
-			_ = bot.db.SetChatSettings(chat, newsettings)
+			_ = bot.db.SetChatSettings(chat.ID, newsettings)
 
 			bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, chat, newsettings)
 

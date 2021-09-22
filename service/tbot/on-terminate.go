@@ -18,7 +18,7 @@ func (bot *telegramBot) onTerminate(m *tb.Message, settings botdatabase.ChatSett
 	}
 
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || bot.db.IsGlobalAdmin(m.ReplyTo.Sender) {
+	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID) {
 		return
 	}
 
