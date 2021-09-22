@@ -2,14 +2,12 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/antispam"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strings"
 
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onAnyMessage(m *tb.Message, settings botdatabase.ChatSettings) {
+func (bot *telegramBot) onAnyMessage(m *tb.Message, settings chatSettings) {
 	if m.Private() && m.OriginalSender != nil && bot.db.IsGlobalAdmin(m.Sender.ID) {
 		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint(m.OriginalSender))
 		return
@@ -69,19 +67,15 @@ func (bot *telegramBot) onAnyMessage(m *tb.Message, settings botdatabase.ChatSet
 		}
 	}
 
-	// Note: this will not scale very well - keep an eye on it
 	if !m.Private() {
 		if banned, err := bot.db.IsUserBanned(int64(m.Sender.ID)); err == nil && banned {
-			bot.logger.Infof("User %d banned, performing ban + message deletion", m.Sender.ID)
-			_ = bot.telebot.Delete(m)
-			bot.banUser(m.Chat, m.Sender)
+			bot.banUser(m.Chat, m.Sender, settings, "user g-lined")
+			bot.deleteMessage(m, settings, "user g-lined")
 			return
 		}
 
-		if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && bot.cas.IsBanned(m.Sender.ID) {
-			bot.logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
-			_ = bot.telebot.Delete(m)
-			bot.performAction(m, m.Sender, settings.OnBlacklistCAS)
+		if bot.cas.IsBanned(m.Sender.ID) {
+			bot.performAction(m, m.Sender, settings, settings.OnBlacklistCAS, "CAS banned")
 			return
 		}
 
@@ -103,26 +97,6 @@ func (bot *telegramBot) onAnyMessage(m *tb.Message, settings botdatabase.ChatSet
 			textvalues = append(textvalues, m.Video.Caption)
 		}
 
-		for _, text := range textvalues {
-			if settings.OnMessageChinese.Action != botdatabase.ACTION_NONE {
-				chinesePercent := antispam.ChineseChars(text)
-				bot.logger.Debugf("SPAM detection (msg id %d): chinese %f", m.ID, chinesePercent)
-				if chinesePercent > 0.05 {
-					_ = bot.telebot.Delete(m)
-					bot.performAction(m, m.Sender, settings.OnMessageChinese)
-					return
-				}
-			}
-
-			if settings.OnMessageArabic.Action != botdatabase.ACTION_NONE {
-				arabicPercent := antispam.ArabicChars(text)
-				bot.logger.Debugf("SPAM detection (msg id %d): arabic %f", m.ID, arabicPercent)
-				if arabicPercent > 0.05 {
-					_ = bot.telebot.Delete(m)
-					bot.performAction(m, m.Sender, settings.OnMessageArabic)
-					return
-				}
-			}
-		}
+		bot.spamFilter(m, settings, textvalues)
 	}
 }

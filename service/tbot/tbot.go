@@ -17,9 +17,12 @@ type TelegramBot interface {
 }
 
 type telegramBot struct {
-	logger logrus.FieldLogger
-	db     botdatabase.Database
-	cas    cas.CAS
+	logger              logrus.FieldLogger
+	db                  botdatabase.Database
+	cas                 cas.CAS
+	gitTemporaryDir     string
+	gitSSHKey           string
+	gitSSHKeyPassphrase string
 
 	telebot       *tb.Bot
 	promreg       *prometheus.Registry

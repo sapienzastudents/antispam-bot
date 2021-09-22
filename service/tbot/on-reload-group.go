@@ -1,11 +1,11 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onReloadGroup(m *tb.Message, _ botdatabase.ChatSettings) {
+// onReloadGroup refresh the cache for chat
+func (bot *telegramBot) onReloadGroup(m *tb.Message, _ chatSettings) {
 	if !m.Private() {
 		bot.botCommandsRequestsTotal.WithLabelValues("reload").Inc()
 

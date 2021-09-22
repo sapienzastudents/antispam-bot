@@ -1,14 +1,13 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strconv"
 	"strings"
 
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onCut(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onCut(m *tb.Message, _ chatSettings) {
 	if !m.Private() {
 		return
 	}
@@ -39,7 +38,7 @@ func (bot *telegramBot) onCut(m *tb.Message, _ botdatabase.ChatSettings) {
 	}
 }
 
-func (bot *telegramBot) onEmergencyRemove(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onEmergencyRemove(m *tb.Message, _ chatSettings) {
 	err := bot.telebot.Delete(m)
 	if err != nil {
 		bot.logger.Error("Can't delete messages ", err)
@@ -55,7 +54,7 @@ func (bot *telegramBot) onEmergencyRemove(m *tb.Message, _ botdatabase.ChatSetti
 	}
 }
 
-func (bot *telegramBot) onEmergencyElevate(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onEmergencyElevate(m *tb.Message, _ chatSettings) {
 	err := bot.telebot.Delete(m)
 	if err != nil {
 		bot.logger.Error("Can't delete messages ", err)
@@ -79,7 +78,7 @@ func (bot *telegramBot) onEmergencyElevate(m *tb.Message, _ botdatabase.ChatSett
 	}
 }
 
-func (bot *telegramBot) onEmergencyReduce(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onEmergencyReduce(m *tb.Message, _ chatSettings) {
 	err := bot.telebot.Delete(m)
 	if err != nil {
 		bot.logger.Error("Can't delete messages ", err)

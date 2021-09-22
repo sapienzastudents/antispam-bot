@@ -53,6 +53,8 @@ func run() error {
 	})
 
 	logger.Info("Antispam Telegram Bot, version ", AppVersion, " build ", BuildDate)
+
+	// Initalizing redis connection
 	logger.Info("Initializing redis DB connection")
 	redisOptions, err := redis.ParseURL(os.Getenv("REDIS_URL"))
 	if err != nil {
@@ -71,17 +73,22 @@ func run() error {
 		return errors.Wrap(err, "error creating DB connection")
 	}
 
-	casDB, err := cas.New(false, logger, nil)
+	// Initializing CAS database
+	casDB, err := cas.New(os.Getenv("DISABLE_CAS") == "", logger, nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating CAS")
 	}
 
+	// Initialize Telegram
 	logger.Info("Initializing Telegram bot connection")
 	bot, err := tbot.New(tbot.Options{
-		Logger:   logrusLogger,
-		Database: botdb,
-		Token:    os.Getenv("BOT_TOKEN"),
-		CAS:      casDB,
+		Logger:              logrusLogger,
+		Database:            botdb,
+		Token:               os.Getenv("BOT_TOKEN"),
+		CAS:                 casDB,
+		GitTemporaryDir:     os.Getenv("GIT_TEMP_DIR"),
+		GitSSHKeyFile:       os.Getenv("GIT_SSH_KEY"),
+		GitSSHKeyPassphrase: os.Getenv("GIT_SSH_KEY_PASS"),
 	})
 	if err != nil {
 		return errors.Wrap(err, "error creating bot")

@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	ACTION_NONE       = 0
-	ACTION_MUTE       = 1
-	ACTION_KICK       = 2
-	ACTION_BAN        = 3
-	ACTION_DELETE_MSG = 4
+	ActionNone      = 0
+	ActionMute      = 1
+	ActionKick      = 2
+	ActionBan       = 3
+	ActionDeleteMsg = 4
 )
 
 type ChatAdminList []int64
@@ -73,6 +73,8 @@ type ChatSettings struct {
 
 	MainCategory string `json:"main_category"`
 	SubCategory  string `json:"sub_category"`
+
+	LogChannel int64 `json:"log_channel"`
 }
 
 func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error) {
@@ -85,27 +87,27 @@ func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, 
 			OnJoinDelete:  false,
 			OnLeaveDelete: false,
 			OnJoinChinese: BotAction{
-				Action:   ACTION_NONE,
+				Action:   ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
 			OnJoinArabic: BotAction{
-				Action:   ACTION_NONE,
+				Action:   ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
 			OnMessageChinese: BotAction{
-				Action:   ACTION_NONE,
+				Action:   ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
 			OnMessageArabic: BotAction{
-				Action:   ACTION_NONE,
+				Action:   ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
 			OnBlacklistCAS: BotAction{
-				Action:   ACTION_NONE,
+				Action:   ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},

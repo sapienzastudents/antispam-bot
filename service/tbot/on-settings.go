@@ -2,7 +2,6 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,7 +18,7 @@ type inlineCategoryEdit struct {
 	Category string
 }
 
-func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings botdatabase.ChatSettings) {
+func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
 	// TODO: move button creations in init function (eg. global buttons objects and handler)
 	var reply = strings.Builder{}
 	var inlineKeyboard [][]tb.InlineButton
@@ -58,7 +57,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 				Text:   enableDisableButtonText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			bot.telebot.Handle(&enableDisableBotButton, bot.callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			bot.telebot.Handle(&enableDisableBotButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 				settings.BotEnabled = !settings.BotEnabled
 				return settings
 			}))
@@ -73,7 +72,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 				bot.telebot.Handle(&antispamSettingsButton, func(callback *tb.Callback) {
 					_ = bot.telebot.Respond(callback)
 					chatToConfigure, _ := bot.telebot.ChatByID(callback.Data)
-					settings, _ := bot.db.GetChatSetting(bot.telebot, chatToConfigure)
+					settings, _ := bot.getChatSettings(chatToConfigure)
 
 					bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, chatToConfigure, settings)
 				})
@@ -100,7 +99,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 				Text:   hideShowButtonText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			bot.telebot.Handle(&hideShowBotButton, bot.callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			bot.telebot.Handle(&hideShowBotButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 				settings.Hidden = !settings.Hidden
 				return settings
 			}))
@@ -143,7 +142,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 				Text:   deleteJoinMessagesText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			bot.telebot.Handle(&deleteJoinMessages, bot.callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			bot.telebot.Handle(&deleteJoinMessages, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 				settings.OnJoinDelete = !settings.OnJoinDelete
 				return settings
 			}))
@@ -163,7 +162,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 				Text:   deleteLeaveMessagesText,
 				Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 			}
-			bot.telebot.Handle(&deleteLeaveMessages, bot.callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+			bot.telebot.Handle(&deleteLeaveMessages, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 				settings.OnLeaveDelete = !settings.OnLeaveDelete
 				return settings
 			}))
@@ -192,7 +191,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 			Text: "Group information reloaded",
 		})
 
-		settings, _ := bot.db.GetChatSetting(bot.telebot, chatToConfigure)
+		settings, _ := bot.getChatSettings(chatToConfigure)
 		bot.sendSettingsMessage(callback.Message, chatToSend, chatToConfigure, settings)
 	})
 
@@ -202,7 +201,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 		Text:   "🔄 Refresh",
 		Data:   fmt.Sprintf("%d", chatToConfigure.ID),
 	}
-	bot.telebot.Handle(&settingsRefreshButton, bot.callbackSettings(func(callback *tb.Callback, settings botdatabase.ChatSettings) botdatabase.ChatSettings {
+	bot.telebot.Handle(&settingsRefreshButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		return settings
 	}))
 
@@ -232,7 +231,7 @@ func (bot *telegramBot) sendSettingsMessage(messageToEdit *tb.Message, chatToSen
 	}
 }
 
-func (bot *telegramBot) onSettings(m *tb.Message, settings botdatabase.ChatSettings) {
+func (bot *telegramBot) onSettings(m *tb.Message, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("settings").Inc()
 
 	if !m.Private() && bot.db.IsGlobalAdmin(m.Sender.ID) || settings.ChatAdmins.IsAdmin(m.Sender) {
@@ -263,7 +262,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	// Pick chatrooms candidates (e.g. where the user has the admin permission)
 	var candidates []*tb.Chat
 	for _, x := range chatrooms {
-		chatsettings, err := bot.db.GetChatSetting(bot.telebot, x)
+		chatsettings, err := bot.getChatSettings(x)
 		if err != nil {
 			bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
 			continue
@@ -293,7 +292,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		bot.telebot.Handle(&btn, func(callback *tb.Callback) {
 			newchat, _ := bot.telebot.ChatByID(callback.Data)
 
-			settings, _ := bot.db.GetChatSetting(bot.telebot, newchat)
+			settings, _ := bot.getChatSettings(newchat)
 			bot.sendSettingsMessage(callback.Message, callback.Message.Chat, newchat, settings)
 		})
 		chatButtons = append(chatButtons, []tb.InlineButton{btn})
@@ -358,7 +357,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	}
 }
 
-func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, botdatabase.ChatSettings) botdatabase.ChatSettings) func(callback *tb.Callback) {
+func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(callback *tb.Callback) {
 	return func(callback *tb.Callback) {
 		var err error
 		chat := callback.Message.Chat
@@ -374,7 +373,7 @@ func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, botdatabase.ChatS
 			}
 		}
 
-		settings, err := bot.db.GetChatSetting(bot.telebot, chat)
+		settings, err := bot.getChatSettings(chat)
 		if err != nil {
 			bot.logger.WithError(err).Error("Cannot get chat settings")
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
@@ -389,7 +388,7 @@ func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, botdatabase.ChatS
 			})
 		} else {
 			newsettings := fn(callback, settings)
-			_ = bot.db.SetChatSettings(chat.ID, newsettings)
+			_ = bot.db.SetChatSettings(chat.ID, newsettings.ChatSettings)
 
 			bot.sendSettingsMessage(callback.Message, callback.Message.Chat, chat, newsettings)
 
@@ -459,9 +458,9 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback) {
 
 func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state State) {
 	_ = bot.telebot.Respond(callback)
-	settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
+	settings, _ := bot.getChatSettings(state.Chat)
 	settings.MainCategory = state.Category
-	err := bot.db.SetChatSettings(state.Chat.ID, settings)
+	err := bot.db.SetChatSettings(state.Chat.ID, settings.ChatSettings)
 	if err != nil {
 		bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 		return
@@ -497,9 +496,9 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 	}
 	bot.telebot.Handle(&noCategoryBt, bot.CallbackStateful(func(callback *tb.Callback, state State) {
 		_ = bot.telebot.Respond(callback)
-		settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
+		settings, _ := bot.getChatSettings(state.Chat)
 		settings.SubCategory = ""
-		err := bot.db.SetChatSettings(state.Chat.ID, settings)
+		err := bot.db.SetChatSettings(state.Chat.ID, settings.ChatSettings)
 		if err != nil {
 			bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 			return
@@ -530,9 +529,9 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 		}
 		bot.telebot.Handle(&bt, bot.CallbackStateful(func(callback *tb.Callback, state State) {
 			_ = bot.telebot.Respond(callback)
-			settings, _ := bot.db.GetChatSetting(bot.telebot, state.Chat)
+			settings, _ := bot.getChatSettings(state.Chat)
 			settings.SubCategory = state.SubCategory
-			err := bot.db.SetChatSettings(state.Chat.ID, settings)
+			err := bot.db.SetChatSettings(state.Chat.ID, settings.ChatSettings)
 			if err != nil {
 				bot.logger.WithError(err).WithField("chat", state.Chat.ID).Error("can't save chat settings")
 				return
@@ -565,6 +564,6 @@ func (bot *telegramBot) backToSettingsFromCallback(callback *tb.Callback) {
 		bot.logger.WithError(err).WithField("callback-data", callback.Data).Error("can't get chat information in backToSettingsFromCallback")
 		return
 	}
-	settings, _ := bot.db.GetChatSetting(bot.telebot, chat)
+	settings, _ := bot.getChatSettings(chat)
 	bot.sendSettingsMessage(callback.Message, callback.Message.Chat, chat, settings)
 }

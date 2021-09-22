@@ -2,13 +2,12 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"time"
 
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onTerminate(m *tb.Message, settings botdatabase.ChatSettings) {
+func (bot *telegramBot) onTerminate(m *tb.Message, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("terminate").Inc()
 
 	_ = bot.telebot.Delete(m)

@@ -1,13 +1,14 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strings"
 
 	"github.com/google/uuid"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// startFromUUID replies to the user with the invite link of a chat from a UUID. The UUID is used in the website to
+// avoid SPAM bots
 func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	chatUUID, err := uuid.Parse(payload)
 	if err != nil {
@@ -37,11 +38,14 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	}
 }
 
-func (bot *telegramBot) onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
+// onHelp replies with a tiny help text, and [Groups] and [Settings] buttons. It replies also for /start
+// When /start is followed by a UUID, then calls startFromUUID to handle the UUID<->chat mapping
+func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("start").Inc()
 	_ = bot.telebot.Delete(m)
 
 	if m.Private() {
+		// If a UUID is specified, then we need to lookup for the invite link and send it to the user
 		payload := strings.TrimSpace(m.Text)
 		if strings.ContainsRune(payload, ' ') {
 			parts := strings.Split(m.Text, " ")
@@ -93,13 +97,12 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ botdatabase.ChatSettings) {
 			}
 			bot.telebot.Handle(&settingsBt, func(callback *tb.Callback) {
 				_ = bot.telebot.Respond(callback)
-				// Note that the second parameter is always ignored in onSettings when asking from a direct message, so we
-				// can avoid a db lookup
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, 0)
 			})
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
+		// === CLOSE Button
 		var bt = tb.InlineButton{
 			Unique: "help_close",
 			Text:   "Close / Chiudi",

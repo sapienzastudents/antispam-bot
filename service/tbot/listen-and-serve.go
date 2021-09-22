@@ -2,7 +2,6 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
 )
@@ -31,7 +30,7 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.simpleHandler(tb.OnSticker, bot.onAnyMessage)
 	bot.simpleHandler(tb.OnAnimation, bot.onAnyMessage)
 	bot.simpleHandler(tb.OnUserJoined, bot.onUserJoined)
-	bot.simpleHandler(tb.OnAddedToGroup, func(_ *tb.Message, _ botdatabase.ChatSettings) {})
+	bot.simpleHandler(tb.OnAddedToGroup, func(_ *tb.Message, _ chatSettings) {})
 	bot.telebot.Handle(tb.OnUserLeft, bot.metrics(func(m *tb.Message) {
 		if m.Sender.ID == bot.telebot.Me.ID {
 			return
@@ -44,7 +43,7 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.simpleHandler("/start", bot.onHelp)
 	bot.simpleHandler("/groups", bot.onGroups)
 	bot.simpleHandler("/gruppi", bot.onGroups)
-	bot.simpleHandler("/dont", func(m *tb.Message, _ botdatabase.ChatSettings) {
+	bot.simpleHandler("/dont", func(m *tb.Message, _ chatSettings) {
 		defer func() {
 			err := bot.telebot.Delete(m)
 			if err != nil {
@@ -83,7 +82,7 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.globalAdminHandler("/emergency_reduce", bot.onEmergencyReduce)
 
 	// Utilities
-	bot.telebot.Handle("/id", bot.metrics(bot.refreshDBInfo(func(m *tb.Message, _ botdatabase.ChatSettings) {
+	bot.telebot.Handle("/id", bot.metrics(bot.refreshDBInfo(func(m *tb.Message, _ chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
 		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
 	})))

@@ -2,7 +2,6 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"sort"
 	"strings"
 	"time"
@@ -10,7 +9,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
 	bot.logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 
 	waitingmsg, _ := bot.telebot.Send(m.Chat, "Work in progress...")

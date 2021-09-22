@@ -1,11 +1,10 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onSigTerm(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onSigTerm(m *tb.Message, _ chatSettings) {
 	if !m.Private() {
 		_ = bot.telebot.Delete(m)
 		err := bot.db.DeleteChat(m.Chat.ID)

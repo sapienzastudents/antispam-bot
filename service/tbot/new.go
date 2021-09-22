@@ -13,10 +13,26 @@ import (
 )
 
 type Options struct {
-	Logger   logrus.FieldLogger
+	// Logger is a logrus logger for program errors and debug infos
+	Logger logrus.FieldLogger
+
+	// Database is needed for chat cache and settings
 	Database botdatabase.Database
-	Token    string
-	CAS      cas.CAS
+
+	// Token is the Telegram bot token, from BotFather
+	Token string
+
+	// CAS is the CAS database instance
+	CAS cas.CAS
+
+	// GitTemporaryDir is a temporary directory for git operations
+	GitTemporaryDir string
+
+	// GitSSHKey is the SSH key for git push/pull
+	GitSSHKeyFile string
+
+	// GitSSHKeyPassphrase is the SSH key passphrase
+	GitSSHKeyPassphrase string
 }
 
 func New(opts Options) (TelegramBot, error) {
@@ -43,10 +59,13 @@ func New(opts Options) (TelegramBot, error) {
 	}
 
 	t := telegramBot{
-		logger:  opts.Logger,
-		db:      opts.Database,
-		cas:     opts.CAS,
-		telebot: telebot,
+		logger:              opts.Logger,
+		db:                  opts.Database,
+		cas:                 opts.CAS,
+		gitTemporaryDir:     opts.GitTemporaryDir,
+		gitSSHKey:           opts.GitSSHKeyFile,
+		gitSSHKeyPassphrase: opts.GitSSHKeyPassphrase,
+		telebot:             telebot,
 	}
 
 	t.statemgmt = cache.New(1*time.Minute, 1*time.Minute)

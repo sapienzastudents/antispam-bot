@@ -101,7 +101,7 @@ When not ticked, they're planned:
 * [ ] Public log channel with actions (for auditing)
 * [X] Group activity metrics (export to `/metrics` endpoint)
 * [ ] Clean up the code
-  * [ ] Do not use global variables (!!!)
+  * [X] Do not use global variables (!!!)
   * [ ] Handle errors correctly (!!!)
 * [x] Switch to `logrus` for structured logging
   * [ ] Use structured logging fields for logging
@@ -114,7 +114,6 @@ When not ticked, they're planned:
     should be a system capable of either promoting a new admin based on some
     algorithm, or do an election for a new admin
 * [ ] Rename "categories" as "degree programs"
-* [ ] Remove group list message after 10 minutes (as links will expire)
 
 ## How to build
 

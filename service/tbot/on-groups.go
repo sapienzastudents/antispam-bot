@@ -38,13 +38,16 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 		msg.WriteString("Nessun gruppo in questa categoria")
 	}
 
-	_, err := bot.telebot.Edit(m, msg.String(), &tb.SendOptions{
+	m, err := bot.telebot.Edit(m, msg.String(), &tb.SendOptions{
 		ParseMode:             tb.ModeHTML,
 		DisableWebPagePreview: true,
 	})
 	if err != nil {
 		bot.logger.WithError(err).Warning("can't edit message to the user")
 	}
+
+	// Delete link list after 10 minutes because invite links will expire soon
+	bot.setMessageExpiry(m, 10*time.Minute)
 }
 
 func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
@@ -69,7 +72,7 @@ func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat
 	return nil
 }
 
-func (bot *telegramBot) onGroups(m *tb.Message, _ botdatabase.ChatSettings) {
+func (bot *telegramBot) onGroups(m *tb.Message, _ chatSettings) {
 	bot.sendGroupListForLinks(m.Sender, nil, m.Chat, m)
 }
 

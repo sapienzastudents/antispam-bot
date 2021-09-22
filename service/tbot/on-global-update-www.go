@@ -1,7 +1,6 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"html"
 	"io/ioutil"
 	"os"
@@ -17,15 +16,13 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSettings) {
-	gitTempDir := os.Getenv("GIT_TEMP_DIR")
-	gitSSHKeyFile := os.Getenv("GIT_SSH_KEY")
-	if gitTempDir == "" || gitSSHKeyFile == "" {
+func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
+	if bot.gitTemporaryDir == "" || bot.gitSSHKey == "" {
 		_, _ = bot.telebot.Send(m.Chat, "Website updater not configured")
 		bot.logger.Warning("Website update requested but the configuration is missing")
 		return
 	}
-	gitTempDir = filepath.Join(gitTempDir, "gittmp")
+	gitTempDir := filepath.Join(bot.gitTemporaryDir, "gittmp")
 
 	// Prepare the group list
 	msg, _ := bot.telebot.Send(m.Chat, "⚙️ Prepare group list")
@@ -46,7 +43,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ botdatabase.ChatSetti
 	}
 
 	// Authentication
-	pubkeys, err := ssh.NewPublicKeysFromFile("git", gitSSHKeyFile, os.Getenv("GIT_SSH_KEY_PASS"))
+	pubkeys, err := ssh.NewPublicKeysFromFile("git", bot.gitSSHKey, bot.gitSSHKeyPassphrase)
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
 		bot.logger.WithError(err).Error("can't load SSH keys")

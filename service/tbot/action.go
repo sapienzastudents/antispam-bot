@@ -5,45 +5,35 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) performAction(m *tb.Message, u *tb.User, action botdatabase.BotAction) {
+func (bot *telegramBot) performAction(message *tb.Message, user *tb.User, settings chatSettings, action botdatabase.BotAction, reason string) {
 	switch action.Action {
-	case botdatabase.ACTION_MUTE:
-		bot.logger.Debugf("Action: mute user %d (%s %s %s) in chat %d (%s)",
-			u.ID, u.Username, u.FirstName, u.LastName, m.Chat.ID, m.Chat.Title)
-		bot.muteUser(m.Chat, u, m)
-		bot.actionDelete(m)
-	case botdatabase.ACTION_BAN:
-		bot.logger.Debugf("Action: ban user %d (%s %s %s) in chat %d (%s)",
-			u.ID, u.Username, u.FirstName, u.LastName, m.Chat.ID, m.Chat.Title)
-		bot.banUser(m.Chat, u)
-		bot.actionDelete(m)
-	case botdatabase.ACTION_DELETE_MSG:
-		bot.logger.Debugf("Action: delete message %d of user %d (%s %s %s) in chat %d (%s)", m.ID,
-			u.ID, u.Username, u.FirstName, u.LastName, m.Chat.ID, m.Chat.Title)
-		bot.actionDelete(m)
-	case botdatabase.ACTION_KICK:
-		bot.logger.Debugf("Action: kick user %d (%s %s %s) in chat %d (%s)",
-			u.ID, u.Username, u.FirstName, u.LastName, m.Chat.ID, m.Chat.Title)
-		bot.kickUser(m.Chat, u)
-		bot.actionDelete(m)
-	case botdatabase.ACTION_NONE:
-		bot.logger.Debugf("Action: NONE for user %d (%s %s %s) in chat %d (%s)",
-			u.ID, u.Username, u.FirstName, u.LastName, m.Chat.ID, m.Chat.Title)
+	case botdatabase.ActionMute:
+		bot.muteUser(message.Chat, user, settings, reason)
+		bot.deleteMessage(message, settings, reason)
+	case botdatabase.ActionBan:
+		bot.banUser(message.Chat, user, settings, reason)
+		bot.deleteMessage(message, settings, reason)
+	case botdatabase.ActionKick:
+		bot.kickUser(message.Chat, user, settings, reason)
+		bot.deleteMessage(message, settings, reason)
+	case botdatabase.ActionDeleteMsg:
+		bot.deleteMessage(message, settings, reason)
+	case botdatabase.ActionNone:
 	default:
 	}
 }
 
 func prettyActionName(action botdatabase.BotAction) string {
 	switch action.Action {
-	case botdatabase.ACTION_MUTE:
+	case botdatabase.ActionMute:
 		return "🔇 Mute"
-	case botdatabase.ACTION_BAN:
+	case botdatabase.ActionBan:
 		return "🚷 Ban"
-	case botdatabase.ACTION_DELETE_MSG:
+	case botdatabase.ActionDeleteMsg:
 		return "✂️ Delete"
-	case botdatabase.ACTION_KICK:
+	case botdatabase.ActionKick:
 		return "❗️ Kick"
-	case botdatabase.ACTION_NONE:
+	case botdatabase.ActionNone:
 		return "💤 Do nothing"
 	default:
 		return "n/a"

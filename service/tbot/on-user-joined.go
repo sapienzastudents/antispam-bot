@@ -1,23 +1,23 @@
 package tbot
 
 import (
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/antispam"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (bot *telegramBot) onUserJoined(m *tb.Message, settings botdatabase.ChatSettings) {
+func (bot *telegramBot) onUserJoined(m *tb.Message, settings chatSettings) {
 	if m.IsService() && !m.Private() && m.UserJoined.ID == bot.telebot.Me.ID {
-		bot.logger.Infof("Joining chat %s", m.Chat.Title)
+		bot.logger.WithField("chatid", m.Chat.ID).Info("Joining chat")
 		return
 	}
 
-	bot.logger.Debugf("User %d (%s %s %s) joined chat %s (%d)", m.UserJoined.ID, m.UserJoined.Username,
-		m.UserJoined.FirstName, m.UserJoined.LastName, m.Chat.Title, m.Chat.ID)
+	if banned, err := bot.db.IsUserBanned(int64(m.Sender.ID)); err == nil && banned {
+		bot.banUser(m.Chat, m.Sender, settings, "user g-lined")
+		bot.deleteMessage(m, settings, "user g-lined")
+		return
+	}
 
-	if settings.OnBlacklistCAS.Action != botdatabase.ACTION_NONE && settings.OnBlacklistCAS.Action != botdatabase.ACTION_DELETE_MSG && bot.cas.IsBanned(m.Sender.ID) {
-		bot.logger.Infof("User %d CAS-banned, performing action: %s", m.Sender.ID, prettyActionName(settings.OnBlacklistCAS))
-		bot.performAction(m, m.Sender, settings.OnBlacklistCAS)
+	if bot.cas.IsBanned(m.Sender.ID) {
+		bot.performAction(m, m.Sender, settings, settings.OnBlacklistCAS, "CAS banned")
 		return
 	}
 
@@ -29,26 +29,7 @@ func (bot *telegramBot) onUserJoined(m *tb.Message, settings botdatabase.ChatSet
 		m.UserJoined.FirstName,
 		m.UserJoined.LastName,
 	}
-
-	for _, text := range textvalues {
-		if settings.OnJoinChinese.Action != botdatabase.ACTION_NONE {
-			chinesePercent := antispam.ChineseChars(text)
-			bot.logger.Debugf("SPAM detection (%s): chinese %f", text, chinesePercent)
-			if chinesePercent > 0.5 {
-				bot.performAction(m, m.UserJoined, settings.OnJoinChinese)
-				return
-			}
-		}
-
-		if settings.OnJoinArabic.Action != botdatabase.ACTION_NONE {
-			arabicPercent := antispam.ArabicChars(text)
-			bot.logger.Debugf("SPAM detection (%s): arabic %f", text, arabicPercent)
-			if arabicPercent > 0.5 {
-				bot.performAction(m, m.UserJoined, settings.OnJoinArabic)
-				return
-			}
-		}
-	}
+	bot.spamFilter(m, settings, textvalues)
 
 	if settings.OnJoinDelete {
 		err := bot.telebot.Delete(m)
