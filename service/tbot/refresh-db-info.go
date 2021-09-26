@@ -17,7 +17,7 @@ func (bot *telegramBot) refreshDBInfo(actionHandler refreshDBInfoFunc) func(m *t
 		}
 
 		if !m.Private() {
-			err := bot.db.UpdateMyChatroomList(m.Chat)
+			err := bot.db.AddOrUpdateChat(m.Chat)
 			if err != nil {
 				bot.logger.WithError(err).Error("Cannot update my chatroom list")
 				return

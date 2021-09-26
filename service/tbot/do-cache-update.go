@@ -31,9 +31,9 @@ func (bot *telegramBot) DoCacheUpdate(g *prometheus.GaugeVec) error {
 
 		members, err := bot.telebot.Len(chat)
 		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
-			_ = bot.db.LeftChatroom(chat.ID)
+			_ = bot.db.DeleteChat(chat.ID)
 		} else if err != nil && strings.Contains(err.Error(), "bot is not a member of the group chat") {
-			_ = bot.db.LeftChatroom(chat.ID)
+			_ = bot.db.DeleteChat(chat.ID)
 		} else if err != nil {
 			bot.logger.WithError(err).WithField("chat_id", chat.ID).Warning("Error getting members count for ", chat.Title)
 		} else {
@@ -52,7 +52,7 @@ func (bot *telegramBot) DoCacheUpdateForChat(chat *tb.Chat) error {
 	newChatInfo, err := bot.telebot.ChatByID(fmt.Sprint(chat.ID))
 	if err != nil {
 		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
-			_ = bot.db.LeftChatroom(chat.ID)
+			_ = bot.db.DeleteChat(chat.ID)
 			return errors.Wrap(err, fmt.Sprintf("Chat %s not found, removing configuration", chat.Title))
 		}
 		return errors.Wrap(err, fmt.Sprintf("Error getting admins for chat %d (%s): %s", chat.ID, chat.Title, err.Error()))
@@ -78,5 +78,5 @@ func (bot *telegramBot) DoCacheUpdateForChat(chat *tb.Chat) error {
 		return err
 	}
 
-	return bot.db.UpdateMyChatroomList(chat)
+	return bot.db.AddOrUpdateChat(chat)
 }

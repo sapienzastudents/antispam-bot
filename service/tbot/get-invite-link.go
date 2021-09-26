@@ -25,7 +25,7 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 			return "", errors.Wrap(err, "can't get chat info for migrated supergroup")
 		}
 
-		_ = bot.db.UpdateMyChatroomList(newChatInfo)
+		_ = bot.db.AddOrUpdateChat(newChatInfo)
 
 		inviteLink, err = bot.telebot.GetInviteLink(newChatInfo)
 		if err != nil {
