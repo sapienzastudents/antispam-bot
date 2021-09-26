@@ -8,7 +8,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/google/uuid v1.3.0
-	github.com/joho/godotenv v1.3.0
+	github.com/joho/godotenv v1.4.0
 	github.com/nxadm/tail v1.4.6 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect

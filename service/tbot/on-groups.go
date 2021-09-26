@@ -120,7 +120,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 	}
 	var bt = tb.InlineButton{
 		Unique: "groups_list_close",
-		Text:   "Close / Chiudi",
+		Text:   "🚪 Close / Chiudi",
 	}
 	buttons = append(buttons, []tb.InlineButton{bt})
 	bot.telebot.Handle(&bt, func(callback *tb.Callback) {

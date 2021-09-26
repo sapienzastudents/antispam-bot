@@ -1,51 +1,68 @@
 package tbot
 
 import (
+	"fmt"
 	"github.com/patrickmn/go-cache"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"math/rand"
 )
 
 // State represent a state for telegram callback
 type State struct {
-	Chat *tb.Chat
+	ChatToEdit        *tb.Chat
+	AddGlobalCategory bool
+	AddSubCategory    bool
 
-	// Used in category settings
-	Category      string
-	SubCategory   string
-	SubCategories botdatabase.ChatCategoryTree
+	bot             *telegramBot
+	user            *tb.User
+	chatWithTheUser *tb.Chat
 }
 
-// CallbackStateful returns a callback function with the state injected
-func (bot *telegramBot) CallbackStateful(fn func(callback *tb.Callback, state State)) func(callback *tb.Callback) {
-	return func(callback *tb.Callback) {
-		state, ok := bot.statemgmt.Get(callback.Data)
-		if !ok {
-			_ = bot.telebot.Respond(callback)
-		} else {
-			bot.statemgmt.Delete(callback.Data)
-			if statemap, ok := state.(State); ok {
-				fn(callback, statemap)
-			} else {
-				_ = bot.telebot.Respond(callback)
-			}
+func (s *State) Save() {
+	s.bot.statemgmt.Set(fmt.Sprintf("%d %d", s.user.ID, s.chatWithTheUser.ID), *s, cache.DefaultExpiration)
+}
+
+// Create a new empty state for the user
+func (bot *telegramBot) newState(user *tb.User, chatWithTheUser *tb.Chat) State {
+	return State{
+		user:            user,
+		chatWithTheUser: chatWithTheUser,
+		bot:             bot,
+	}
+}
+
+// Get the current state
+func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
+	state, ok := bot.statemgmt.Get(fmt.Sprintf("%d %d", user.ID, chat.ID))
+	if !ok {
+		state = bot.newState(user, chat)
+	} else if _, ok := state.(State); !ok {
+		state = bot.newState(user, chat)
+	}
+	return state.(State)
+}
+
+// handleAdminCallbackStateful handles an admin restricted callback returning the state
+func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn func(callback *tb.Callback, state State)) {
+	bot.telebot.Handle(endpoint, func(callback *tb.Callback) {
+		state := bot.getStateFor(callback.Sender, callback.Message.Chat)
+
+		// Check if the user is authorized for this callback
+		settings, err := bot.db.GetChatSetting(bot.telebot, state.ChatToEdit)
+		if err != nil {
+			bot.logger.WithError(err).Error("error getting chat settings in handleAdminCallbackStateful")
+			return
 		}
-	}
-}
 
-func (bot *telegramBot) newCallbackState(state State) string {
-	stateID := randStringRunes(20)
-	bot.statemgmt.Set(stateID, state, cache.DefaultExpiration)
-	return stateID
-}
+		if settings.ChatAdmins.IsAdmin(callback.Sender) || bot.db.IsGlobalAdmin(callback.Sender.ID) {
+			// User authorized
+			fn(callback, state)
+			return
+		}
 
-var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
+		// User not authorized
+		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
+			Text:      "Not authorized",
+			ShowAlert: false,
+		})
+	})
 }

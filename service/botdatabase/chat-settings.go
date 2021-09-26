@@ -81,6 +81,7 @@ func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, 
 	settings := ChatSettings{}
 	jsonb, err := db.redisconn.HGet("settings", fmt.Sprintf("%d", chat.ID)).Result()
 	if err == redis.Nil {
+		err = nil
 		// Settings not found, load default values
 		settings = ChatSettings{
 			BotEnabled:    true,

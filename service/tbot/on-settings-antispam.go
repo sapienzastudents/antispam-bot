@@ -57,16 +57,8 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	backBtn := tb.InlineButton{
 		Unique: "settings_back",
 		Text:   "Back",
-		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&backBtn, func(callback *tb.Callback) {
-		_ = bot.telebot.Respond(callback)
-		chatToConfigure, _ := bot.telebot.ChatByID(callback.Data)
-
-		// Back to main settings
-		settings, _ := bot.getChatSettings(chatToConfigure)
-		bot.sendSettingsMessage(callback.Message, callback.Message.Chat, chatToConfigure, settings)
-	})
+	bot.handleAdminCallbackStateful(&backBtn, bot.backToSettingsFromCallback)
 
 	// On Join Chinese (TODO: add kick action)
 	onJoinChineseKickButtonText := "✅ Ban Chinese on join"
@@ -78,7 +70,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onJoinChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnJoinChinese.Action == botdatabase.ActionNone {
 			settings.OnJoinChinese = botdatabase.BotAction{
 				Action: botdatabase.ActionBan,
@@ -101,7 +93,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onJoinArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnJoinArabic.Action == botdatabase.ActionNone {
 			settings.OnJoinArabic = botdatabase.BotAction{
 				Action: botdatabase.ActionBan,
@@ -124,7 +116,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onMessageChineseKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnMessageChinese.Action == botdatabase.ActionNone {
 			settings.OnMessageChinese = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -147,7 +139,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onMessageArabicKickButtonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnMessageArabic.Action == botdatabase.ActionNone {
 			settings.OnMessageArabic = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -170,7 +162,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   enableCASbuttonText,
 		Data:   fmt.Sprintf("%d", chat.ID),
 	}
-	bot.telebot.Handle(&enableCASbutton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&enableCASbutton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnBlacklistCAS.Action == botdatabase.ActionNone {
 			settings.OnBlacklistCAS = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -193,45 +185,25 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}
 }
 
-func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(callback *tb.Callback) {
-	return func(callback *tb.Callback) {
-		var err error
-		chat := callback.Message.Chat
-		if callback.Data != "" {
-			chat, err = bot.telebot.ChatByID(callback.Data)
-			if err != nil {
-				bot.logger.WithError(err).Error("can't get chat by id")
-				_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-					Text:      "Internal error",
-					ShowAlert: true,
-				})
-				return
-			}
-		}
-
-		settings, err := bot.getChatSettings(chat)
+// callbackAntispamSettings is an helper for callbacks in Antispam panel. It loads automatically the chat-to-edit settings, and
+// save them at the end of the callback
+func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(*tb.Callback, State) {
+	return func(callback *tb.Callback, state State) {
+		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
 			bot.logger.WithError(err).Error("Cannot get chat settings")
-			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-				Text:      "Internal error",
-				ShowAlert: true,
-			})
-		} else if !settings.ChatAdmins.IsAdmin(callback.Sender) && !bot.db.IsGlobalAdmin(callback.Sender.ID) {
-			bot.logger.Warning("Non-admin is using a callback from the admin:", callback.Sender)
-			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-				Text:      "Not authorized",
-				ShowAlert: true,
-			})
-		} else {
-			newsettings := fn(callback, settings)
-			_ = bot.db.SetChatSettings(chat.ID, newsettings.ChatSettings)
-
-			bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, chat, newsettings)
-
-			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-				Text:      "Ok",
-				ShowAlert: false,
-			})
+			return
 		}
+
+		// Execute callback
+		newsettings := fn(callback, settings)
+		_ = bot.db.SetChatSettings(state.ChatToEdit.ID, newsettings.ChatSettings)
+		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
+			Text:      "Ok",
+			ShowAlert: false,
+		})
+
+		// Back to chat settings
+		bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, state.ChatToEdit, newsettings)
 	}
 }

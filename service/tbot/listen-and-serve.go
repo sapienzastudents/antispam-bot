@@ -10,14 +10,6 @@ func (bot *telegramBot) simpleHandler(endpoint interface{}, fn refreshDBInfoFunc
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(fn)))
 }
 
-func (bot *telegramBot) chatAdminHandler(endpoint interface{}, fn refreshDBInfoFunc) {
-	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(bot.checkGroupAdmin(fn))))
-}
-
-func (bot *telegramBot) globalAdminHandler(endpoint interface{}, fn refreshDBInfoFunc) {
-	bot.telebot.Handle(endpoint, bot.metrics(bot.checkGlobalAdmin(bot.refreshDBInfo(fn))))
-}
-
 func (bot *telegramBot) ListenAndServe() error {
 	// Registering internal/utils handlers (mostly for: spam detection, chat refresh)
 	bot.simpleHandler(tb.OnVoice, bot.onAnyMessage)

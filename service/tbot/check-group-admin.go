@@ -17,3 +17,7 @@ func (bot *telegramBot) checkGroupAdmin(actionHandler func(*tb.Message, chatSett
 		bot.setMessageExpiry(msg, 10*time.Second)
 	}
 }
+
+func (bot *telegramBot) chatAdminHandler(endpoint interface{}, fn refreshDBInfoFunc) {
+	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(bot.checkGroupAdmin(fn))))
+}

@@ -11,3 +11,7 @@ func (bot *telegramBot) checkGlobalAdmin(actionHandler func(m *tb.Message)) func
 		actionHandler(m)
 	}
 }
+
+func (bot *telegramBot) globalAdminHandler(endpoint interface{}, fn refreshDBInfoFunc) {
+	bot.telebot.Handle(endpoint, bot.metrics(bot.checkGlobalAdmin(bot.refreshDBInfo(fn))))
+}

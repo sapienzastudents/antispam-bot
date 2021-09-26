@@ -1,72 +1,71 @@
 package tbot
 
 import (
-	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 func (bot *telegramBot) onAnyMessage(m *tb.Message, settings chatSettings) {
-	if m.Private() && m.OriginalSender != nil && bot.db.IsGlobalAdmin(m.Sender.ID) {
-		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint(m.OriginalSender))
+	// Check the user is entering free text for changing category
+	state := bot.getStateFor(m.Sender, m.Chat)
+	if state.AddGlobalCategory || state.AddSubCategory {
+		// Load current chat settings
+		settings, err := bot.db.GetChatSetting(bot.telebot, state.ChatToEdit)
+		if err != nil {
+			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Warn("can't get chat settings")
+			return
+		}
+
+		// Change category/subcategory
+		if state.AddGlobalCategory {
+			categories := strings.Split(m.Text, "\n")
+			settings.MainCategory = categories[0]
+			if len(categories) > 1 {
+				settings.SubCategory = categories[1]
+			} else {
+				settings.SubCategory = ""
+			}
+		} else {
+			categories := strings.Split(m.Text, "\n")
+			settings.SubCategory = categories[0]
+		}
+
+		// Max 64 is because Telegram accepts 64 chars MAX as callback argument
+		if utf8.RuneCountInString(settings.MainCategory) > 64 || utf8.RuneCountInString(settings.SubCategory) > 64 {
+			_, _ = bot.telebot.Reply(m, "Nome troppo lungo, massimo 64 caratteri")
+			return
+		}
+
+		// Save chat settings
+		err = bot.db.SetChatSettings(state.ChatToEdit.ID, settings)
+		if err != nil {
+			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Warn("can't save chat settings")
+		}
+
+		// Reset category naming flags in user state
+		state.AddSubCategory = false
+		state.AddGlobalCategory = false
+		state.Save()
+
+		// Button for opening the settings menu again
+		settingsbt := tb.InlineButton{
+			Text:   "Torna alle impostazioni",
+			Unique: "back_to_settings",
+		}
+		bot.handleAdminCallbackStateful(&settingsbt, bot.backToSettingsFromCallback)
+
+		_, _ = bot.telebot.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{
+				{settingsbt},
+			},
+		})
+
 		return
 	}
 
-	chatEditVal, isForEdit := bot.globaleditcat.Get(fmt.Sprint(m.Sender.ID))
-	if isForEdit {
-		chatEdit, chatEditOk := chatEditVal.(inlineCategoryEdit)
-		if chatEditOk && m.Text != "" && (m.Private() || m.Chat.ID == chatEdit.ChatID) {
-			bot.globaleditcat.Delete(fmt.Sprint(m.Sender.ID))
-			chat, err := bot.telebot.ChatByID(fmt.Sprint(chatEdit.ChatID))
-			if err != nil {
-				bot.logger.WithError(err).WithField("chat", chatEdit.ChatID).Warn("can't get chat info")
-				return
-			}
-
-			settings, err := bot.db.GetChatSetting(bot.telebot, chat)
-			if err != nil {
-				bot.logger.WithError(err).WithField("chat", chat.ID).Warn("can't get chat settings")
-				return
-			}
-
-			if chatEdit.Category == "" {
-				categories := strings.Split(m.Text, "\n")
-				settings.MainCategory = categories[0]
-				if len(categories) > 1 {
-					settings.SubCategory = categories[1]
-				} else {
-					settings.SubCategory = ""
-				}
-			} else {
-				categories := strings.Split(m.Text, "\n")
-				settings.MainCategory = chatEdit.Category
-				settings.SubCategory = categories[0]
-			}
-
-			err = bot.db.SetChatSettings(chat.ID, settings)
-			if err != nil {
-				bot.logger.WithError(err).WithField("chat", chat.ID).Warn("can't save chat settings")
-			}
-
-			settingsbt := tb.InlineButton{
-				Text:   "Torna alle impostazioni",
-				Unique: "back_to_settings",
-				Data:   fmt.Sprint(chat.ID),
-			}
-
-			bot.telebot.Handle(&settingsbt, bot.backToSettingsFromCallback)
-
-			_, _ = bot.telebot.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
-				InlineKeyboard: [][]tb.InlineButton{
-					{settingsbt},
-				},
-			})
-
-			return
-		}
-	}
-
+	// Check the message against the antispam system
 	if !m.Private() {
 		if banned, err := bot.db.IsUserBanned(int64(m.Sender.ID)); err == nil && banned {
 			bot.banUser(m.Chat, m.Sender, settings, "user g-lined")
