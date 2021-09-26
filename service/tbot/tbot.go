@@ -24,9 +24,10 @@ type telegramBot struct {
 	gitSSHKey           string
 	gitSSHKeyPassphrase string
 
-	telebot   *tb.Bot
-	promreg   *prometheus.Registry
-	statemgmt *cache.Cache
+	telebot       *tb.Bot
+	promreg       *prometheus.Registry
+	statemgmt     *cache.Cache
+	categorycache *cache.Cache
 
 	// Metrics
 	messageProcessedTotal    prometheus.Counter

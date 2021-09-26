@@ -1,6 +1,7 @@
 package tbot
 
 import (
+	"github.com/patrickmn/go-cache"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -33,10 +34,12 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 	}
 
 	for _, cat := range categories.GetSubCategoryList() {
+		id := sha1string(cat)
+		bot.categorycache.Set(id, cat, cache.DefaultExpiration)
 		bt := tb.InlineButton{
 			Text:   cat,
-			Unique: sha1string(cat),
-			Data:   cat,
+			Unique: id,
+			Data:   id,
 		}
 		bot.handleAdminCallbackStateful(&bt, bot.handleChangeSubCategory)
 
@@ -54,8 +57,15 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 // handleChangeSubCategory is similar to handleChangeCategory, but for sub-categories
 func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state State) {
 	_ = bot.telebot.Respond(callback)
+
+	categoryName, ok := bot.categorycache.Get(callback.Data)
+	if !ok {
+		bot.logger.Error("can't find category name in cache")
+		return
+	}
+
 	settings, _ := bot.getChatSettings(state.ChatToEdit)
-	settings.MainCategory = callback.Data
+	settings.MainCategory = categoryName.(string)
 	err := bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 	if err != nil {
 		bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't save chat settings")
@@ -109,15 +119,24 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 		return
 	}
 	for cat := range rootChatTree.SubCategories[settings.MainCategory].SubCategories {
+		id := sha1string(settings.MainCategory + cat)
+		bot.categorycache.Set(id, cat, cache.DefaultExpiration)
 		bt := tb.InlineButton{
 			Text:   cat,
-			Unique: sha1string(settings.MainCategory + cat),
-			Data:   cat,
+			Unique: id,
+			Data:   id,
 		}
 		bot.handleAdminCallbackStateful(&bt, func(callback *tb.Callback, state State) {
 			_ = bot.telebot.Respond(callback)
+
+			subCategoryName, ok := bot.categorycache.Get(callback.Data)
+			if !ok {
+				bot.logger.Error("can't find subcategory name in cache")
+				return
+			}
+
 			settings, _ := bot.getChatSettings(state.ChatToEdit)
-			settings.SubCategory = callback.Data
+			settings.SubCategory = subCategoryName.(string)
 			err := bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 			if err != nil {
 				bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't save chat settings")

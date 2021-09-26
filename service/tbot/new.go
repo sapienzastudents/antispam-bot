@@ -69,6 +69,7 @@ func New(opts Options) (TelegramBot, error) {
 	}
 
 	t.statemgmt = cache.New(60*time.Minute, 60*time.Minute)
+	t.categorycache = cache.New(cache.NoExpiration, cache.NoExpiration)
 
 	// Initialize metrics
 	t.promreg = prometheus.NewRegistry()
