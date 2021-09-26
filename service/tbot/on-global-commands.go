@@ -92,7 +92,7 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 }
 
 func (bot *telegramBot) onSigHup(m *tb.Message, _ chatSettings) {
-	err := bot.db.DoCacheUpdate(bot.telebot, bot.groupUserCount)
+	err := bot.DoCacheUpdate(bot.groupUserCount)
 	if err != nil {
 		bot.logger.WithError(err).Warning("can't handle sighup / refresh data")
 		_, _ = bot.telebot.Send(m.Chat, "Reload error, please try later")

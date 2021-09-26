@@ -16,6 +16,10 @@ const (
 	ActionDeleteMsg = 4
 )
 
+var (
+	ErrChatNotFound = errors.New("chat not found")
+)
+
 type ChatAdminList []int64
 
 func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
@@ -77,64 +81,17 @@ type ChatSettings struct {
 	LogChannel int64 `json:"log_channel"`
 }
 
-func (db *_botDatabase) GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error) {
+func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	settings := ChatSettings{}
-	jsonb, err := db.redisconn.HGet("settings", fmt.Sprintf("%d", chat.ID)).Result()
+	jsonb, err := db.redisconn.HGet("settings", fmt.Sprint(chatID)).Result()
 	if err == redis.Nil {
-		err = nil
-		// Settings not found, load default values
-		settings = ChatSettings{
-			BotEnabled:    true,
-			OnJoinDelete:  false,
-			OnLeaveDelete: false,
-			OnJoinChinese: BotAction{
-				Action:   ActionNone,
-				Duration: 0,
-				Delay:    0,
-			},
-			OnJoinArabic: BotAction{
-				Action:   ActionNone,
-				Duration: 0,
-				Delay:    0,
-			},
-			OnMessageChinese: BotAction{
-				Action:   ActionNone,
-				Duration: 0,
-				Delay:    0,
-			},
-			OnMessageArabic: BotAction{
-				Action:   ActionNone,
-				Duration: 0,
-				Delay:    0,
-			},
-			OnBlacklistCAS: BotAction{
-				Action:   ActionNone,
-				Duration: 0,
-				Delay:    0,
-			},
-			ChatAdmins: ChatAdminList{},
-		}
-
-		chatAdmins, err := b.AdminsOf(chat)
-		if err != nil {
-			return ChatSettings{}, errors.Wrap(err, "can't get admin list for chat")
-		}
-		settings.ChatAdmins.SetFromChat(chatAdmins)
-
-		err = db.SetChatSettings(chat.ID, settings)
-		if err != nil {
-			return ChatSettings{}, errors.Wrap(err, "can't save chat settings for new chat")
-		}
+		return settings, ErrChatNotFound
 	} else if err != nil {
 		return ChatSettings{}, err
-	} else {
-		err = json.Unmarshal([]byte(jsonb), &settings)
-		if err != nil {
-			return ChatSettings{}, errors.Wrap(err, "error decoding chat settings from JSON")
-		}
 	}
 
-	return settings, err
+	err = json.Unmarshal([]byte(jsonb), &settings)
+	return settings, errors.Wrap(err, "error decoding chat settings from JSON")
 }
 
 func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) error {

@@ -141,7 +141,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 
 func (bot *telegramBot) prepareGroupListForWeb() (string, error) {
 	// Get all categories
-	categories, err := bot.db.GetChatTree(bot.telebot)
+	categories, err := bot.db.GetChatTree()
 	if err != nil {
 		return "", err
 	}
@@ -200,7 +200,7 @@ Se vuoi aggiungere il tuo gruppo, segui le [indicazioni in questa pagina!](/soci
 }
 
 func (bot *telegramBot) printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
-	settings, err := bot.db.GetChatSetting(bot.telebot, v)
+	settings, err := bot.getChatSettings(v)
 	if err != nil {
 		bot.logger.WithError(err).Error("Error getting chatroom config")
 		return err

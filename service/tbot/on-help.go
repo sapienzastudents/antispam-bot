@@ -75,7 +75,7 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 				bot.logger.WithError(err).Error("cant get chatroom list")
 			} else {
 				for _, x := range chatrooms {
-					chatsettings, err := bot.db.GetChatSetting(bot.telebot, x)
+					chatsettings, err := bot.getChatSettings(x)
 					if err != nil {
 						bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
 						continue

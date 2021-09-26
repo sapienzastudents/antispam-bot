@@ -26,7 +26,7 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 	buttons := [][]tb.InlineButton{{customCategoryBt}}
 
 	// Add existing categories
-	categories, err := bot.db.GetChatTree(bot.telebot)
+	categories, err := bot.db.GetChatTree()
 	if err != nil {
 		bot.logger.WithError(err).Error("can't get category tree")
 		return
@@ -103,7 +103,7 @@ func (bot *telegramBot) handleChangeSubCategory(callback *tb.Callback, state Sta
 	buttons := [][]tb.InlineButton{{customCategoryBt, noCategoryBt}}
 
 	// Add sub-categories list
-	rootChatTree, err := bot.db.GetChatTree(bot.telebot)
+	rootChatTree, err := bot.db.GetChatTree()
 	if err != nil {
 		bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't load chat tree")
 		return

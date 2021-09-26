@@ -181,7 +181,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		Text:   "🛑 Restart bot",
 	}
 	bot.handleAdminCallbackStateful(&reloadGroupInfoBt, func(callback *tb.Callback, state State) {
-		_ = bot.db.DoCacheUpdateForChat(bot.telebot, state.ChatToEdit)
+		_ = bot.DoCacheUpdateForChat(state.ChatToEdit)
 
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 			Text: "Bot restarted",

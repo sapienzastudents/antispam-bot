@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/go-redis/redis"
 	"github.com/google/uuid"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -12,8 +11,8 @@ import (
 type Database interface {
 	IsGlobalAdmin(userID int) bool
 
-	GetChatSetting(b *tb.Bot, chat *tb.Chat) (ChatSettings, error)
-	SetChatSettings(int64, ChatSettings) error
+	GetChatSettings(chatID int64) (ChatSettings, error)
+	SetChatSettings(chatID int64, settings ChatSettings) error
 
 	ListMyChatrooms() ([]*tb.Chat, error)
 	ChatroomsCount() (int64, error)
@@ -21,13 +20,7 @@ type Database interface {
 	UpdateMyChatroomList(c *tb.Chat) error
 	LeftChatroom(chatID int64) error
 
-	// I know that it's wrong to have this whole function here. It's also wrong
-	// to have bot<->database and prometheus<->database inter-dependencies.
-	// You're free to submit a patch for this, I'm too lazy to fix it now
-	DoCacheUpdate(b *tb.Bot, g *prometheus.GaugeVec) error
-	DoCacheUpdateForChat(b *tb.Bot, chat *tb.Chat) error
-
-	GetChatTree(b *tb.Bot) (ChatCategoryTree, error)
+	GetChatTree() (ChatCategoryTree, error)
 
 	GetInviteLink(chatID int64) (string, error)
 	SetInviteLink(chatID int64, inviteLink string) error

@@ -12,7 +12,7 @@ func (bot *telegramBot) onAnyMessage(m *tb.Message, settings chatSettings) {
 	state := bot.getStateFor(m.Sender, m.Chat)
 	if state.AddGlobalCategory || state.AddSubCategory {
 		// Load current chat settings
-		settings, err := bot.db.GetChatSetting(bot.telebot, state.ChatToEdit)
+		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
 			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Warn("can't get chat settings")
 			return
@@ -39,7 +39,7 @@ func (bot *telegramBot) onAnyMessage(m *tb.Message, settings chatSettings) {
 		}
 
 		// Save chat settings
-		err = bot.db.SetChatSettings(state.ChatToEdit.ID, settings)
+		err = bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 		if err != nil {
 			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Warn("can't save chat settings")
 		}

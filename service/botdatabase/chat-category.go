@@ -30,7 +30,7 @@ func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 	return c.Chats
 }
 
-func (db *_botDatabase) GetChatTree(b *tb.Bot) (ChatCategoryTree, error) {
+func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
 	var ret = ChatCategoryTree{}
 
 	chatrooms, err := db.ListMyChatrooms()
@@ -39,7 +39,7 @@ func (db *_botDatabase) GetChatTree(b *tb.Bot) (ChatCategoryTree, error) {
 	}
 
 	for _, v := range chatrooms {
-		settings, err := db.GetChatSetting(b, v)
+		settings, err := db.GetChatSettings(v.ID)
 		if err != nil {
 			return ret, errors.Wrap(err, fmt.Sprintf("can't get chat category for chat %d", v.ID))
 		}

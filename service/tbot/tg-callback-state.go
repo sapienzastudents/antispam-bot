@@ -47,7 +47,7 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 		state := bot.getStateFor(callback.Sender, callback.Message.Chat)
 
 		// Check if the user is authorized for this callback
-		settings, err := bot.db.GetChatSetting(bot.telebot, state.ChatToEdit)
+		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
 			bot.logger.WithError(err).Error("error getting chat settings in handleAdminCallbackStateful")
 			return

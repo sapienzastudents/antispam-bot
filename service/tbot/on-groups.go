@@ -51,7 +51,7 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 }
 
 func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
-	settings, err := bot.db.GetChatSetting(bot.telebot, v)
+	settings, err := bot.getChatSettings(v)
 	if err != nil {
 		bot.logger.WithError(err).WithField("chat", v.ID).Error("Error getting chatroom config")
 		return err
@@ -79,7 +79,7 @@ func (bot *telegramBot) onGroups(m *tb.Message, _ chatSettings) {
 func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, messageFromUser *tb.Message) {
 	bot.botCommandsRequestsTotal.WithLabelValues("groups").Inc()
 
-	categoryTree, err := bot.db.GetChatTree(bot.telebot)
+	categoryTree, err := bot.db.GetChatTree()
 	if err != nil {
 		bot.logger.WithError(err).Error("Error getting chatroom list")
 		msg, _ := bot.telebot.Send(chatToSend, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")

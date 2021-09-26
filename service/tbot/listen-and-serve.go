@@ -87,7 +87,7 @@ func (bot *telegramBot) ListenAndServe() error {
 		for {
 			<-t.C
 			startms := time.Now()
-			err := bot.db.DoCacheUpdate(bot.telebot, bot.groupUserCount)
+			err := bot.DoCacheUpdate(bot.groupUserCount)
 			if err != nil {
 				bot.logger.WithError(err).Error("error cycling for data refresh")
 			}

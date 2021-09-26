@@ -2,6 +2,7 @@ package tbot
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -9,7 +10,54 @@ import (
 )
 
 func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
-	settings, err := bot.db.GetChatSetting(bot.telebot, chat)
+	settings, err := bot.db.GetChatSettings(chat.ID)
+	if err == botdatabase.ErrChatNotFound {
+		err = nil
+		// Chat settings not found, load default values
+		settings = botdatabase.ChatSettings{
+			BotEnabled:    true,
+			OnJoinDelete:  false,
+			OnLeaveDelete: false,
+			OnJoinChinese: botdatabase.BotAction{
+				Action:   botdatabase.ActionNone,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnJoinArabic: botdatabase.BotAction{
+				Action:   botdatabase.ActionNone,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnMessageChinese: botdatabase.BotAction{
+				Action:   botdatabase.ActionNone,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnMessageArabic: botdatabase.BotAction{
+				Action:   botdatabase.ActionNone,
+				Duration: 0,
+				Delay:    0,
+			},
+			OnBlacklistCAS: botdatabase.BotAction{
+				Action:   botdatabase.ActionNone,
+				Duration: 0,
+				Delay:    0,
+			},
+			ChatAdmins: botdatabase.ChatAdminList{},
+		}
+
+		chatAdmins, err := bot.telebot.AdminsOf(chat)
+		if err != nil {
+			return chatSettings{}, errors.Wrap(err, "can't get admin list for chat")
+		}
+		settings.ChatAdmins.SetFromChat(chatAdmins)
+
+		err = bot.db.SetChatSettings(chat.ID, settings)
+		if err != nil {
+			return chatSettings{}, errors.Wrap(err, "can't save chat settings for new chat")
+		}
+	}
+
 	return chatSettings{
 		ChatSettings: settings,
 		logger:       bot.logger,
