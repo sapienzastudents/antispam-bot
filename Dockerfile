@@ -1,30 +1,43 @@
-FROM golang:1.16 as builder
+FROM docker.io/library/golang:1.16 AS builder
 
-# Prerequisites for builds
+#### Set Go environment
+# Disable CGO to create a self-contained executable
+# Do not enable unless it's strictly necessary
+ENV CGO_ENABLED 0
+# Set Linux as target
+ENV GOOS linux
+
+### Prepare base image
 RUN apt-get update && apt-get install -y upx-ucl zip ca-certificates tzdata
+RUN useradd --home /app/ -M appuser
 
 WORKDIR /src/
 
-ARG APPVERSION
-
-# Copy code and get dependencies
-COPY go.mod .
-COPY go.sum .
+### Copy Go modules files and cache dependencies
+# If dependencies do not changes, these two lines are cached (speed up the build)
+COPY go.* ./
 RUN go mod download
-COPY . .
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-extldflags \"-static\" -X main.AppVersion=${APPVERSION}" -a -installsuffix cgo -o antispam-telegram-bot . && \
-	strip antispam-telegram-bot && \
-	upx -9 antispam-telegram-bot
+### Copy Go code
+COPY cmd cmd
+COPY service service
 
+### Set some build variables
+ARG APP_VERSION
+ARG BUILD_DATE
+
+RUN go generate ./...
+
+### Build executables, strip debug symbols and compress with UPX
+WORKDIR /src/cmd/
+RUN mkdir /app/
+RUN /bin/bash -c "for ex in \$(ls); do pushd \$ex; go build -mod=readonly -ldflags \"-extldflags \\\"-static\\\" -X main.AppVersion=${APP_VERSION} -X main.BuildDate=${BUILD_DATE}\" -a -installsuffix cgo -o /app/\$ex .; popd; done"
+RUN cd /app/ && strip * && upx -9 *
 
 # We need to start from Debian as we need the SSH agent
 FROM debian:buster
 
 EXPOSE 3000
-
-WORKDIR /app/
 
 RUN apt-get update && \
     apt-get install -y ca-certificates tzdata ssh-client && \
@@ -33,7 +46,7 @@ RUN apt-get update && \
 
 WORKDIR /app/
 COPY docker-cmd.sh .
-COPY --from=builder /src/antispam-telegram-bot .
+COPY --from=builder /app/* ./
 
 USER appuser
-CMD ["/app/docker-cmd.sh", "/app/antispam-telegram-bot"]
+CMD ["/app/docker-cmd.sh", "/app/telegram"]

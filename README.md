@@ -35,7 +35,6 @@ This bot is still a work in progress.
 | ----- | ----- |
 | `/sighup` | Do a full groups cache update |
 | `/groupscheck` | Prints a debug for all groups |
-| `/version` | Print version/build |
 | `/updatewww` | Update the group list in the website |
 | `/gline` | Ban a user globally (for spam) |
 | `/remove_gline` | Un-ban a user globally (for spam) |
@@ -102,20 +101,19 @@ When not ticked, they're planned:
 * [ ] Public log channel with actions (for auditing)
 * [X] Group activity metrics (export to `/metrics` endpoint)
 * [ ] Clean up the code
-  * [ ] Do not use global variables (!!!)
+  * [X] Do not use global variables (!!!)
+  * [X] Do not use `telebot` inside the `db` package
   * [ ] Handle errors correctly (!!!)
 * [x] Switch to `logrus` for structured logging
   * [ ] Use structured logging fields for logging
 * [ ] Expose HTTP endpoint (optionally)
 * [ ] Rewrite the bot using `telebot.v3` library to fix some structural issues
-  (such as error handling, fields, int64, stateful buttons, etc)
 * [ ] Write some documentation
 * [ ] Write a "fallback system" for lost groups
   * When a group lose all admins, and the bot can promote a new admin, there
     should be a system capable of either promoting a new admin based on some
     algorithm, or do an election for a new admin
 * [ ] Rename "categories" as "degree programs"
-* [ ] Remove group list message after 10 minutes (as links will expire)
 
 ## How to build
 
