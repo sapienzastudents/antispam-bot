@@ -94,6 +94,9 @@ func run() error {
 		return errors.Wrap(err, "error creating bot")
 	}
 
+	_ = os.Setenv("GIT_SSH_KEY_PASS", "")
+	_ = os.Setenv("GIT_SSH_KEY", "")
+
 	go func() {
 		// Temporary HTTP Server for metrics
 		http.Handle("/metrics", bot.MetricsHandler())
