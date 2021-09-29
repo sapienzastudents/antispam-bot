@@ -8,7 +8,13 @@ import (
 // checkGroupAdmin is a "firewall" for group admin only functions
 func (bot *telegramBot) checkGroupAdmin(actionHandler func(*tb.Message, chatSettings)) func(*tb.Message, chatSettings) {
 	return func(m *tb.Message, settings chatSettings) {
-		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || bot.db.IsGlobalAdmin(m.Sender.ID) {
+		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+		if err != nil {
+			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			return
+		}
+
+		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || isGlobalAdmin {
 			actionHandler(m, settings)
 			return
 		}

@@ -46,13 +46,18 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 			"by":     m.ReplyTo.Sender.ID,
 		}
 
-		if bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID) {
+		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
+		if err != nil {
+			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			return
+		} else if isGlobalAdmin {
 			bot.logger.WithFields(logfields).Warn("Won't g-line a global admin")
 			return
 		}
+
 		bot.deleteMessage(m.ReplyTo, settings, "g-line")
 		bot.banUser(m.Chat, m.ReplyTo.Sender, settings, "g-line")
-		err := bot.db.SetUserBanned(int64(m.ReplyTo.Sender.ID))
+		err = bot.db.SetUserBanned(int64(m.ReplyTo.Sender.ID))
 		if err != nil {
 			bot.logger.WithFields(logfields).WithError(err).Error("can't add g-line")
 			return
@@ -74,7 +79,11 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 				"by":     m.Sender.ID,
 			}
 
-			if bot.db.IsGlobalAdmin(int(userID)) {
+			isGlobalAdmin, err := bot.db.IsGlobalAdmin(int(userID))
+			if err != nil {
+				bot.logger.WithError(err).Error("can't check if the user is a global admin")
+				return
+			} else if isGlobalAdmin {
 				bot.logger.WithFields(logfields).Warn("Won't g-line a global admin")
 				return
 			}

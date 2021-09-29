@@ -66,10 +66,16 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 		})
 		buttons = append(buttons, []tb.InlineButton{groupsBt})
 
+		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+		if err != nil {
+			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			return
+		}
+
 		// === SETTINGS button
 		// Check if the user is an admin in at least one chat
 		var settingsVisible = false
-		if !bot.db.IsGlobalAdmin(m.Sender.ID) {
+		if !isGlobalAdmin {
 			chatrooms, err := bot.db.ListMyChatrooms()
 			if err != nil {
 				bot.logger.WithError(err).Error("cant get chatroom list")
@@ -113,7 +119,7 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 			_ = bot.telebot.Delete(callback.Message)
 		})
 
-		_, err := bot.telebot.Send(m.Sender, "🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?", &tb.SendOptions{
+		_, err = bot.telebot.Send(m.Sender, "🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?", &tb.SendOptions{
 			ReplyMarkup: &tb.ReplyMarkup{
 				InlineKeyboard: buttons,
 			},

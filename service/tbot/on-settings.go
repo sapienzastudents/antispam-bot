@@ -11,7 +11,13 @@ import (
 func (bot *telegramBot) onSettings(m *tb.Message, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("settings").Inc()
 
-	if !m.Private() && (bot.db.IsGlobalAdmin(m.Sender.ID) || settings.ChatAdmins.IsAdmin(m.Sender)) {
+	isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+	if err != nil {
+		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		return
+	}
+
+	if !m.Private() && (isGlobalAdmin || settings.ChatAdmins.IsAdmin(m.Sender)) {
 		// Messages in a chatroom - show settings panel for chatroom
 		bot.sendSettingsMessage(m.Sender, nil, m.Chat, m.Chat, settings)
 	} else {

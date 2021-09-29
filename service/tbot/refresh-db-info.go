@@ -23,10 +23,16 @@ func (bot *telegramBot) refreshDBInfo(actionHandler refreshDBInfoFunc) func(m *t
 				return
 			}
 
+			isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+			if err != nil {
+				bot.logger.WithError(err).Error("can't check if the user is a global admin")
+				return
+			}
+
 			settings, err := bot.getChatSettings(m.Chat)
 			if err != nil {
 				bot.logger.WithError(err).Error("Cannot get chat settings")
-			} else if !settings.BotEnabled && !bot.db.IsGlobalAdmin(m.Sender.ID) {
+			} else if !settings.BotEnabled && !isGlobalAdmin {
 				bot.logger.WithFields(logrus.Fields{
 					"chatid":    m.Chat.ID,
 					"chattitle": m.Chat.Title,

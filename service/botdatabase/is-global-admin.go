@@ -5,16 +5,18 @@ import (
 	"strings"
 )
 
-func (db *_botDatabase) IsGlobalAdmin(userID int) bool {
+func (db *_botDatabase) IsGlobalAdmin(userID int) (bool, error) {
 	globalAdminListExists, err := db.redisconn.HExists("global", "admins").Result()
 	if err != nil {
-		db.logger.WithError(err).Error("Cannot check if global admin list exists")
-		return false
+		return false, err
+		//db.logger.WithError(err).Error("Cannot check if global admin list exists")
+		//return false
 	} else if globalAdminListExists {
 		admins, err := db.redisconn.HGet("global", "admins").Result()
 		if err != nil {
-			db.logger.WithError(err).Error("Cannot get global admin list")
-			return false
+			return false, err
+			//db.logger.WithError(err).Error("Cannot get global admin list")
+			//return false
 		}
 
 		for _, sID := range strings.Split(admins, ",") {
@@ -23,9 +25,9 @@ func (db *_botDatabase) IsGlobalAdmin(userID int) bool {
 				continue
 			}
 			if ID == int64(userID) {
-				return true
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }

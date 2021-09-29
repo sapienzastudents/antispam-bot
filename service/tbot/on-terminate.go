@@ -16,8 +16,14 @@ func (bot *telegramBot) onTerminate(m *tb.Message, settings chatSettings) {
 		return
 	}
 
+	isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
+	if err != nil {
+		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		return
+	}
+
 	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
-	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID) {
+	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || isGlobalAdmin {
 		return
 	}
 

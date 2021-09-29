@@ -10,7 +10,7 @@ import (
 
 type Database interface {
 	// IsGlobalAdmin checks if the user ID is a bot admin
-	IsGlobalAdmin(userID int) bool
+	IsGlobalAdmin(userID int) (bool, error)
 
 	// GetChatSettings returns the chat settings of the bot for the given chat
 	GetChatSettings(chatID int64) (ChatSettings, error)
