@@ -17,6 +17,7 @@ func (bot *telegramBot) onUserJoined(m *tb.Message, settings chatSettings) {
 	}
 
 	if bot.cas.IsBanned(m.Sender.ID) {
+		bot.casDatabaseMatch.Inc()
 		bot.performAction(m, m.Sender, settings, settings.OnBlacklistCAS, "CAS banned")
 		return
 	}

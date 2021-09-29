@@ -14,16 +14,17 @@ var (
 	ErrCloudflareLimited = errors.New("CAS database download error: CloudFlare limited")
 )
 
-// Load function downloads and replace current in-memory CAS database
-// and returns the list of added and removed items, or nil,nil in case
-// of error
-func (cas *cas) Load() (DB, DB, error) {
+// Load manually retrieve the datatabase from the combot website and loads it in memory, replacing the current
+// database. It can be used when the auto-updater is disabled (see New function)
+func (cas *cas) Load() error {
 	//startms := time.Now()
 
+	// Retrieve the current database CSV
 	req, err := http.NewRequest(http.MethodGet, "https://api.cas.chat/export.csv", nil)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
+	// We need to say to Cloudflare that we're somehow a legit browser
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0")
 
 	resp, err := cas.c.Do(req)
@@ -31,58 +32,54 @@ func (cas *cas) Load() (DB, DB, error) {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			cas.logger.WithError(err).Warning("CAS database download timeout")
 			// casDatabaseDownloadTime.Set(float64(time.Since(startms) / time.Millisecond))
-			return nil, nil, ErrTimeout
+			return ErrTimeout
 		}
 		cas.logger.WithError(err).Warning("error during CAS DB download")
-		return nil, nil, err
+		return err
+	} else if resp.StatusCode != http.StatusOK {
+		cas.logger.WithField("http-status", resp.StatusCode).Error("unexpected HTTP status during CAS DB download")
+		return err
 	}
 
-	var newcas = DB{}
-	var added = DB{}
-	var deleted = DB{}
+	// We calculate the new dictionary as separate entity, because if the CSV file is empty (due to upstream error) we
+	// can keep old CAS values
+	var newcas = map[int]int8{}
 
-	// Pre-load deleted array
-	for id := range cas.db {
-		deleted[id] = 1
-	}
-
+	// Scan the CSV (which is actually a list of integers, one per line)
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		row := scanner.Text()
+		// Empty line, skipping
 		if row == "" {
 			continue
 		}
 
+		// Cloudflare CDN is used to distribute the CSV. If Cloudflare somehow "detects" a strange connection, they
+		// truncate the file and they put a message there
 		if strings.Contains(row, "cloudflare") {
 			cas.logger.WithError(err).Warning("CAS DB download limited by cloudflare")
-			return nil, nil, ErrCloudflareLimited
+			return ErrCloudflareLimited
 		}
 
+		// Try to parse the row as user ID (integer)
 		uid, err := strconv.Atoi(row)
 		if err != nil {
 			cas.logger.WithError(err).Error("Cannot convert ID to Telegram UID")
 		} else {
-			// Check if it's new
-			_, found := cas.db[uid]
-			if !found {
-				added[uid] = 1
-			}
-
 			newcas[uid] = 1
-
-			// Entry exists in the new version of the DB, so delete it from the "pending delete" list
-			delete(deleted, uid)
 		}
 	}
 
 	//casDatabaseDownloadTime.Set(float64(time.Since(startms) / time.Millisecond))
 
+	// If we can parse at least one item, use the new database and discard the old one
 	if len(newcas) > 0 {
 		cas.db = newcas
 		//casDatabaseSize.Set(float64(len(cas.db)))
-		cas.logger.Debugf("CAS Database updated - items:%d, added:%d, deleted:%d", len(cas.db), len(added), len(deleted))
-		return added, deleted, nil
+		cas.logger.Debugf("CAS Database updated - items:%d", len(cas.db))
+		return nil
 	}
+	// Otherwise, keep the old one
 	cas.logger.Warning("New CAS database is empty - keeping old values")
-	return DB{}, DB{}, nil
+	return nil
 }

@@ -35,8 +35,8 @@ type telegramBot struct {
 	groupMessagesCount       *prometheus.CounterVec
 	userMessageCount         *prometheus.CounterVec
 	/*casDatabaseDownloadTime  prometheus.Gauge
-	casDatabaseSize          prometheus.Gauge
-	casDatabaseMatch         prometheus.Counter*/
+	casDatabaseSize          prometheus.Gauge*/
+	casDatabaseMatch         prometheus.Counter
 	botCommandsRequestsTotal *prometheus.CounterVec
 	botReplyLatency          prometheus.Histogram
 }

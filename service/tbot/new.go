@@ -116,11 +116,11 @@ func New(opts Options) (TelegramBot, error) {
 	t.casDatabaseSize = promauto.With(t.promreg).NewGauge(prometheus.GaugeOpts{
 		Name: "cas_database_size",
 		Help: "The number of items in the CAS database",
-	})
+	})*/
 	t.casDatabaseMatch = promauto.With(t.promreg).NewCounter(prometheus.CounterOpts{
 		Name: "cas_database_match",
 		Help: "The number of users in the CAS database matched",
-	})*/
+	})
 
 	// Bot commands
 	t.botCommandsRequestsTotal = promauto.With(t.promreg).NewCounterVec(prometheus.CounterOpts{
