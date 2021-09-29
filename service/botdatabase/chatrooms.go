@@ -2,32 +2,36 @@ package botdatabase
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strconv"
 )
 
+// AddOrUpdateChat adds or update the chat info into the DB. As Telegram doesn't offer a way to track in which
+// chatrooms the bot is, we need to store it in Redis
 func (db *_botDatabase) AddOrUpdateChat(c *tb.Chat) error {
 	jsonbin, err := json.Marshal(c)
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet("chatrooms", fmt.Sprintf("%d", c.ID), string(jsonbin)).Err()
+	return db.redisconn.HSet("chatrooms", strconv.FormatInt(c.ID, 10), string(jsonbin)).Err()
 }
 
+// DeleteChat remove all chatroom info by removing the named field in sets: "public-links", "settings" and "chatrooms"
 func (db *_botDatabase) DeleteChat(chatID int64) error {
-	err := db.redisconn.HDel("public-links", fmt.Sprint(chatID)).Err()
+	err := db.redisconn.HDel("public-links", strconv.FormatInt(chatID, 10)).Err()
 	if err != nil {
 		return err
 	}
-	err = db.redisconn.HDel("settings", fmt.Sprintf("%d", chatID)).Err()
+	err = db.redisconn.HDel("settings", strconv.FormatInt(chatID, 10)).Err()
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HDel("chatrooms", fmt.Sprintf("%d", chatID)).Err()
+	return db.redisconn.HDel("chatrooms", strconv.FormatInt(chatID, 10)).Err()
 }
 
+// ChatroomsCount returns the count of chatrooms where the bot is
 func (db *_botDatabase) ChatroomsCount() (int64, error) {
 	ret, err := db.redisconn.HLen("chatrooms").Result()
 	if err == redis.Nil {
@@ -36,6 +40,7 @@ func (db *_botDatabase) ChatroomsCount() (int64, error) {
 	return ret, err
 }
 
+// ListMyChatrooms returns the list of chatrooms where the bot is by de-serializing the tb.Chat for each chatroom
 func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 	var chatrooms []*tb.Chat
 
@@ -46,8 +51,7 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 		keys, cursor, err = db.redisconn.HScan("chatrooms", cursor, "", -1).Result()
 		if err == redis.Nil {
 			return chatrooms, nil
-		}
-		if err != nil {
+		} else if err != nil {
 			return nil, errors.Wrap(err, "error scanning chatrooms in redis")
 		}
 
@@ -55,7 +59,6 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 			room := tb.Chat{}
 			err = json.Unmarshal([]byte(keys[i+1]), &room)
 			if err != nil {
-				// TODO: skip?
 				return nil, errors.Wrap(err, "error scanning chatroom "+keys[i+1])
 			}
 

@@ -65,10 +65,7 @@ func run() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to Redis server")
 	}
-	botdb, err := botdatabase.New(botdatabase.Options{
-		Logger: logger,
-		Redis:  redisDb,
-	})
+	botdb, err := botdatabase.New(redisDb)
 	if err != nil {
 		return errors.Wrap(err, "error creating DB connection")
 	}

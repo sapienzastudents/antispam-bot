@@ -2,10 +2,10 @@ package botdatabase
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strconv"
 )
 
 const (
@@ -22,6 +22,9 @@ var (
 
 type ChatAdminList []int64
 
+// IsAdmin checks if the user is a chat admin
+//
+// Time complexity: O(n) where "n" is the number of admins in the chat
 func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
 	if list == nil {
 		return false
@@ -34,6 +37,9 @@ func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
 	return false
 }
 
+// SetFromChat updates the admin list from the slice of chat members from the bot
+//
+// Time complexity: O(n) where "n" is the number of admins in the chat
 func (list *ChatAdminList) SetFromChat(admins []tb.ChatMember) {
 	*list = ChatAdminList{}
 	for _, u := range admins {
@@ -42,48 +48,67 @@ func (list *ChatAdminList) SetFromChat(admins []tb.ChatMember) {
 }
 
 type BotAction struct {
-	// Action in effect
+	// Action is what the bot should do
 	Action int `json:"action"`
 
-	// Action effect, in seconds (if applicable)
-	// Zero means forever
+	// Duration is the duration of the action (ban, for example), in seconds (if applicable). Zero means forever
 	Duration uint `json:"duration"`
 
-	// Action delay, zero means "immediately"
+	// Delay is the amount of seconds after which the action should be performed. Zero means "immediately"
 	Delay uint `json:"delay"`
 }
 
 type ChatSettings struct {
-	// Whether the bot is enabled for this chat
+	// BotEnabled represent whether the bot is enabled for this chat. Enabling the bot will enable automatic actions
+	// (such as antispam or CAS blacklist) and will enable some commands.
 	BotEnabled bool `json:"bot_enabled"`
 
-	Hidden bool `json:"hidden"`
+	// OnJoinDelete enables the deletion of "user joined" messages
+	OnJoinDelete bool `json:"on_join_delete"`
 
-	OnJoinDelete  bool `json:"on_join_delete"`
+	// OnLeaveDelete enables the deletion of "user left" messages
 	OnLeaveDelete bool `json:"on_leave_delete"`
 
+	// OnJoinChinese is the action that the bot should do if it detects a user with Chinese username or name joining the
+	// chatroom
 	OnJoinChinese BotAction `json:"on_join_chinese"`
-	OnJoinArabic  BotAction `json:"on_join_arabic"`
 
-	// Action on specific messages patterns
+	// OnJoinArabic is the action that the bot should do if it detects a user with Arabic username or name joining the
+	// chatroom
+	OnJoinArabic BotAction `json:"on_join_arabic"`
+
+	// OnMessageChinese is the action that the bot should do if it detects a message in Chinese
 	OnMessageChinese BotAction `json:"on_message_chinese"`
-	OnMessageArabic  BotAction `json:"on_message_arabic"`
+
+	// OnMessageArabic is the action that the bot should do if it detects a message in Arabic
+	OnMessageArabic BotAction `json:"on_message_arabic"`
+
 	//OnMessageSpam    BotAction `json:"on_message_spam"`
 
+	// OnBlacklistCAS is the action that the bot should do if it detects a message from a CAS-banned user
 	OnBlacklistCAS BotAction `json:"on_blacklist_cas"`
 
-	// Chat admins
+	// ChatAdmins is the list of chat admins (regardless of their permissions in the chat)
 	ChatAdmins ChatAdminList `json:"chat_admins"`
 
-	MainCategory string `json:"main_category"`
-	SubCategory  string `json:"sub_category"`
+	// Hidden specify if the bot is hidden in the chat list (for users)
+	Hidden bool `json:"hidden"`
 
+	// MainCategory is the general category for this chat
+	MainCategory string `json:"main_category"`
+
+	// SubCategory is the inner category for this chat
+	SubCategory string `json:"sub_category"`
+
+	// LogChannel is the channel where the bot logs its own actions. If zero, no logs will occur
 	LogChannel int64 `json:"log_channel"`
 }
 
+// GetChatSettings returns the chat settings of the bot for the given chat. It de-serialize the JSON with the
+// ChatSettings structure inside the "settings" HSET (the field name is the chat ID as string)
 func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	settings := ChatSettings{}
-	jsonb, err := db.redisconn.HGet("settings", fmt.Sprint(chatID)).Result()
+	jsonb, err := db.redisconn.HGet("settings", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		return settings, ErrChatNotFound
 	} else if err != nil {
@@ -94,10 +119,12 @@ func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	return settings, errors.Wrap(err, "error decoding chat settings from JSON")
 }
 
+// SetChatSettings save the chat settings of the bot for the given chat by serializing it into a JSON, and put it in the
+// "settings" HSET (the field name is the chat ID as string)
 func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) error {
 	jsonb, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet("settings", fmt.Sprintf("%d", chatID), jsonb).Err()
+	return db.redisconn.HSet("settings", strconv.FormatInt(chatID, 10), jsonb).Err()
 }

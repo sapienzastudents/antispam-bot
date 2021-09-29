@@ -1,7 +1,6 @@
 package botdatabase
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/go-redis/redis"
@@ -11,12 +10,13 @@ import (
 
 var ErrChatUUIDNotFound = errors.New("chat uuid not found")
 
+// GetUUIDFromChat returns the UUID for the given chat ID. The UUID can be used e.g. in web links
 func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
-	chatUUIDString, err := db.redisconn.HGet("public-links", fmt.Sprint(chatID)).Result()
+	chatUUIDString, err := db.redisconn.HGet("public-links", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		// Not found
 		chatUUID := uuid.New()
-		err = db.redisconn.HSet("public-links", fmt.Sprint(chatID), chatUUID.String()).Err()
+		err = db.redisconn.HSet("public-links", strconv.FormatInt(chatID, 10), chatUUID.String()).Err()
 		return chatUUID, err
 	} else if err != nil {
 		return uuid.Nil, err
@@ -24,6 +24,7 @@ func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
 	return uuid.Parse(chatUUIDString)
 }
 
+// GetChatIDFromUUID returns the chat ID for the given UUID
 func (db *_botDatabase) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
 	var cursor uint64 = 0
 	var err error
