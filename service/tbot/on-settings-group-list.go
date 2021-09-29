@@ -57,7 +57,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		btn := tb.InlineButton{
 			Unique: fmt.Sprintf("select_chatid_%d", x.ID*-1),
 			Text:   x.Title,
-			Data:   fmt.Sprintf("%d", x.ID),
+			Data:   strconv.FormatInt(x.ID, 10),
 		}
 		bot.telebot.Handle(&btn, func(callback *tb.Callback) {
 			newchat, _ := bot.telebot.ChatByID(callback.Data)

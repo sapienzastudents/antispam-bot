@@ -1,11 +1,11 @@
 package tbot
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strconv"
 	"strings"
 )
 
@@ -84,7 +84,7 @@ func (s *chatSettings) Log(action string, by *tb.User, on *tb.User, description 
 			strbuf.WriteString("**By**: ")
 			strbuf.WriteString(by.FirstName + " " + by.LastName)
 			strbuf.WriteString("(")
-			strbuf.WriteString("@" + by.Username + " " + fmt.Sprint(by.ID))
+			strbuf.WriteString("@" + by.Username + " " + strconv.FormatInt(int64(by.ID), 10))
 			strbuf.WriteString(")")
 			strbuf.WriteString("\n")
 		}
@@ -92,7 +92,7 @@ func (s *chatSettings) Log(action string, by *tb.User, on *tb.User, description 
 			strbuf.WriteString("**On**: ")
 			strbuf.WriteString(on.FirstName + " " + on.LastName)
 			strbuf.WriteString("(")
-			strbuf.WriteString("@" + on.Username + " " + fmt.Sprint(on.ID))
+			strbuf.WriteString("@" + on.Username + " " + strconv.FormatInt(int64(on.ID), 10))
 			strbuf.WriteString(")")
 			strbuf.WriteString("\n")
 		}

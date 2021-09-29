@@ -3,6 +3,7 @@ package tbot
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,7 +38,7 @@ func (bot *telegramBot) DoCacheUpdate(g *prometheus.GaugeVec) error {
 		} else if err != nil {
 			bot.logger.WithError(err).WithField("chat_id", chat.ID).Warning("Error getting members count for ", chat.Title)
 		} else {
-			g.WithLabelValues(fmt.Sprint(chat.ID), chat.Title).Set(float64(members))
+			g.WithLabelValues(strconv.FormatInt(chat.ID, 10), chat.Title).Set(float64(members))
 		}
 
 		// Do not ask too quickly
@@ -49,7 +50,7 @@ func (bot *telegramBot) DoCacheUpdate(g *prometheus.GaugeVec) error {
 }
 
 func (bot *telegramBot) DoCacheUpdateForChat(chat *tb.Chat) error {
-	newChatInfo, err := bot.telebot.ChatByID(fmt.Sprint(chat.ID))
+	newChatInfo, err := bot.telebot.ChatByID(strconv.FormatInt(chat.ID, 10))
 	if err != nil {
 		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
 			_ = bot.db.DeleteChat(chat.ID)

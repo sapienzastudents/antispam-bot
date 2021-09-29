@@ -3,6 +3,7 @@ package tbot
 import (
 	"fmt"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"strconv"
 	"strings"
 
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -68,7 +69,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	onJoinChineseKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_chinese_on_join",
 		Text:   onJoinChineseKickButtonText,
-		Data:   fmt.Sprintf("%d", chat.ID),
+		Data:   strconv.FormatInt(chat.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnJoinChinese.Action == botdatabase.ActionNone {
@@ -91,7 +92,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	onJoinArabicKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_arabic_on_join",
 		Text:   onJoinArabicKickButtonText,
-		Data:   fmt.Sprintf("%d", chat.ID),
+		Data:   strconv.FormatInt(chat.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnJoinArabic.Action == botdatabase.ActionNone {
@@ -114,7 +115,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	onMessageChineseKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_chinese_on_msgs",
 		Text:   onMessageChineseKickButtonText,
-		Data:   fmt.Sprintf("%d", chat.ID),
+		Data:   strconv.FormatInt(chat.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnMessageChinese.Action == botdatabase.ActionNone {
@@ -137,7 +138,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	onMessageArabicKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_arabic_on_msgs",
 		Text:   onMessageArabicKickButtonText,
-		Data:   fmt.Sprintf("%d", chat.ID),
+		Data:   strconv.FormatInt(chat.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnMessageArabic.Action == botdatabase.ActionNone {
@@ -160,7 +161,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	enableCASbutton := tb.InlineButton{
 		Unique: "settings_enable_disable_cas",
 		Text:   enableCASbuttonText,
-		Data:   fmt.Sprintf("%d", chat.ID),
+		Data:   strconv.FormatInt(chat.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&enableCASbutton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
 		if settings.OnBlacklistCAS.Action == botdatabase.ActionNone {

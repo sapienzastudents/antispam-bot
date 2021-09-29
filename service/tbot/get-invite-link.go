@@ -20,6 +20,9 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 	inviteLink, err = bot.telebot.GetInviteLink(chat)
 	if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
 		apierr, _ := err.(*tb.APIError)
+
+		// Here we need to use Sprint() to convert migrate_to_chat_id because we don't know if it's integer or string
+		// already
 		newChatInfo, err := bot.telebot.ChatByID(fmt.Sprint(apierr.Parameters["migrate_to_chat_id"]))
 		if err != nil {
 			return "", errors.Wrap(err, "can't get chat info for migrated supergroup")

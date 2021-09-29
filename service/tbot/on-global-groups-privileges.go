@@ -1,8 +1,8 @@
 package tbot
 
 import (
-	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,7 +32,7 @@ func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
 		msg.WriteString("\n")
 
 		for _, v := range chatrooms {
-			newInfos, err := bot.telebot.ChatByID(fmt.Sprint(v.ID))
+			newInfos, err := bot.telebot.ChatByID(strconv.FormatInt(v.ID, 10))
 			if err != nil {
 				bot.logger.Warning("can't get refreshed infos for chatroom ", v, " ", err)
 				continue

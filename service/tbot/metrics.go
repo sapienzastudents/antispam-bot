@@ -1,10 +1,10 @@
 package tbot
 
 import (
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,14 +22,14 @@ func (bot *telegramBot) metrics(fn func(m *tb.Message)) func(m *tb.Message) {
 		fn(m)
 		bot.messageProcessedTotal.Inc()
 		if !m.Private() {
-			bot.groupMessagesCount.WithLabelValues(fmt.Sprint(m.Chat.ID), m.Chat.Title).Inc()
+			bot.groupMessagesCount.WithLabelValues(strconv.FormatInt(m.Chat.ID, 10), m.Chat.Title).Inc()
 			var userName string
 			if m.Sender.Username == "" {
 				userName = strings.TrimSpace(m.Sender.FirstName + " " + m.Sender.LastName)
 			} else {
 				userName = "@" + m.Sender.Username
 			}
-			bot.userMessageCount.WithLabelValues(fmt.Sprint(m.Sender.ID), userName).Inc()
+			bot.userMessageCount.WithLabelValues(strconv.FormatInt(int64(m.Sender.ID), 10), userName).Inc()
 		}
 		bot.botReplyLatency.Observe(float64(time.Since(startms) / time.Millisecond))
 	}
