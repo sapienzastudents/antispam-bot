@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+// getChatSettings retrieves the chat settings from the database. If not settings were previously created, this command
+// creates a new set of settings based on some default values
 func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 	settings, err := bot.db.GetChatSettings(chat.ID)
 	if err == botdatabase.ErrChatNotFound {
@@ -73,6 +75,7 @@ type chatSettings struct {
 	logger    logrus.FieldLogger
 }
 
+// Log will log the action in the dedicated log channel for the group
 func (s *chatSettings) Log(action string, by *tb.User, on *tb.User, description string) {
 	if s.LogChannel > 0 || s.globalLog > 0 {
 		strbuf := strings.Builder{}
@@ -115,6 +118,7 @@ func (s *chatSettings) Log(action string, by *tb.User, on *tb.User, description 
 	}
 }
 
+// LogForward will forward a message to the log channel
 func (s *chatSettings) LogForward(message *tb.Message) {
 	if s.LogChannel > 0 {
 		_, err := s.b.Forward(&tb.Chat{ID: s.LogChannel}, message)

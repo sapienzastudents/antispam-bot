@@ -4,7 +4,9 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-// handleChangeCategory is the callback handler for "change category" button in settings pane
+// handleChangeCategory is the callback handler for "change category" button in settings pane. It shows the list of
+// current categories, and a button to create a new category. Each click on a category will trigger the list of
+// subcategories handled by handleChangeSubCategory
 func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 	_ = bot.telebot.Respond(callback)
 

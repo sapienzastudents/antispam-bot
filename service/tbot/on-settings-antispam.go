@@ -9,6 +9,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// sendAntispamSettingsMessage sends the antispam settings message pane. This panel is an inner panel (i.e. you need to
+// access settings first, then click on the antispam settings button).
 func (bot *telegramBot) sendAntispamSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
 	msg := bot.generateAntispamSettingsMessageText(chatToConfigure, settings)
 	var sendOpts = tb.SendOptions{
@@ -23,6 +25,8 @@ func (bot *telegramBot) sendAntispamSettingsMessage(messageToEdit *tb.Message, c
 	}
 }
 
+// generateAntispamSettingsMessageText will generate the message text for sendAntispamSettingsMessage based on the
+// current chat settings
 func (bot *telegramBot) generateAntispamSettingsMessageText(chat *tb.Chat, settings chatSettings) string {
 	reply := strings.Builder{}
 
@@ -52,6 +56,8 @@ func (bot *telegramBot) generateAntispamSettingsMessageText(chat *tb.Chat, setti
 	return reply.String()
 }
 
+// generateAntispamSettingsReplyMarkup will generate the button list for sendAntispamSettingsMessage based on the
+// current chat settings. Buttons will change the bot settings for antispam
 func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings chatSettings) *tb.ReplyMarkup {
 	// TODO: move button creations in init function (eg. global buttons objects and handler)
 	// Back settings
@@ -186,7 +192,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}
 }
 
-// callbackAntispamSettings is an helper for callbacks in Antispam panel. It loads automatically the chat-to-edit settings, and
+// callbackAntispamSettings is a helper for callbacks in Antispam panel. It loads automatically the chat-to-edit settings, and
 // save them at the end of the callback
 func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(*tb.Callback, State) {
 	return func(callback *tb.Callback, state State) {

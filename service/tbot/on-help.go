@@ -8,7 +8,7 @@ import (
 )
 
 // startFromUUID replies to the user with the invite link of a chat from a UUID. The UUID is used in the website to
-// avoid SPAM bots
+// avoid SPAM bots. All links in the website will cause the user to send a "/start UUID" message
 func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	chatUUID, err := uuid.Parse(payload)
 	if err != nil {
@@ -93,6 +93,7 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 				}
 			}
 		} else {
+			// The global bot admin is always able to see group settings button
 			settingsVisible = true
 		}
 

@@ -5,6 +5,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// deleteMessage is useful when deleting a message that needs to be recorded in the log (e.g. a non-system message). It
+// has no effect on admins
 func (bot *telegramBot) deleteMessage(m *tb.Message, chatsettings chatSettings, reason string) {
 	logfields := logrus.Fields{
 		"userid":    m.Sender.ID,

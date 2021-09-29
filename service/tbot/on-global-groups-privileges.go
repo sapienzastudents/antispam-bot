@@ -9,6 +9,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onGroupsPrivileges replies to /groupscheck sending the list of all chats and relative permissions. Used for debug
+// purposes.
 func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
 	bot.logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
 

@@ -5,7 +5,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-// Useful to kick an user
+// kickUser will kick a user. It has no effect on chat admins. It records the action in the log
 func (bot *telegramBot) kickUser(chat *tb.Chat, user *tb.User, chatsettings chatSettings, reason string) {
 	logfields := logrus.Fields{
 		"userid": user.ID,
@@ -22,6 +22,9 @@ func (bot *telegramBot) kickUser(chat *tb.Chat, user *tb.User, chatsettings chat
 		bot.logger.WithError(err).WithFields(logfields).Error("kick action: cannot get member object for user")
 		return
 	}
+
+	// Rationale: there is no method for kicking a user in Telegram. Banning and un-banning a user is the way to kick
+	// a user from the chat
 
 	err = bot.telebot.Ban(chat, member)
 	if err != nil {

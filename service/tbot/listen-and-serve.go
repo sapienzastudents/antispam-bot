@@ -6,10 +6,13 @@ import (
 	"time"
 )
 
-func (bot *telegramBot) simpleHandler(endpoint interface{}, fn refreshDBInfoFunc) {
+// simpleHandler is a simple handler with metrics and chat cache refresh. Use this for registering bot actions when no
+// filters are required
+func (bot *telegramBot) simpleHandler(endpoint interface{}, fn contextualChatSettingsFunc) {
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(fn)))
 }
 
+// ListenAndServe register all handlers and starts the bot. It's a blocker function: terminates when the bot is stopped
 func (bot *telegramBot) ListenAndServe() error {
 	// Registering internal/utils handlers (mostly for: spam detection, chat refresh)
 	bot.simpleHandler(tb.OnVoice, bot.onAnyMessage)
@@ -22,37 +25,15 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.simpleHandler(tb.OnSticker, bot.onAnyMessage)
 	bot.simpleHandler(tb.OnAnimation, bot.onAnyMessage)
 	bot.simpleHandler(tb.OnUserJoined, bot.onUserJoined)
-	bot.simpleHandler(tb.OnAddedToGroup, func(_ *tb.Message, _ chatSettings) {})
-	bot.telebot.Handle(tb.OnUserLeft, bot.metrics(func(m *tb.Message) {
-		if m.Sender.ID == bot.telebot.Me.ID {
-			return
-		}
-		bot.refreshDBInfo(bot.onUserLeft)(m)
-	}))
+	bot.simpleHandler(tb.OnAddedToGroup, bot.onAddedToGroup)
+	bot.simpleHandler(tb.OnUserLeft, bot.onUserLeft)
 
-	// Register commands
+	// Register general commands
 	bot.simpleHandler("/help", bot.onHelp)
 	bot.simpleHandler("/start", bot.onHelp)
 	bot.simpleHandler("/groups", bot.onGroups)
 	bot.simpleHandler("/gruppi", bot.onGroups)
-	bot.simpleHandler("/dont", func(m *tb.Message, _ chatSettings) {
-		defer func() {
-			err := bot.telebot.Delete(m)
-			if err != nil {
-				bot.logger.WithError(err).Error("Failed to delete message")
-			}
-		}()
-
-		if !m.IsReply() {
-			return
-		}
-
-		_, err := bot.telebot.Reply(m.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
-		if err != nil {
-			bot.logger.WithError(err).Error("Failed to reply")
-			return
-		}
-	})
+	bot.simpleHandler("/dont", bot.onDont)
 
 	// Chat-admin commands
 	bot.chatAdminHandler("/impostazioni", bot.onSettings)
@@ -74,10 +55,10 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.globalAdminHandler("/emergency_reduce", bot.onEmergencyReduce)
 
 	// Utilities
-	bot.telebot.Handle("/id", bot.metrics(bot.refreshDBInfo(func(m *tb.Message, _ chatSettings) {
+	bot.simpleHandler("/id", func(m *tb.Message, _ chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
 		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
-	})))
+	})
 
 	bot.logger.Info("Init ok, starting bot")
 
@@ -87,7 +68,7 @@ func (bot *telegramBot) ListenAndServe() error {
 		for {
 			<-t.C
 			startms := time.Now()
-			err := bot.DoCacheUpdate(bot.groupUserCount)
+			err := bot.DoCacheUpdate()
 			if err != nil {
 				bot.logger.WithError(err).Error("error cycling for data refresh")
 			}

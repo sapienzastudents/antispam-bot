@@ -7,12 +7,14 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onTerminate is executed when /terminate command is issued. The /terminate command is brutal, as it warns the user
+// that he/she is going to be terminated in 60 seconds. There is no way to stop the countdown.
 func (bot *telegramBot) onTerminate(m *tb.Message, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("terminate").Inc()
 
 	_ = bot.telebot.Delete(m)
 	if m.ReplyTo == nil || m.Private() {
-		// We need an handle
+		// No sense when no user is quoted (in public groups) or if the message is sent in private...
 		return
 	}
 

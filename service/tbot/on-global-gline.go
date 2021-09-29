@@ -1,5 +1,8 @@
 package tbot
 
+// G-Line (from IRC) is a global ban. When a user is g-lined, he/she is banned in any chat where the bot is. The reason
+// for this command is to quickly act on trolls and spam bots.
+
 import (
 	"fmt"
 	"strconv"
@@ -9,6 +12,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onRemoveGLine acts on /remove_gline command. It removes the g-line (aka the bot ban). It does not remove the ban in
+// each chat, so if the user is already banned in a chat, he/she will remain banned.
 func (bot *telegramBot) onRemoveGLine(m *tb.Message, _ chatSettings) {
 	if !m.Private() {
 		return
@@ -35,6 +40,8 @@ func (bot *telegramBot) onRemoveGLine(m *tb.Message, _ chatSettings) {
 	_, _ = bot.telebot.Send(m.Chat, "OK")
 }
 
+// onGLine replies to the /gline command, banning the user quoted in a group, or banning the user ID specified via a
+// private message
 func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 	_ = bot.telebot.Delete(m)
 	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
@@ -97,15 +104,5 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 			_, _ = bot.telebot.Send(m.Sender, fmt.Sprint("GLine ok for ", userID))
 			bot.logger.WithFields(logfields).Info("g-line user")
 		}
-	}
-}
-
-func (bot *telegramBot) onSigHup(m *tb.Message, _ chatSettings) {
-	err := bot.DoCacheUpdate(bot.groupUserCount)
-	if err != nil {
-		bot.logger.WithError(err).Warning("can't handle sighup / refresh data")
-		_, _ = bot.telebot.Send(m.Chat, "Reload error, please try later")
-	} else {
-		_, _ = bot.telebot.Send(m.Chat, "Reload OK")
 	}
 }

@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// checkGroupAdmin is a "firewall" for group admin only functions
+// checkGroupAdmin is a "firewall" wrapper for group admin only handlers. It checks if the sender is an admin of the
+// chat, or a global admin
 func (bot *telegramBot) checkGroupAdmin(actionHandler func(*tb.Message, chatSettings)) func(*tb.Message, chatSettings) {
 	return func(m *tb.Message, settings chatSettings) {
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
@@ -24,6 +25,7 @@ func (bot *telegramBot) checkGroupAdmin(actionHandler func(*tb.Message, chatSett
 	}
 }
 
-func (bot *telegramBot) chatAdminHandler(endpoint interface{}, fn refreshDBInfoFunc) {
+// chatAdminHandler register a new handler that is available only to groups admins or global admins
+func (bot *telegramBot) chatAdminHandler(endpoint interface{}, fn contextualChatSettingsFunc) {
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(bot.checkGroupAdmin(fn))))
 }

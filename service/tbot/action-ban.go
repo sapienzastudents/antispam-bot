@@ -5,7 +5,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-// Useful to ban an user
+// banUser will ban a user. It has no effect on chat admins. It records the action in the log
 func (bot *telegramBot) banUser(chat *tb.Chat, user *tb.User, chatsettings chatSettings, reason string) {
 	logfields := logrus.Fields{
 		"userid": user.ID,

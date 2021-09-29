@@ -13,13 +13,13 @@ import (
 )
 
 type Options struct {
-	// Logger is a logrus logger for program errors and debug infos
+	// Logger is a logrus logger for program errors and debug infos. Required
 	Logger logrus.FieldLogger
 
-	// Database is needed for chat cache and settings
+	// Database is needed for chat cache and settings. Required
 	Database botdatabase.Database
 
-	// Token is the Telegram bot token, from BotFather
+	// Token is the Telegram bot token, from BotFather. Required
 	Token string
 
 	// CAS is the CAS database instance
@@ -28,13 +28,18 @@ type Options struct {
 	// GitTemporaryDir is a temporary directory for git operations
 	GitTemporaryDir string
 
-	// GitSSHKey is the SSH key for git push/pull
+	// GitSSHKeyFile is the SSH key file path for git push/pull
 	GitSSHKeyFile string
 
 	// GitSSHKeyPassphrase is the SSH key passphrase
 	GitSSHKeyPassphrase string
+
+	// LongPollerTimeout is the timeout for long polling. Default: 10s
+	LongPollerTimeout time.Duration
 }
 
+// New returns a new TelegramBot compliant instance. Returns an error when either one of the required parameters are not
+// set, or if there is an error talking with Telegram servers
 func New(opts Options) (TelegramBot, error) {
 	if opts.Logger == nil {
 		return nil, errors.New("logger not present")
@@ -45,14 +50,15 @@ func New(opts Options) (TelegramBot, error) {
 	if opts.Token == "" {
 		return nil, errors.New("telegram bot token not specified")
 	}
-	if opts.CAS == nil {
-		return nil, errors.New("CAS client not specified")
+
+	if opts.LongPollerTimeout == 0 {
+		opts.LongPollerTimeout = 10 * time.Second
 	}
 
 	// Initialize bot library
 	telebot, err := tb.NewBot(tb.Settings{
 		Token:  opts.Token,
-		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
+		Poller: &tb.LongPoller{Timeout: opts.LongPollerTimeout},
 	})
 	if err != nil {
 		return nil, err

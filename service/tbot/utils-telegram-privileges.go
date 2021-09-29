@@ -23,7 +23,8 @@ var botPermissionsText = map[string]string{
 	"can_promote_members":  "Add new admins",
 }
 
-// Do not use this array to check if a permission is granted or not, use ChatMember fields
+// synthetizePrivileges returns te list of tags representing the bot permissions in the group. Do not use this array to
+// check if a permission is granted or not, use ChatMember fields
 func synthetizePrivileges(user *tb.ChatMember) []string {
 	var ret []string
 	t := reflect.TypeOf(user.Rights)

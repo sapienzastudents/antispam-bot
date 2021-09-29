@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// MetricsHandler returns a HTTP handler for exposing metrics
 func (bot *telegramBot) MetricsHandler() http.Handler {
 	return promhttp.HandlerFor(bot.promreg, promhttp.HandlerOpts{
 		Registry: bot.promreg,
@@ -16,6 +17,7 @@ func (bot *telegramBot) MetricsHandler() http.Handler {
 	})
 }
 
+// metrics collects metrics for commands, users and chats (reply latency, message counts, and more)
 func (bot *telegramBot) metrics(fn func(m *tb.Message)) func(m *tb.Message) {
 	return func(m *tb.Message) {
 		startms := time.Now()

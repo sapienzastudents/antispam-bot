@@ -9,7 +9,20 @@ import (
 
 const SettingsGroupListPageSize = 10
 
+// sendGroupListForSettings creates the group list for settings page, which means that this list is a flat list (no
+// categories involved) which contains only groups where the user is allowed to configure things (e.g. groups where
+// he/she is an admin). It's sent in private to the user. After clicking on a button of the list (i.e. on a group), the
+// settings pane will be sent to him/her
 func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, page int) {
+
+	// Rationale: we need to list all groups where the user is admin. This list can be _huge_. So we need to paging it.
+	// In order to page the list of groups, we need to filter the list before paging. So this function will:
+	// 1. Get the full list of chatrooms of the bot
+	// 2. Check if the user is an admin for each chatroom (creating a list of "candidates" chats)
+	// 3. Slice the list to the max number of pages (in constant SettingsGroupListPageSize), starting from the page
+	//    indicated
+	// 4. Then, create the message (text + list of buttons)
+
 	var chatButtons [][]tb.InlineButton
 	var showMore = false
 	chatrooms, err := bot.db.ListMyChatrooms()
@@ -32,13 +45,15 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	// Pick chatrooms candidates (e.g. where the user has the admin permission)
 	var candidates []*tb.Chat
 	for _, x := range chatrooms {
-		chatsettings, err := bot.getChatSettings(x)
-		if err != nil {
-			bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
-			continue
-		}
-		if !isGlobalAdmin && !chatsettings.ChatAdmins.IsAdmin(sender) {
-			continue
+		if !isGlobalAdmin {
+			chatsettings, err := bot.getChatSettings(x)
+			if err != nil {
+				bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
+				continue
+			}
+			if !chatsettings.ChatAdmins.IsAdmin(sender) {
+				continue
+			}
 		}
 		candidates = append(candidates, x)
 	}
@@ -73,11 +88,11 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	if len(chatButtons) == 0 {
 		msg = "You are not an admin in a chat where the bot is."
 	} else {
-		if showMore {
+		if page >= 1 {
 			var bt = tb.InlineButton{
-				Unique: "groups_settings_list_next",
-				Text:   "Next ➡️",
-				Data:   strconv.Itoa(page + 1),
+				Unique: "groups_settings_list_prev",
+				Text:   "⬅️ Prev",
+				Data:   strconv.Itoa(page - 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
 			bot.telebot.Handle(&bt, func(callback *tb.Callback) {
@@ -85,11 +100,11 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
 			})
 		}
-		if page >= 1 {
+		if showMore {
 			var bt = tb.InlineButton{
-				Unique: "groups_settings_list_prev",
-				Text:   "⬅️ Prev",
-				Data:   strconv.Itoa(page - 1),
+				Unique: "groups_settings_list_next",
+				Text:   "Next ➡️",
+				Data:   strconv.Itoa(page + 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
 			bot.telebot.Handle(&bt, func(callback *tb.Callback) {

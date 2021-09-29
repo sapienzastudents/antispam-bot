@@ -16,6 +16,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onGlobalUpdateWww is executed on /updatewww command from the bot. It clones the website repo, build a new page for
+// groups links, commit the new page and push everything (GitLab will automatically publish the website then)
 func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	if bot.gitTemporaryDir == "" || bot.gitSSHKey == "" {
 		_, _ = bot.telebot.Send(m.Chat, "Website updater not configured")
@@ -24,16 +26,16 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	}
 	gitTempDir := filepath.Join(bot.gitTemporaryDir, "gittmp")
 
-	// Prepare the group list
+	// First, prepare the web page content
 	msg, _ := bot.telebot.Send(m.Chat, "⚙️ Prepare group list")
-	groupList, err := bot.prepareGroupListForWeb()
+	linksPageContent, err := bot.prepareLinksWebPageContent()
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
 		bot.logger.WithError(err).Error("can't prepare the group list for website update")
 		return
 	}
 
-	// Creating temp dir
+	// Create a temporary directory (if it doesn't exist), or remove its content
 	_ = os.Mkdir(gitTempDir, 0750)
 	err = removeContents(gitTempDir)
 	if err != nil {
@@ -42,7 +44,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
-	// Authentication
+	// Prepare SSH Authentication
 	pubkeys, err := ssh.NewPublicKeysFromFile("git", bot.gitSSHKey, bot.gitSSHKeyPassphrase)
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
@@ -50,7 +52,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
-	// Clone the repo and checkout the branch
+	// Clone the repo
 	msg, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n⚙️ Cloning")
 	r, err := git.PlainClone(gitTempDir, false, &git.CloneOptions{
 		URL:  "git@gitlab.com:sapienzastudents/sapienzahub.git",
@@ -62,6 +64,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
+	// ...from origin
 	remote, err := r.Remote("origin")
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
@@ -69,10 +72,10 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
+	// ...all refs, including HEAD
 	opts := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
 	}
-
 	if err := remote.Fetch(opts); err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
 		bot.logger.WithError(err).Error("can't fetch updates from remote")
@@ -85,6 +88,8 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		bot.logger.WithError(err).Error("can't get the working tree")
 		return
 	}
+
+	// Checkout the master branch
 	branchRefName := plumbing.NewBranchReferenceName("master")
 	err = w.Checkout(&git.CheckoutOptions{
 		Branch: branchRefName,
@@ -95,15 +100,16 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
-	// Update the file
+	// Overwrite the file
 	msg, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n⚙️ Create file")
-	err = ioutil.WriteFile(filepath.Join(gitTempDir, "content", "social.md"), []byte(groupList), 0600)
+	err = ioutil.WriteFile(filepath.Join(gitTempDir, "content", "social.md"), []byte(linksPageContent), 0600)
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n❌ Create file\n\n"+err.Error())
 		bot.logger.WithError(err).Error("can't write to file")
 		return
 	}
 
+	// Add the file to the next git commit
 	_, err = w.Add(filepath.Join("content", "social.md"))
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n❌ Create file\n\n"+err.Error())
@@ -111,7 +117,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
-	// Commit
+	// Git commit
 	msg, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n⚙️ Commit&push")
 	_, err = w.Commit("Update social groups links", &git.CommitOptions{
 		Author: &object.Signature{
@@ -127,7 +133,7 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 		return
 	}
 
-	// Push
+	// Push the commit to the origin repository
 	err = r.Push(&git.PushOptions{
 		RemoteName: "origin",
 	})
@@ -139,13 +145,15 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n✅️ Commit&push\n✅️ Pushed")
 }
 
-func (bot *telegramBot) prepareGroupListForWeb() (string, error) {
+// prepareLinksWebPageContent returns the new markdown content for the group links web page
+func (bot *telegramBot) prepareLinksWebPageContent() (string, error) {
 	// Get all categories
 	categories, err := bot.db.GetChatTree()
 	if err != nil {
 		return "", err
 	}
 
+	// Page header
 	msg := strings.Builder{}
 	msg.WriteString(`+++
 description = "Pagina contenenti link ai gruppi social"
@@ -164,6 +172,7 @@ Se vuoi aggiungere il tuo gruppo, segui le [indicazioni in questa pagina!](/soci
 
 `)
 
+	// Write categories and subcategories
 	for _, category := range categories.GetSubCategoryList() {
 		var l1cat = categories.SubCategories[category]
 		if len(l1cat.Chats) == 0 && len(l1cat.GetSubCategoryList()) == 0 {
@@ -199,6 +208,7 @@ Se vuoi aggiungere il tuo gruppo, segui le [indicazioni in questa pagina!](/soci
 	return msg.String(), nil
 }
 
+// printChatsInMarkdown appends a line for the chat in Markdown format to the strings.Builder
 func (bot *telegramBot) printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 	settings, err := bot.getChatSettings(v)
 	if err != nil {
@@ -219,27 +229,5 @@ func (bot *telegramBot) printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) e
 	msg.WriteString("](")
 	msg.WriteString("https://telegram.me/SapienzaStudentsBot?start=" + chatUUID.String())
 	msg.WriteString(")\n")
-	return nil
-}
-
-func removeContents(dir string) error {
-	d, err := os.Open(dir) // #nosec: G304 - The path is from a configuration, not from the user
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = d.Close()
-	}()
-
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		err = os.RemoveAll(filepath.Join(dir, name))
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onSigTerm is executed on /sigterm command. When issued, the bot exits the chatroom and delete all infos about it
 func (bot *telegramBot) onSigTerm(m *tb.Message, _ chatSettings) {
 	if !m.Private() {
 		_ = bot.telebot.Delete(m)

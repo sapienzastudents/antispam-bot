@@ -5,6 +5,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// performAction is a multiplexer function used to do an action (muteUser, banUser, kickUser, deleteMessage) based on
+// the chat settings
 func (bot *telegramBot) performAction(message *tb.Message, user *tb.User, settings chatSettings, action botdatabase.BotAction, reason string) {
 	switch action.Action {
 	case botdatabase.ActionMute:
@@ -23,6 +25,7 @@ func (bot *telegramBot) performAction(message *tb.Message, user *tb.User, settin
 	}
 }
 
+// prettyActionName returns a human-friendly name for the action
 func prettyActionName(action botdatabase.BotAction) string {
 	switch action.Action {
 	case botdatabase.ActionMute:

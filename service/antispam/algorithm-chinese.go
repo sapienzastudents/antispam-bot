@@ -6,6 +6,7 @@ import (
 )
 
 // ChineseChars calculate the percent of the string that is in chinese (Han) chars (unicode).
+//
 // Time complexity: O(n) where "n" is the number of runes in a string
 func ChineseChars(str string) float64 {
 	// Base: if the string is empty

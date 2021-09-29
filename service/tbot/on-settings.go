@@ -8,6 +8,11 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// onSettings is triggered by /settings command, sent either in a group or privately to the bot. When sent privately,
+// the list of groups where he/she is admin is sent as a reply. Then, by clicking on one of these groups, the bot sends
+// the settings panel for that group. Instead, when /settings command is sent in a public group, the settings panel of
+// that group is sent directly in the group itself. Note that in the latter case everyone is able to see all settings
+// (but only admins can change settings, of course)
 func (bot *telegramBot) onSettings(m *tb.Message, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("settings").Inc()
 
@@ -27,7 +32,8 @@ func (bot *telegramBot) onSettings(m *tb.Message, settings chatSettings) {
 }
 
 // sendSettingsMessage sends the setting panel by either re-using a previous message (if messageToEdit != nil) or sending
-// a new message in chatToSend
+// a new message in chatToSend. The settings panel is very complex: the message and the button composition depends on
+// current chat settings
 func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
 	var reply = strings.Builder{}
 	var inlineKeyboard [][]tb.InlineButton
@@ -187,7 +193,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		Text:   "🛑 Restart bot",
 	}
 	bot.handleAdminCallbackStateful(&reloadGroupInfoBt, func(callback *tb.Callback, state State) {
-		_ = bot.DoCacheUpdateForChat(state.ChatToEdit)
+		_ = bot.DoCacheUpdateForChat(state.ChatToEdit.ID)
 
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 			Text: "Bot restarted",
@@ -232,7 +238,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	}
 }
 
-// callbackSettings is an helper for callbacks in Settings panel. It loads automatically the chat-to-edit settings, and
+// callbackSettings is a helper for callbacks in Settings panel. It loads automatically the chat-to-edit settings, and
 // save them at the end of the callback
 func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(*tb.Callback, State) {
 	return func(callback *tb.Callback, state State) {
