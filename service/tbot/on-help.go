@@ -109,6 +109,22 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
+		/*
+			guida per aggiungere il bot
+		*/
+		var guidebt = tb.InlineButton{
+			Unique: "guide",
+			Text:   "⚙️ Come aggiungere un gruppo",
+		}
+
+		bot.telebot.Handle(&guidebt, func(callback *tb.Callback) {
+			_ = bot.telebot.Respond(callback)
+			// Note that the second parameter is always ignored in onGroups, so we can avoid a db lookup
+			bot.onGuide(callback.Message)
+		})
+
+		buttons = append(buttons, []tb.InlineButton{guidebt})
+
 		// === CLOSE Button
 		var bt = tb.InlineButton{
 			Unique: "help_close",
