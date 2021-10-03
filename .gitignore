@@ -5,3 +5,4 @@ antispam-telegram-bot
 .env
 wwwkey
 wwwkey.pub
+*rdb
