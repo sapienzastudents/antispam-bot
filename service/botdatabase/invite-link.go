@@ -1,9 +1,10 @@
 package botdatabase
 
 import (
+	"context"
 	"strconv"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 )
 
@@ -12,7 +13,7 @@ var ErrInviteLinkNotFound = errors.New("Invite link not found")
 
 // GetInviteLink returns the cached invite link
 func (db *_botDatabase) GetInviteLink(chatID int64) (string, error) {
-	ret, err := db.redisconn.HGet("invitelinks", strconv.FormatInt(chatID, 10)).Result()
+	ret, err := db.redisconn.HGet(context.TODO(), "invitelinks", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		return "", ErrInviteLinkNotFound
 	}
@@ -21,5 +22,5 @@ func (db *_botDatabase) GetInviteLink(chatID int64) (string, error) {
 
 // SetInviteLink save the invite link
 func (db *_botDatabase) SetInviteLink(chatID int64, inviteLink string) error {
-	return db.redisconn.HSet("invitelinks", strconv.FormatInt(chatID, 10), inviteLink).Err()
+	return db.redisconn.HSet(context.TODO(), "invitelinks", strconv.FormatInt(chatID, 10), inviteLink).Err()
 }

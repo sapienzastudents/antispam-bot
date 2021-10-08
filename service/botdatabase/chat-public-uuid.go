@@ -1,9 +1,10 @@
 package botdatabase
 
 import (
+	"context"
 	"strconv"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -12,11 +13,11 @@ var ErrChatUUIDNotFound = errors.New("chat uuid not found")
 
 // GetUUIDFromChat returns the UUID for the given chat ID. The UUID can be used e.g. in web links
 func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
-	chatUUIDString, err := db.redisconn.HGet("public-links", strconv.FormatInt(chatID, 10)).Result()
+	chatUUIDString, err := db.redisconn.HGet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		// Not found
 		chatUUID := uuid.New()
-		err = db.redisconn.HSet("public-links", strconv.FormatInt(chatID, 10), chatUUID.String()).Err()
+		err = db.redisconn.HSet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10), chatUUID.String()).Err()
 		return chatUUID, err
 	} else if err != nil {
 		return uuid.Nil, err
@@ -30,7 +31,7 @@ func (db *_botDatabase) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
 	var err error
 	var keys []string
 	for {
-		keys, cursor, err = db.redisconn.HScan("public-links", cursor, "", -1).Result()
+		keys, cursor, err = db.redisconn.HScan(context.TODO(), "public-links", cursor, "", -1).Result()
 		if err == redis.Nil {
 			return 0, ErrChatUUIDNotFound
 		}

@@ -1,6 +1,7 @@
 package botdatabase
 
 import (
+	"context"
 	"strconv"
 	"strings"
 )
@@ -8,13 +9,13 @@ import (
 // IsGlobalAdmin checks if the user ID is a bot admin in redis hash key global -> admins. If the key doesn't exist,
 // the function always returns false
 func (db *_botDatabase) IsGlobalAdmin(userID int) (bool, error) {
-	globalAdminListExists, err := db.redisconn.HExists("global", "admins").Result()
+	globalAdminListExists, err := db.redisconn.HExists(context.TODO(), "global", "admins").Result()
 	if err != nil {
 		return false, err
 	}
 
 	if globalAdminListExists {
-		admins, err := db.redisconn.HGet("global", "admins").Result()
+		admins, err := db.redisconn.HGet(context.TODO(), "global", "admins").Result()
 		if err != nil {
 			return false, err
 		}

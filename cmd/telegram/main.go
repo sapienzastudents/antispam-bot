@@ -1,18 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/pkg/errors"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
 	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/pkg/errors"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -61,7 +63,7 @@ func run() error {
 		return errors.Wrap(err, "unable to parse REDIS_URL variable")
 	}
 	redisDb := redis.NewClient(redisOptions)
-	err = redisDb.Ping().Err()
+	err = redisDb.Ping(context.TODO()).Err()
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to Redis server")
 	}

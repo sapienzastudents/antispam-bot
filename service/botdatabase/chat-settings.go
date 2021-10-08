@@ -1,11 +1,13 @@
 package botdatabase
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/go-redis/redis"
+	"strconv"
+
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"strconv"
 )
 
 const (
@@ -108,7 +110,7 @@ type ChatSettings struct {
 // ChatSettings structure inside the "settings" HSET (the field name is the chat ID as string)
 func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	settings := ChatSettings{}
-	jsonb, err := db.redisconn.HGet("settings", strconv.FormatInt(chatID, 10)).Result()
+	jsonb, err := db.redisconn.HGet(context.TODO(), "settings", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		return settings, ErrChatNotFound
 	} else if err != nil {
@@ -126,5 +128,5 @@ func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) err
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet("settings", strconv.FormatInt(chatID, 10), jsonb).Err()
+	return db.redisconn.HSet(context.TODO(), "settings", strconv.FormatInt(chatID, 10), jsonb).Err()
 }
