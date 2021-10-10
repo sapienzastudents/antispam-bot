@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 	"net/http"
 )
 

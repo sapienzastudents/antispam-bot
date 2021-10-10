@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 // startFromUUID replies to the user with the invite link of a chat from a UUID. The UUID is used in the website to
@@ -38,14 +38,27 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	}
 }
 
-// onHelp replies with a tiny help text, and [Groups] and [Settings] buttons. It replies also for /start
-// When /start is followed by a UUID, then calls startFromUUID to handle the UUID<->chat mapping
-func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
+// on Help command replies with a small help message following two buttons,
+// "Groups" and "Settings".
+//
+// It replies also for /start command. When that command is followed by an UUID,
+// then calls startFromUUID to handle the UUID and chat mapping.
+func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("start").Inc()
-	_ = bot.telebot.Delete(m)
 
-	if m.Private() {
-		// If a UUID is specified, then we need to lookup for the invite link and send it to the user
+	if err := ctx.Delete(); err != nil {
+		bot.logger.WithError(err).Warn("Failed to delete message")
+	}
+
+	msg := ctx.Message()
+	if msg == nil {
+		bot.logger.WithField("updateid", ctx.Update.ID).Warn("Update with nil on Message, skipping")
+		return
+	}
+
+	if msg.Private() {
+		// If a UUID is specified, then we need to lookup for the invite link
+		// and send it to the user.
 		payload := strings.TrimSpace(m.Text)
 		if strings.ContainsRune(payload, ' ') {
 			parts := strings.Split(m.Text, " ")
@@ -53,80 +66,88 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 			return
 		}
 
-		// === GROUPS button
+		// "Groups" button.
 		var buttons [][]tb.InlineButton
-		var groupsBt = tb.InlineButton{
+		groupsBt := tb.InlineButton{
 			Unique: "bt_action_groups",
 			Text:   "🇬🇧 Groups / 🇮🇹 Gruppi",
 		}
-		bot.telebot.Handle(&groupsBt, func(callback *tb.Callback) {
-			_ = bot.telebot.Respond(callback)
-			// Note that the second parameter is always ignored in onGroups, so we can avoid a db lookup
-			bot.sendGroupListForLinks(callback.Sender, callback.Message, callback.Message.Chat, nil)
+		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
+			_ = bot.telebot.Respond(ctx.Callback())
+
+			// Note that the second parameter is always ignored in onGroups, so
+			// we can avoid a DB lookup.
+			bot.sendGroupListForLinks(ctx.Sender(), ctx.Message(), ctx.Message().Chat, nil)
+			return nil
 		})
 		buttons = append(buttons, []tb.InlineButton{groupsBt})
 
-		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+		sender := ctx.Sender()
+		if sender == nil {
+			bot.logger.WithField("updateid", ctx.Update.ID).Warn("Update with nil on Sender, skipping")
+			return
+		}
+		isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
 		if err != nil {
-			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return
 		}
 
-		// === SETTINGS button
-		// Check if the user is an admin in at least one chat
-		var settingsVisible = false
+		// Settings button.
+		// Check if the user is an admin in at least one chat.
+		settingsVisible := false
 		if !isGlobalAdmin {
 			chatrooms, err := bot.db.ListMyChatrooms()
 			if err != nil {
-				bot.logger.WithError(err).Error("cant get chatroom list")
-			} else {
-				for _, x := range chatrooms {
-					chatsettings, err := bot.getChatSettings(x)
-					if err != nil {
-						bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
-						continue
-					}
-					if chatsettings.ChatAdmins.IsAdmin(m.Sender) {
-						settingsVisible = true
-						break
-					}
+				bot.logger.WithError(err).Error("Failed to get chatroom list")
+				return
+			}
+			for _, x := range chatrooms {
+				chatsettings, err := bot.getChatSettings(x)
+				if err != nil {
+					bot.logger.WithError(err).WithField("chatid", x.ID).Warn("Failed to get chatroom settings")
+					continue
+				}
+				if chatsettings.ChatAdmins.IsAdmin(sender) {
+					settingsVisible = true
+					break
 				}
 			}
 		} else {
-			// The global bot admin is always able to see group settings button
+			// The global bot admin is always able to see group settings button.
 			settingsVisible = true
 		}
 
 		if settingsVisible {
-			var settingsBt = tb.InlineButton{
+			settingsBt := tb.InlineButton{
 				Unique: "bt_action_settings",
 				Text:   "🇬🇧 Settings / 🇮🇹 Impostazioni",
 			}
-			bot.telebot.Handle(&settingsBt, func(callback *tb.Callback) {
-				_ = bot.telebot.Respond(callback)
-				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, 0)
+			bot.telebot.Handle(&settingsBt, func(ctx *tb.Context) error {
+				_ = bot.telebot.Respond(ctx.Callback())
+				bot.sendGroupListForSettings(ctx.Sender(), ctx.Message(), ctx.Message().Chat, 0)
+				return nil
 			})
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
-		// === CLOSE Button
-		var bt = tb.InlineButton{
+		// Close button.
+		bt := tb.InlineButton{
 			Unique: "help_close",
 			Text:   "Close / Chiudi",
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
-		bot.telebot.Handle(&bt, func(callback *tb.Callback) {
-			_ = bot.telebot.Respond(callback)
-			_ = bot.telebot.Delete(callback.Message)
+		bot.telebot.Handle(&bt, func(ctx *tb.Context) error {
+			_ = bot.telebot.Respond(ctx.Callback())
+			_ = bot.telebot.Delete(ctx.Callback().Message)
+			return nil
 		})
 
-		_, err = bot.telebot.Send(m.Sender, "🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?", &tb.SendOptions{
-			ReplyMarkup: &tb.ReplyMarkup{
-				InlineKeyboard: buttons,
-			},
-		})
+		// Send reply with buttons.
+		err = ctx.Send("🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?",
+			&tb.ReplyMarkup{InlineKeyboard: buttons})
 		if err != nil {
-			bot.logger.WithError(err).Warn("can't send message on help")
+			bot.logger.WithError(err).Error("Failed to send message on help")
 		}
 	}
 }

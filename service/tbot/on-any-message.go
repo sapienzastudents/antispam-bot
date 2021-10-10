@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-// onAnyMessage is triggered by any message in a group or in a private conversation
+// onAnyMessage is triggered by any message in a group or in a private
+// conversation.
 func (bot *telegramBot) onAnyMessage(m *tb.Message, settings chatSettings) {
 	// First, we need to retrieve the user state because we want to check whether the user was previously in settings
 	// and he/she want to change the group category. If this is the case, then this message is the name for the new

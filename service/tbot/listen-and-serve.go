@@ -2,7 +2,7 @@ package tbot
 
 import (
 	"fmt"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 	"time"
 )
 

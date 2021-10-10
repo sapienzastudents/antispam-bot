@@ -2,58 +2,81 @@ package tbot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// contextualChatSettingsFunc is the signature of the function that can be passed to refreshDBInfo as next handler in
-// the chain
-type contextualChatSettingsFunc func(*tb.Message, chatSettings)
+// contextualChatSettingsFunc is the signature of the function that can be
+// passed to refreshDBInfo as next handler in the chain.
+type contextualChatSettingsFunc func(tb.Context, chatSettings)
 
-// refreshDBInfo wrapper is refreshing the cache for chats in the database (due the fact that Telegram APIs does not
-// support listing chats of bots, we need to keep track of all chats where we are)
-func (bot *telegramBot) refreshDBInfo(actionHandler contextualChatSettingsFunc) func(m *tb.Message) {
-	return func(m *tb.Message) {
-		// Do not accept messages from channels
-		if m.FromChannel() {
-			return
+// refreshDBInfo returns an HandlerFunc suited to be passed on bot. It wraps the
+// given handler so it can refresh the cache for chats in the database.
+//
+// Telegram APis does not support listing chats of bots, we need to keep track
+// of all of chats where we are.
+func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.HandlerFunc {
+	return func(ctx tb.Context) error {
+		chat := ctx.Chat()
+		if chat == nil {
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Strange update with nil on Chat, update ignored")
+			return nil
 		}
 
-		if !m.Private() {
-			// When the message is sent in a group, we need to:
-			// 1. Update the chat info in the DB (or add the chat if it's new)
-			// 2. Retrieve the chat settings
-			// 3a. If the bot is not enabled (and the command is not from a global admin), ignore the message
-			// 3b. Otherwise, we can call the next handler in the chain (i.e. actionHandler) and move on
+		// Update from channels, private or public, are ignored.
+		if chat.Type == tb.ChatChannel || chat.Type == tb.ChatChannelPrivate {
+			bot.logger.WithFields(logrus.Fields{
+				"chatid":    chat.ID,
+				"chattitle": chat.Title,
+			}).Debug("Update from a public or private channel, ignored")
+			return nil
+		}
 
-			err := bot.db.AddOrUpdateChat(m.Chat)
-			if err != nil {
+		settings := chatSettings{}
+
+		// Updates from groups need special care.
+		if chat.Type != tb.ChatPrivate {
+			// Update chat info in the DB (or add the chat if it is new).
+			if err := bot.db.AddOrUpdateChat(chat); err != nil {
 				bot.logger.WithError(err).Error("Cannot update my chatroom list")
-				return
+				return nil
 			}
 
-			settings, err := bot.getChatSettings(m.Chat)
+			// Retrieve chat's settings.
+			var err error
+			settings, err = bot.getChatSettings(chat.ID)
 			if err != nil {
 				bot.logger.WithError(err).Error("Cannot get chat settings")
-				return
+				return nil
 			}
 
-			isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+			sender := ctx.Sender()
+			if sender == nil {
+				bot.logger.WithFields(logrus.Fields{
+					"chatid":    chat.ID,
+					"chattitle": chat.Title,
+				}).Warn("Update with nil on Sender, ignored")
+				return nil
+			}
+
+			isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
 			if err != nil {
-				bot.logger.WithError(err).Error("can't check if the user is a global admin")
-				return
+				bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
+				return nil
 			}
 
+			// If the bot is not enabled (and the command is not from a global
+			// admin), ignore the message.
 			if !settings.BotEnabled && !isGlobalAdmin {
 				bot.logger.WithFields(logrus.Fields{
-					"chatid":    m.Chat.ID,
-					"chattitle": m.Chat.Title,
+					"chatid":    chat.ID,
+					"chattitle": chatTitle,
 				}).Debugf("Bot not enabled for chat")
-			} else {
-				actionHandler(m, settings)
+				return nil
 			}
-		} else {
-			// On private messages, no chat settings is available
-			actionHandler(m, chatSettings{})
 		}
+
+		// Updates from private chats don't need chat settings, only groups.
+		handler(ctx, settings)
+		return nil
 	}
 }
