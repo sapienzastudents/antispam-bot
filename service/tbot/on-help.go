@@ -109,6 +109,18 @@ func (bot *telegramBot) onHelp(m *tb.Message, _ chatSettings) {
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
+		// Help button, used to show a small help message on how to add the bot
+		// on a group.
+		guidebt := tb.InlineButton{
+			Unique: "guide",
+			Text:   "⚙️ 🇬🇧 How to add a group / 🇮🇹 Come aggiunge un gruppo",
+		}
+		bot.telebot.Handle(&guidebt, func(callback *tb.Callback) {
+			_ = bot.telebot.Respond(callback)
+			bot.onGuide(callback.Message)
+		})
+		buttons = append(buttons, []tb.InlineButton{guidebt})
+
 		// === CLOSE Button
 		var bt = tb.InlineButton{
 			Unique: "help_close",
