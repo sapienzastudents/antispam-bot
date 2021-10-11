@@ -14,7 +14,7 @@ func (bot *telegramBot) onGuide(m *tb.Message) {
 	}()
 
 	bt := tb.InlineButton{
-		Unique: "groups_settings_list_close",
+		Unique: "on-guide-close",
 		Text:   "✖️ Close / Chiudi",
 	}
 
