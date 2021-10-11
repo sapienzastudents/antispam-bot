@@ -1,11 +1,13 @@
 package botdatabase
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/go-redis/redis"
+	"strconv"
+
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"strconv"
 )
 
 // AddOrUpdateChat adds or update the chat info into the DB. As Telegram doesn't offer a way to track in which
@@ -15,25 +17,25 @@ func (db *_botDatabase) AddOrUpdateChat(c *tb.Chat) error {
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet("chatrooms", strconv.FormatInt(c.ID, 10), string(jsonbin)).Err()
+	return db.redisconn.HSet(context.TODO(), "chatrooms", strconv.FormatInt(c.ID, 10), string(jsonbin)).Err()
 }
 
 // DeleteChat remove all chatroom info by removing the named field in sets: "public-links", "settings" and "chatrooms"
 func (db *_botDatabase) DeleteChat(chatID int64) error {
-	err := db.redisconn.HDel("public-links", strconv.FormatInt(chatID, 10)).Err()
+	err := db.redisconn.HDel(context.TODO(), "public-links", strconv.FormatInt(chatID, 10)).Err()
 	if err != nil {
 		return err
 	}
-	err = db.redisconn.HDel("settings", strconv.FormatInt(chatID, 10)).Err()
+	err = db.redisconn.HDel(context.TODO(), "settings", strconv.FormatInt(chatID, 10)).Err()
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HDel("chatrooms", strconv.FormatInt(chatID, 10)).Err()
+	return db.redisconn.HDel(context.TODO(), "chatrooms", strconv.FormatInt(chatID, 10)).Err()
 }
 
 // ChatroomsCount returns the count of chatrooms where the bot is
 func (db *_botDatabase) ChatroomsCount() (int64, error) {
-	ret, err := db.redisconn.HLen("chatrooms").Result()
+	ret, err := db.redisconn.HLen(context.TODO(), "chatrooms").Result()
 	if err == redis.Nil {
 		return 0, nil
 	}
@@ -48,7 +50,7 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 	var err error
 	var keys []string
 	for {
-		keys, cursor, err = db.redisconn.HScan("chatrooms", cursor, "", -1).Result()
+		keys, cursor, err = db.redisconn.HScan(context.TODO(), "chatrooms", cursor, "", -1).Result()
 		if err == redis.Nil {
 			return chatrooms, nil
 		} else if err != nil {
