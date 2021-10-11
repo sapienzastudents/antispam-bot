@@ -1,18 +1,29 @@
 package tbot
 
-import (
-	tb "gopkg.in/tucnak/telebot.v2"
-)
+import tb "gopkg.in/tucnak/telebot.v3"
 
-func (bot *telegramBot) onUserLeft(m *tb.Message, settings chatSettings) {
-	bot.logger.Infof("User %d left chat %s (%d)", m.UserLeft.ID, m.Chat.Title, m.Chat.ID)
+func (bot *telegramBot) onUserLeft(ctx tb.Context, settings chatSettings) {
+	msg := ctx.Message()
+	if msg == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+
+	bot.logger.WithFields(logrus.Fields{
+		"userid", msg.UserLeft.ID,
+		"chattitle", msg.Chat.Title,
+		"chatid", msg.Chat.ID,
+	}).Info("Left chat")
+
+	// TODO: Check if !m.Private() is necessary, because this update should
+	// be sent from Telegram only on groups.
+	// User can be also the bot itself.
 	if !m.Private() && m.UserLeft.ID == bot.telebot.Me.ID {
 		_ = bot.db.DeleteChat(m.Chat.ID)
 	}
 	if settings.OnLeaveDelete {
-		err := bot.telebot.Delete(m)
-		if err != nil {
-			bot.logger.WithError(err).Error("Cannot delete leave message")
+		if err := ctx.Delete(); err != nil {
+			bot.logger.WithError(err).Error("Failed to delete leave message")
 		}
 	}
 }
