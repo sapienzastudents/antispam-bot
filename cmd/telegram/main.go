@@ -18,6 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const DefaultRedisURL = "redis://127.0.0.1:6379"
+
 // AppVersion is the app version injected by the compiler
 var AppVersion = "dev"
 
@@ -56,7 +58,12 @@ func run() error {
 
 	// Initalizing redis connection
 	logger.Info("Initializing redis DB connection")
-	redisOptions, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+
+	rawURL, ok := os.LookupEnv("REDIS_URL")
+	if !ok {
+		rawURL = DefaultRedisURL
+	}
+	redisOptions, err := redis.ParseURL(rawURL)
 	if err != nil {
 		return errors.Wrap(err, "unable to parse REDIS_URL variable")
 	}
