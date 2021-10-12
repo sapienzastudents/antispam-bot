@@ -257,7 +257,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 // It is an helper for callbacks in Settings panel, it loads automatically the
 // ChatToEdit settings from the given State and save them at the end of the
 // callback.
-func (bot *telegramBot) callbackSettings(fn func(ctx tb.Context, chatSettings) chatSettings) func(tb.Context, State) {
+func (bot *telegramBot) callbackSettings(fn func(ctx tb.Context, settings chatSettings) chatSettings) func(tb.Context, State) {
 	return func(ctx tb.Context, state State) {
 		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
