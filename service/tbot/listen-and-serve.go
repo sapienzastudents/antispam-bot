@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-// simpleHandler is a simple handler with metrics and chat cache refresh. Use this for registering bot actions when no
-// filters are required
+// simpleHandler adds the given function as handler for the given endpoint. It
+// wraps fn with metrics and chat cache refresh. Use this for registering bot
+// actions when no filters are required.
 func (bot *telegramBot) simpleHandler(endpoint interface{}, fn contextualChatSettingsFunc) {
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(fn)))
 }

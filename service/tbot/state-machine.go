@@ -3,11 +3,12 @@ package tbot
 import (
 	"fmt"
 	"github.com/patrickmn/go-cache"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// Rationale: bot requests are stateless. However, we need to maintain some state across bot commands (especially in
-// settings commands). This file contains the implementation for a state machine that stores some state and some infos
+// Bot requests are stateless. However, we need to maintain some state across
+// bot commands (especially in settings commands). This file contains the
+// implementation for a state machine that stores some state and some infos
 // about settings.
 
 // State represent a state of the bot state machine
@@ -26,16 +27,16 @@ type State struct {
 	chatWithTheUser *tb.Chat
 }
 
-// Save serialize and save the current state
+// Save serialize and save the current state.
 //
-// Time complexity: O(1)
+// Time complexity: O(1).
 func (s *State) Save() {
 	s.bot.statemgmt.Set(fmt.Sprintf("%d %d", s.user.ID, s.chatWithTheUser.ID), *s, cache.DefaultExpiration)
 }
 
-// newState creates a new empty state for the user
+// newState creates a new empty state for the given user.
 //
-// Time complexity: O(1)
+// Time complexity: O(1).
 func (bot *telegramBot) newState(user *tb.User, chatWithTheUser *tb.Chat) State {
 	return State{
 		user:            user,
@@ -44,7 +45,7 @@ func (bot *telegramBot) newState(user *tb.User, chatWithTheUser *tb.Chat) State 
 	}
 }
 
-// getStateFor returns the current state for the user
+// getStateFor returns the current state for the given user.
 //
 // Time complexity: O(1)
 func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
@@ -57,27 +58,35 @@ func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
 	return state.(State)
 }
 
-// handleAdminCallbackStateful register a handler for an admin action callback, injecting the user state. The callback
-// restrict the action callback to a chat admin or a global admin (in other words, the callback sender must be an admin)
-func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn func(callback *tb.Callback, state State)) {
-	bot.telebot.Handle(endpoint, func(callback *tb.Callback) {
+// handleAdminCallbackStateful adds the given function as handler for the given
+// endpoint. It is used for an admin action callback, injecting the user state.
+// The callback restricts the action callback to a chat admin or a global admin
+// (in other words, the callback sender must be an admin).
+func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn func(ctx tb.Context, state State)) {
+	bot.telebot.Handle(endpoint, func(ctx tb.Context) error {
+		callback := ctx.Context()
+		if callback == nil {
+			bot.logger.WithField("updateid", ctx.Update().ID).Error("Update with nil on Callback, ignored")
+			return nil
+		}
+
 		state := bot.getStateFor(callback.Sender, callback.Message.Chat)
 
 		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
-			bot.logger.WithError(err).Error("error getting chat settings in handleAdminCallbackStateful")
-			return
+			bot.logger.WithError(err).Error("Failed to get chat settings in handleAdminCallbackStateful")
+			return nil
 		}
 
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(callback.Sender.ID)
 		if err != nil {
-			bot.logger.WithError(err).Error("can't check if the user is a global admin")
-			return
+			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
+			return nil
 		}
 
 		if settings.ChatAdmins.IsAdmin(callback.Sender) || isGlobalAdmin {
-			// User authorized, call the registered function
-			fn(callback, state)
+			// User authorized, call the registered function.
+			fn(ctx, state)
 		} else {
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 				Text:      "Not authorized",
