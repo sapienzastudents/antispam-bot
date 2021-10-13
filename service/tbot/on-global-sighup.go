@@ -1,14 +1,13 @@
 package tbot
 
-import tb "gopkg.in/tucnak/telebot.v2"
+import tb "gopkg.in/tucnak/telebot.v3"
 
-// onSigHup acts to /sighup reloading the cache for ALL chats
-func (bot *telegramBot) onSigHup(m *tb.Message, _ chatSettings) {
-	err := bot.DoCacheUpdate()
-	if err != nil {
-		bot.logger.WithError(err).Warning("can't handle sighup / refresh data")
-		_, _ = bot.telebot.Send(m.Chat, "Reload error, please try later")
+// onSigHup refreshes the cache for ALL groups on /sighup command.
+func (bot *telegramBot) onSigHup(ctx tb.Context, settings chatSettings) {
+	if err := bot.DoCacheUpdate(); err != nil {
+		bot.logger.WithError(err).Warning("Failed to handle sighup / refresh data")
+		_ = ctx.Send("Reload error, please try later")
 	} else {
-		_, _ = bot.telebot.Send(m.Chat, "Reload OK")
+		_ = ctx.Send("Reload OK")
 	}
 }
