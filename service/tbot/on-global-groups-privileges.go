@@ -6,19 +6,35 @@ import (
 	"strings"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onGroupsPrivileges replies to /groupscheck sending the list of all chats and relative permissions. Used for debug
-// purposes.
-func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
-	bot.logger.Debugf("My chat room privileges requested by %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName)
+// onGroupsPrivileges sends a list of all chats and relative permission on
+// /groupscheck command. Used for dbug purposes only.
+func (bot *telegramBot) onGroupsPrivileges(ctx tb.Context, settings chatSettings) {
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
 
-	waitingmsg, _ := bot.telebot.Send(m.Chat, "Work in progress...")
+	bot.logger.WithFields(logrus.Fields{
+		"userid": m.Sender.ID,
+		"userusername": m.Sender.Username,
+		"userfirstname": m.Sender.FirstName,
+		"userlastname": m.Sender.LastName,
+	}).Debug("Chat room list with privileges requested by user")
+
+	// The list with all chats and relative permissions takes time to build, so
+	// send an "ack" message, it will be edited at the end.
+	waitingmsg, err := bot.telebot.Send(m.Chat, "Work in progress...")
+	if err != nil {
+		bot.logger.WithError(err).Error("Failed to reply on /groupscheck")
+	}
 
 	chatrooms, err := bot.db.ListMyChatrooms()
 	if err != nil {
-		bot.logger.WithError(err).Error("Error getting chatroom list")
+		bot.logger.WithError(err).Error("Failed to get chatroom list")
 	} else {
 		sort.Slice(chatrooms, func(i, j int) bool {
 			return chatrooms[i].Title < chatrooms[j].Title
@@ -34,16 +50,16 @@ func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
 		msg.WriteString("\n")
 
 		for _, v := range chatrooms {
-			newInfos, err := bot.telebot.ChatByID(strconv.FormatInt(v.ID, 10))
+			newInfos, err := bot.telebot.ChatByID(v.ID)
 			if err != nil {
-				bot.logger.Warning("can't get refreshed infos for chatroom ", v, " ", err)
+				bot.logger.WithError(err).WithField("chat", v).Warn("Failed to get refreshed infos for chatroom")
 				continue
 			}
 			v = newInfos
 
 			me, err := bot.telebot.ChatMemberOf(v, bot.telebot.Me)
 			if err != nil {
-				bot.logger.Warning("can't get refreshed infos for chatroom ", v, " ", err)
+				bot.logger.WithError(err).WithField("chat", v).Warn("Failed to get refreshed infos for chatroom")
 				continue
 			}
 
@@ -53,7 +69,7 @@ func (bot *telegramBot) onGroupsPrivileges(m *tb.Message, _ chatSettings) {
 			if me.Role != tb.Administrator {
 				msg.WriteString("❌ not admin\n")
 			} else {
-				var missingPrivileges = synthetizePrivileges(me)
+				missingPrivileges := synthetizePrivileges(me)
 				if len(missingPrivileges) == 0 {
 					msg.WriteString("✅\n")
 				} else {

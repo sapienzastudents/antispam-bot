@@ -1,20 +1,24 @@
 package tbot
 
-// G-Line (from IRC) is a global ban. When a user is g-lined, he/she is banned in any chat where the bot is. The reason
-// for this command is to quickly act on trolls and spam bots.
-
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onRemoveGLine acts on /remove_gline command. It removes the g-line (aka the bot ban). It does not remove the ban in
-// each chat, so if the user is already banned in a chat, he/she will remain banned.
-func (bot *telegramBot) onRemoveGLine(m *tb.Message, _ chatSettings) {
+// onRemoveGLine removes the g-like (aka the bot ban). It does not remove the
+// ban in each chat, so if the user is already banned in a chet, he will remain
+// banned.
+func (bot *telegramBot) onRemoveGLine(ctx tb.Context, settings chatSettings) {
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+
 	if !m.Private() {
 		return
 	}
@@ -27,26 +31,40 @@ func (bot *telegramBot) onRemoveGLine(m *tb.Message, _ chatSettings) {
 	parts := strings.Split(m.Text, " ")
 	userID, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
-		_, _ = bot.telebot.Send(m.Chat, "Invalid ID specified")
+		_ = ctx.Send("Invalid ID specified")
 		return
 	}
 
-	err = bot.db.RemoveUserBanned(userID)
-	if err != nil {
-		bot.logger.WithField("chatid", m.Chat.ID).WithError(err).Error("can't remove g-line")
-		_, _ = bot.telebot.Send(m.Chat, "Error deleting G-Line for ID: ", err)
+	if err := bot.db.RemoveUserBanned(userID); err != nil {
+		bot.logger.WithField("chatid", m.Chat.ID).WithError(err).Error("Failed to remove g-line")
+		_ = ctx.Send(fmt.Sprint("Error deleting G-Line for ID: ", err))
 		return
 	}
-	_, _ = bot.telebot.Send(m.Chat, "OK")
+	_ = ctx.Send("OK")
 }
 
-// onGLine replies to the /gline command, banning the user quoted in a group, or banning the user ID specified via a
-// private message
-func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
-	_ = bot.telebot.Delete(m)
+
+// onGLine bans on /gline command the user quoted in a group, or bans the user
+// ID given via a private message. Global admins cannot be g-lined.
+//
+// G-Line (from IRC) is a global ban. When a user is g-lined, he is banned in
+// any chat where the bot is. The reason for this command is to quickly act on
+// trolls and spam bots.
+func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
+	_ = ctx.Delete()
+
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+
 	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
 		return
-	} else if m.ReplyTo != nil && m.ReplyTo.Sender != nil {
+	}
+
+	// Action on groups.
+	if m.ReplyTo != nil && m.ReplyTo.Sender != nil {
 		logfields := logrus.Fields{
 			"chatid": m.Chat.ID,
 			"userid": m.Sender.ID,
@@ -55,7 +73,7 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
 		if err != nil {
-			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return
 		} else if isGlobalAdmin {
 			bot.logger.WithFields(logfields).Warn("Won't g-line a global admin")
@@ -64,44 +82,42 @@ func (bot *telegramBot) onGLine(m *tb.Message, settings chatSettings) {
 
 		bot.deleteMessage(m.ReplyTo, settings, "g-line")
 		bot.banUser(m.Chat, m.ReplyTo.Sender, settings, "g-line")
-		err = bot.db.SetUserBanned(int64(m.ReplyTo.Sender.ID))
-		if err != nil {
-			bot.logger.WithFields(logfields).WithError(err).Error("can't add g-line")
+		if err := bot.db.SetUserBanned(m.ReplyTo.Sender.ID); err != nil {
+			bot.logger.WithFields(logfields).WithError(err).Error("Failed to add g-line")
 			return
 		}
 
-		_, _ = bot.telebot.Send(m.Sender, fmt.Sprint("GLine ok for ", m.ReplyTo.Sender))
+		_ = ctx.Send(fmt.Sprint("GLine ok for ", m.ReplyTo.Sender))
 		bot.logger.WithFields(logfields).Info("g-line user")
-	} else if m.Text != "" && m.Private() {
+	}
+
+	// Action on private chats.
+	if m.Text != "" && m.Private() {
 		payload := strings.TrimSpace(m.Text)
 		if strings.ContainsRune(payload, ' ') {
 			parts := strings.Split(m.Text, " ")
 			userID, err := strconv.ParseInt(parts[1], 10, 64)
 			if err != nil {
-				_, _ = bot.telebot.Send(m.Chat, "Invalid ID specified")
+				_ = ctx.Send("Invalid ID specified")
 				return
 			}
-			logfields := logrus.Fields{
-				"userid": userID,
-				"by":     m.Sender.ID,
-			}
+			logfields := logrus.Fields{"userid": userID, "by": m.Sender.ID}
 
 			isGlobalAdmin, err := bot.db.IsGlobalAdmin(int(userID))
 			if err != nil {
-				bot.logger.WithError(err).Error("can't check if the user is a global admin")
+				bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 				return
 			} else if isGlobalAdmin {
 				bot.logger.WithFields(logfields).Warn("Won't g-line a global admin")
 				return
 			}
 
-			err = bot.db.SetUserBanned(userID)
-			if err != nil {
+			if err := bot.db.SetUserBanned(userID); err != nil {
 				bot.logger.WithFields(logfields).WithError(err).Error("can't add g-line")
 				return
 			}
 
-			_, _ = bot.telebot.Send(m.Sender, fmt.Sprint("GLine ok for ", userID))
+			_ = ctx.Send(fmt.Sprint("GLine ok for ", userID))
 			bot.logger.WithFields(logfields).Info("g-line user")
 		}
 	}

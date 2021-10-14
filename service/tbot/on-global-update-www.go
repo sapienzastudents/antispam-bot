@@ -13,34 +13,46 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onGlobalUpdateWww is executed on /updatewww command from the bot. It clones the website repo, build a new page for
-// groups links, commit the new page and push everything (GitLab will automatically publish the website then)
-func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
+// onGlobalUpdateWWW updates the links on web page on /updatewww command.
+func (bot *telegramBot) onGlobalUpdateWWW(ctx tb.Context, settings chatSettings) {
 	if bot.gitTemporaryDir == "" || bot.gitSSHKey == "" {
-		_, _ = bot.telebot.Send(m.Chat, "Website updater not configured")
-		bot.logger.Warning("Website update requested but the configuration is missing")
+		_ = ctx.Send("Website updater not configured")
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Failed to update website on /updatewww: configuration is missing")
 		return
 	}
 	gitTempDir := filepath.Join(bot.gitTemporaryDir, "gittmp")
 
+	chat := ctx.Chat()
+	if chat == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Chat, ignored")
+		return
+	}
+
 	// First, prepare the web page content
-	msg, _ := bot.telebot.Send(m.Chat, "⚙️ Prepare group list")
+	msg, err := bot.telebot.Send(chat, "⚙️ Prepare group list")
+	if err != nil {
+		bot.logger.WithError(err).Error("Failed to send message")
+		return
+	}
 	linksPageContent, err := bot.prepareLinksWebPageContent()
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't prepare the group list for website update")
+		bot.logger.WithError(err).Error("Failed to prepare the group list for website update")
 		return
 	}
 
 	// Create a temporary directory (if it doesn't exist), or remove its content
-	_ = os.Mkdir(gitTempDir, 0750)
-	err = removeContents(gitTempDir)
-	if err != nil {
+	if err := os.Mkdir(gitTempDir, 0750); err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't clean up the temp directory")
+		bot.logger.WithError(err).Error("Failed to create temporary directory for website update")
+		return
+	}
+	if err := removeContents(gitTempDir); err != nil {
+		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
+		bot.logger.WithError(err).Error("Failed to clean up the temporary directory")
 		return
 	}
 
@@ -48,55 +60,57 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	pubkeys, err := ssh.NewPublicKeysFromFile("git", bot.gitSSHKey, bot.gitSSHKeyPassphrase)
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "❌ Prepare group list\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't load SSH keys")
+		bot.logger.WithError(err).Error("Failed to load SSH keys")
 		return
 	}
 
-	// Clone the repo
-	msg, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n⚙️ Cloning")
+	// Clone the repo...
+	msg, err = bot.telebot.Edit(msg, "✅ Prepare group list\n⚙️ Cloning")
+	if err != nil {
+		bot.logger.WithError(err).Error("Failed to edit message")
+		return
+	}
 	r, err := git.PlainClone(gitTempDir, false, &git.CloneOptions{
+		// TODO: Make this configurable.
 		URL:  "git@gitlab.com:sapienzastudents/sapienzahub.git",
 		Auth: pubkeys,
 	})
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't clone SSH repo")
+		bot.logger.WithError(err).Error("Failed to clone SSH repo")
 		return
 	}
 
-	// ...from origin
+	// ...from origin and...
 	remote, err := r.Remote("origin")
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't get origin remote")
+		bot.logger.WithError(err).Error("Failed to get origin remote")
 		return
 	}
 
-	// ...all refs, including HEAD
+	// ...all refs, including HEAD.
 	opts := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
 	}
 	if err := remote.Fetch(opts); err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't fetch updates from remote")
+		bot.logger.WithError(err).Error("Failed to fetch updates from remote")
 		return
 	}
 
 	w, err := r.Worktree()
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't get the working tree")
+		bot.logger.WithError(err).Error("Failed to get the working tree")
 		return
 	}
 
 	// Checkout the master branch
 	branchRefName := plumbing.NewBranchReferenceName("master")
-	err = w.Checkout(&git.CheckoutOptions{
-		Branch: branchRefName,
-	})
-	if err != nil {
+	if err := w.Checkout(&git.CheckoutOptions{Branch: branchRefName}); err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n❌ Cloning\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't get checkout the branch")
+		bot.logger.WithError(err).Error("Failed to checkout the branch")
 		return
 	}
 
@@ -105,21 +119,25 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	err = ioutil.WriteFile(filepath.Join(gitTempDir, "content", "social.md"), []byte(linksPageContent), 0600)
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n❌ Create file\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't write to file")
+		bot.logger.WithError(err).Error("Failed to write to file")
 		return
 	}
 
 	// Add the file to the next git commit
-	_, err = w.Add(filepath.Join("content", "social.md"))
-	if err != nil {
+	if _, err := w.Add(filepath.Join("content", "social.md")); err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n❌ Create file\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't add the modified file to the git repo")
+		bot.logger.WithError(err).Error("Failed to add the modified file to the git repo")
 		return
 	}
 
-	// Git commit
-	msg, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n⚙️ Commit&push")
-	_, err = w.Commit("Update social groups links", &git.CommitOptions{
+	msg, err = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n⚙️ Commit&push")
+	if err != nil {
+		bot.logger.WithError(err).Error("Failed to edit message")
+		return
+	}
+
+	// Commit changes.
+	_, err := w.Commit("Update social groups links", &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "SapienzaStudentsBot",
 			Email: "sapienzastudentsbot@domain.invalid",
@@ -129,23 +147,29 @@ func (bot *telegramBot) onGlobalUpdateWww(m *tb.Message, _ chatSettings) {
 	})
 	if err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n❌️ Commit&push\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't commit to repo")
+		bot.logger.WithError(err).Error("Failed to commit to repo")
 		return
 	}
 
 	// Push the commit to the origin repository
-	err = r.Push(&git.PushOptions{
-		RemoteName: "origin",
-	})
-	if err != nil {
+	if err = r.Push(&git.PushOptions{RemoteName: "origin"}); err != nil {
 		_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n❌️ Commit&push\n\n"+err.Error())
-		bot.logger.WithError(err).Error("can't push to remote origin")
+		bot.logger.WithError(err).Error("Failed to push to remote origin")
 		return
 	}
-	_, _ = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n✅️ Commit&push\n✅️ Pushed")
+	_, err = bot.telebot.Edit(msg, "✅ Prepare group list\n✅ Cloning\n✅ Create file\n✅️ Commit&push\n✅️ Pushed")
+	if err != nil {
+		bot.logger.WithError(err).Error("Failed to edit message")
+		return
+	}
+
+	// GitLab automatically publish the update website.
 }
 
-// prepareLinksWebPageContent returns the new markdown content for the group links web page
+// prepareLinksWebPageContent returns the new markdown content for the group
+// links web page.
+//
+// TODO: Rewrite all in HTML?
 func (bot *telegramBot) prepareLinksWebPageContent() (string, error) {
 	// Get all categories
 	categories, err := bot.db.GetChatTree()
@@ -208,11 +232,12 @@ Se vuoi aggiungere il tuo gruppo, segui le [indicazioni in questa pagina!](/soci
 	return msg.String(), nil
 }
 
-// printChatsInMarkdown appends a line for the chat in Markdown format to the strings.Builder
+// printChatsInMarkdown appends a line for the chat in Markdown format to the
+// given message buffer.
 func (bot *telegramBot) printChatsInMarkdown(msg *strings.Builder, v *tb.Chat) error {
 	settings, err := bot.getChatSettings(v)
 	if err != nil {
-		bot.logger.WithError(err).Error("Error getting chatroom config")
+		bot.logger.WithError(err).Error("Failed to get chatroom config")
 		return err
 	}
 	if settings.Hidden {

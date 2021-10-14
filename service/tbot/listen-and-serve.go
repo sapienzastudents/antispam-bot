@@ -46,9 +46,10 @@ func (bot *telegramBot) ListenAndServe() error {
 	// Global-administrative commands
 	bot.globalAdminHandler("/sighup", bot.onSigHup)
 	bot.globalAdminHandler("/groupscheck", bot.onGroupsPrivileges)
-	bot.globalAdminHandler("/updatewww", bot.onGlobalUpdateWww)
+	bot.globalAdminHandler("/updatewww", bot.onGlobalUpdateWWW)
 	bot.globalAdminHandler("/gline", bot.onGLine)
 	bot.globalAdminHandler("/remove_gline", bot.onRemoveGLine)
+
 	// Global-administrative commands (legacy, we should replace them as soon as "admin fallback" feature is ready)
 	bot.globalAdminHandler("/cut", bot.onCut)
 	bot.globalAdminHandler("/emergency_remove", bot.onEmergencyRemove)
