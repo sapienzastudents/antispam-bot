@@ -50,12 +50,6 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.globalAdminHandler("/gline", bot.onGLine)
 	bot.globalAdminHandler("/remove_gline", bot.onRemoveGLine)
 
-	// Global-administrative commands (legacy, we should replace them as soon as "admin fallback" feature is ready)
-	bot.globalAdminHandler("/cut", bot.onCut)
-	bot.globalAdminHandler("/emergency_remove", bot.onEmergencyRemove)
-	bot.globalAdminHandler("/emergency_elevate", bot.onEmergencyElevate)
-	bot.globalAdminHandler("/emergency_reduce", bot.onEmergencyReduce)
-
 	// Utilities
 	bot.simpleHandler("/id", func(m *tb.Message, _ chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
