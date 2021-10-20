@@ -10,7 +10,11 @@ import (
 
 var ErrChatUUIDNotFound = errors.New("chat uuid not found")
 
-// GetUUIDFromChat returns the UUID for the given chat ID. The UUID can be used e.g. in web links
+// GetUUIDFromChat returns the UUID for the given chat ID.
+//
+// The UUID can be used e.g. in web links.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
 	chatUUIDString, err := db.redisconn.HGet("public-links", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
@@ -24,7 +28,9 @@ func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
 	return uuid.Parse(chatUUIDString)
 }
 
-// GetChatIDFromUUID returns the chat ID for the given UUID
+// GetChatIDFromUUID returns the chat ID for the given UUID.
+//
+// Time complexity: O(n) where "n" is the number of chatrooms where the bot is.
 func (db *_botDatabase) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
 	var cursor uint64 = 0
 	var err error

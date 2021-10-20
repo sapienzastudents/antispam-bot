@@ -2,9 +2,10 @@ package botdatabase
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
+
+	"github.com/pkg/errors"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 // ChatCategoryTree is a node of the chat tree. Each node can contain some chats and/or some sub categories
@@ -13,9 +14,9 @@ type ChatCategoryTree struct {
 	SubCategories map[string]ChatCategoryTree
 }
 
-// GetSubCategoryList returns an ordered list of sub categories in this node
+// GetSubCategoryList returns an ordered list of sub categories in this node.
 //
-// Time complexity: O(n + n*log(n)) where "n" is the number of chats
+// Time complexity: O(n + n*log(n)) where "n" is the number of chats.
 func (c *ChatCategoryTree) GetSubCategoryList() []string {
 	var ret []string
 	for subcat := range c.SubCategories {
@@ -25,9 +26,9 @@ func (c *ChatCategoryTree) GetSubCategoryList() []string {
 	return ret
 }
 
-// GetChats returns an ordered list of chats in this node
+// GetChats returns an ordered list of chats in this node.
 //
-// Time complexity: O(n*log(n)) where "n" is the number of chats
+// Time complexity: O(n*log(n)) where "n" is the number of chats.
 func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 	sort.Slice(c.Chats, func(i, j int) bool {
 		return c.Chats[i].Title < c.Chats[j].Title
@@ -35,13 +36,18 @@ func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 	return c.Chats
 }
 
-// GetChatTree returns the chat tree (categories). It builds the chat tree by calling GetChatSettings for each chatroom,
-// and creating a second level in the tree using sub categories. This means that this function can return only tree with
-// two levels, for now.
+// GetChatTree returns the chat tree (categories).
+//
+// It builds the chat tree by calling GetChatSettings for each chatroom, and
+// creating a second level in the tree using sub categories. This means that
+// this function can return only tree with two levels, for now.
+//
+//
+// Time complexity: O(n) where "n" is the number of chatroom where the bot is.
 func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
-	var ret = ChatCategoryTree{}
+	ret := ChatCategoryTree{}
 
-	// Get the flat list of chatrooms where the bot is
+	// Get the flat list of chatrooms where the bot is.
 	chatrooms, err := db.ListMyChatrooms()
 	if err != nil {
 		return ret, err

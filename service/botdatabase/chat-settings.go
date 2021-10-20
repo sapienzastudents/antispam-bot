@@ -2,10 +2,11 @@ package botdatabase
 
 import (
 	"encoding/json"
+	"strconv"
+
 	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
-	tb "gopkg.in/tucnak/telebot.v2"
-	"strconv"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 const (
@@ -22,15 +23,15 @@ var (
 
 type ChatAdminList []int64
 
-// IsAdmin checks if the user is a chat admin
+// IsAdmin returns true if the given user is a chat admin.
 //
-// Time complexity: O(n) where "n" is the number of admins in the chat
+// Time complexity: O(n) where "n" is the number of admins in the chat.
 func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
 	if list == nil {
 		return false
 	}
 	for _, v := range *list {
-		if v == int64(user.ID) {
+		if v == user.ID {
 			return true
 		}
 	}
@@ -39,11 +40,11 @@ func (list *ChatAdminList) IsAdmin(user *tb.User) bool {
 
 // SetFromChat updates the admin list from the slice of chat members from the bot
 //
-// Time complexity: O(n) where "n" is the number of admins in the chat
+// Time complexity: O(n) where "n" is the number of admins in the chat.
 func (list *ChatAdminList) SetFromChat(admins []tb.ChatMember) {
 	*list = ChatAdminList{}
 	for _, u := range admins {
-		*list = append(*list, int64(u.User.ID))
+		*list = append(*list, u.User.ID)
 	}
 }
 
@@ -104,9 +105,12 @@ type ChatSettings struct {
 	LogChannel int64 `json:"log_channel"`
 }
 
-// GetChatSettings returns the chat settings of the bot for the given chat. It de-serialize the JSON with the
-// ChatSettings structure inside the "settings" HSET (the field name is the chat ID as string)
+// GetChatSettings returns the chat settings of the bot for the given chat ID.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
+	// GetChatSettings deserializes the JSON with the ChatSettings structure
+	// inside the "settings" HSET (the field name is the chat ID as string).
 	settings := ChatSettings{}
 	jsonb, err := db.redisconn.HGet("settings", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
@@ -119,9 +123,12 @@ func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	return settings, errors.Wrap(err, "error decoding chat settings from JSON")
 }
 
-// SetChatSettings save the chat settings of the bot for the given chat by serializing it into a JSON, and put it in the
-// "settings" HSET (the field name is the chat ID as string)
+// SetChatSettings saves the chat settings of the bot for the given chat ID.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) error {
+	// SetChatSettings saves the settings by serializing it into a JSON, and
+	// puts it in the "settings" HSET (the field name is the chat ID as string).
 	jsonb, err := json.Marshal(settings)
 	if err != nil {
 		return err
