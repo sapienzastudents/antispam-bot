@@ -51,9 +51,9 @@ func (bot *telegramBot) ListenAndServe() error {
 	bot.globalAdminHandler("/remove_gline", bot.onRemoveGLine)
 
 	// Utilities
-	bot.simpleHandler("/id", func(m *tb.Message, _ chatSettings) {
+	bot.simpleHandler("/id", func(ctx tb.Context, settings chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
-		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
+		_ = ctx.Send(fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
 	})
 
 	bot.logger.Info("Init ok, starting bot")
