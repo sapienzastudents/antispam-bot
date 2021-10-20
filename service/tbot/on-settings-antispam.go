@@ -2,31 +2,33 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strconv"
 	"strings"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// sendAntispamSettingsMessage sends the antispam settings message pane. This panel is an inner panel (i.e. you need to
-// access settings first, then click on the antispam settings button).
+// sendAntispamSettingsMessage sends the antispam settings message pane. This
+// panel is an inner panel (i.e. you need to access settings first, then click
+// on the antispam settings button).
 func (bot *telegramBot) sendAntispamSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
 	msg := bot.generateAntispamSettingsMessageText(chatToConfigure, settings)
-	var sendOpts = tb.SendOptions{
+	sendOpts := &tb.SendOptions{
 		ParseMode:             tb.ModeMarkdown,
 		ReplyMarkup:           bot.generateAntispamSettingsReplyMarkup(chatToConfigure, settings),
 		DisableWebPagePreview: true,
 	}
 	if messageToEdit != nil {
-		_, _ = bot.telebot.Edit(messageToEdit, msg, &sendOpts)
+		_, _ = bot.telebot.Edit(messageToEdit, msg, sendOpts)
 	} else {
-		_, _ = bot.telebot.Send(chatToSend, msg, &sendOpts)
+		_, _ = bot.telebot.Send(chatToSend, msg, sendOpts)
 	}
 }
 
-// generateAntispamSettingsMessageText will generate the message text for sendAntispamSettingsMessage based on the
-// current chat settings
+// generateAntispamSettingsMessageText returns the message text for
+// sendAntispamSettingsMessage based on the current chat settings.
 func (bot *telegramBot) generateAntispamSettingsMessageText(chat *tb.Chat, settings chatSettings) string {
 	reply := strings.Builder{}
 
@@ -56,8 +58,9 @@ func (bot *telegramBot) generateAntispamSettingsMessageText(chat *tb.Chat, setti
 	return reply.String()
 }
 
-// generateAntispamSettingsReplyMarkup will generate the button list for sendAntispamSettingsMessage based on the
-// current chat settings. Buttons will change the bot settings for antispam
+// generateAntispamSettingsReplyMarkup returns the button list for
+// sendAntispamSettingsMessage based on the current chat settings. Buttons will
+// change the bot settings for antispam.
 func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings chatSettings) *tb.ReplyMarkup {
 	// TODO: move button creations in init function (eg. global buttons objects and handler)
 	// Back settings
@@ -77,7 +80,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onJoinChineseKickButtonText,
 		Data:   strconv.FormatInt(chat.ID, 10),
 	}
-	bot.handleAdminCallbackStateful(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnJoinChinese.Action == botdatabase.ActionNone {
 			settings.OnJoinChinese = botdatabase.BotAction{
 				Action: botdatabase.ActionBan,
@@ -100,7 +103,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onJoinArabicKickButtonText,
 		Data:   strconv.FormatInt(chat.ID, 10),
 	}
-	bot.handleAdminCallbackStateful(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnJoinArabic.Action == botdatabase.ActionNone {
 			settings.OnJoinArabic = botdatabase.BotAction{
 				Action: botdatabase.ActionBan,
@@ -123,7 +126,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onMessageChineseKickButtonText,
 		Data:   strconv.FormatInt(chat.ID, 10),
 	}
-	bot.handleAdminCallbackStateful(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnMessageChinese.Action == botdatabase.ActionNone {
 			settings.OnMessageChinese = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -146,7 +149,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   onMessageArabicKickButtonText,
 		Data:   strconv.FormatInt(chat.ID, 10),
 	}
-	bot.handleAdminCallbackStateful(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnMessageArabic.Action == botdatabase.ActionNone {
 			settings.OnMessageArabic = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -169,7 +172,7 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		Text:   enableCASbuttonText,
 		Data:   strconv.FormatInt(chat.ID, 10),
 	}
-	bot.handleAdminCallbackStateful(&enableCASbutton, bot.callbackAntispamSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&enableCASbutton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnBlacklistCAS.Action == botdatabase.ActionNone {
 			settings.OnBlacklistCAS = botdatabase.BotAction{
 				Action: botdatabase.ActionKick,
@@ -192,10 +195,14 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}
 }
 
-// callbackAntispamSettings is a helper for callbacks in Antispam panel. It loads automatically the chat-to-edit settings, and
-// save them at the end of the callback
-func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(*tb.Callback, State) {
-	return func(callback *tb.Callback, state State) {
+// callbackAntispamSettings returns a function suitable to be passed on
+// handleAdminCallbackStateful.
+//
+// It is an helper function for callbacks in Antispam panel. Itloads
+// automatically the chat-to-edit settings, and save them at the end of the
+// callback.
+func (bot *telegramBot) callbackAntispamSettings(fn func(tb.Context, chatSettings) chatSettings) func(tb.Context, State) {
+	return func(ctx tb.Context, state State) {
 		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
 			bot.logger.WithError(err).Error("Cannot get chat settings")
@@ -203,7 +210,8 @@ func (bot *telegramBot) callbackAntispamSettings(fn func(*tb.Callback, chatSetti
 		}
 
 		// Execute callback
-		newsettings := fn(callback, settings)
+		callback := ctx.Callback()
+		newsettings := fn(ctx, settings)
 		_ = bot.db.SetChatSettings(state.ChatToEdit.ID, newsettings.ChatSettings)
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 			Text:      "Ok",
