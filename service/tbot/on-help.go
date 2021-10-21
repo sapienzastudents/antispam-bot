@@ -52,17 +52,17 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 
 	msg := ctx.Message()
 	if msg == nil {
-		bot.logger.WithField("updateid", ctx.Update.ID).Warn("Update with nil on Message, skipping")
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
 		return
 	}
 
 	if msg.Private() {
 		// If a UUID is specified, then we need to lookup for the invite link
 		// and send it to the user.
-		payload := strings.TrimSpace(m.Text)
+		payload := strings.TrimSpace(msg.Text)
 		if strings.ContainsRune(payload, ' ') {
-			parts := strings.Split(m.Text, " ")
-			bot.startFromUUID(parts[1], m.Sender)
+			parts := strings.Split(msg.Text, " ")
+			bot.startFromUUID(parts[1], msg.Sender)
 			return
 		}
 
@@ -84,7 +84,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 
 		sender := ctx.Sender()
 		if sender == nil {
-			bot.logger.WithField("updateid", ctx.Update.ID).Warn("Update with nil on Sender, skipping")
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Sender, ignored")
 			return
 		}
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
@@ -123,7 +123,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 				Unique: "bt_action_settings",
 				Text:   "🇬🇧 Settings / 🇮🇹 Impostazioni",
 			}
-			bot.telebot.Handle(&settingsBt, func(ctx *tb.Context) error {
+			bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
 				_ = bot.telebot.Respond(ctx.Callback())
 				bot.sendGroupListForSettings(ctx.Sender(), ctx.Message(), ctx.Message().Chat, 0)
 				return nil
@@ -137,7 +137,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			Text:   "Close / Chiudi",
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
-		bot.telebot.Handle(&bt, func(ctx *tb.Context) error {
+		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 			_ = bot.telebot.Respond(ctx.Callback())
 			_ = bot.telebot.Delete(ctx.Callback().Message)
 			return nil

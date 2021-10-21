@@ -25,7 +25,7 @@ func (bot *telegramBot) checkGroupAdmin(actionHandler contextualChatSettingsFunc
 		}
 
 		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || isGlobalAdmin {
-			actionHandler(m, settings)
+			actionHandler(ctx, settings)
 			return
 		}
 		_ = ctx.Delete()

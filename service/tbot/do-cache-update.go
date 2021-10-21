@@ -67,13 +67,13 @@ func (bot *telegramBot) DoCacheUpdate() error {
 
 // DoCacheUpdateForChat refreshes chat infos only for the given chat ID.
 func (bot *telegramBot) DoCacheUpdateForChat(chatID int64) error {
-	chat, err := bot.telebot.ChatByID(strconv.FormatInt(chatID, 10))
+	chat, err := bot.telebot.ChatByID(chatID)
 	if err != nil {
 		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
 			_ = bot.db.DeleteChat(chatID)
 			return ErrChatNotFound
 		}
-		return errors.Wrap(err, "failed to chat by id")
+		return errors.Wrap(err, "failed to get chat by id")
 	}
 
 	admins, err := bot.telebot.AdminsOf(chat)

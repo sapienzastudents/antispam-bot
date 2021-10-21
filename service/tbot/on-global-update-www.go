@@ -137,7 +137,7 @@ func (bot *telegramBot) onGlobalUpdateWWW(ctx tb.Context, settings chatSettings)
 	}
 
 	// Commit changes.
-	_, err := w.Commit("Update social groups links", &git.CommitOptions{
+	_, err = w.Commit("Update social groups links", &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "SapienzaStudentsBot",
 			Email: "sapienzastudentsbot@domain.invalid",

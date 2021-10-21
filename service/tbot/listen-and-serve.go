@@ -53,6 +53,11 @@ func (bot *telegramBot) ListenAndServe() error {
 	// Utilities
 	bot.simpleHandler("/id", func(ctx tb.Context, settings chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
+		m := ctx.Message()
+		if m == nil {
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+			return
+		}
 		_ = ctx.Send(fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
 	})
 

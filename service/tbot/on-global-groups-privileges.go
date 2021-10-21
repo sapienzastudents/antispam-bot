@@ -2,10 +2,10 @@ package tbot
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -19,10 +19,10 @@ func (bot *telegramBot) onGroupsPrivileges(ctx tb.Context, settings chatSettings
 	}
 
 	bot.logger.WithFields(logrus.Fields{
-		"userid": m.Sender.ID,
-		"userusername": m.Sender.Username,
+		"userid":        m.Sender.ID,
+		"userusername":  m.Sender.Username,
 		"userfirstname": m.Sender.FirstName,
-		"userlastname": m.Sender.LastName,
+		"userlastname":  m.Sender.LastName,
 	}).Debug("Chat room list with privileges requested by user")
 
 	// The list with all chats and relative permissions takes time to build, so

@@ -61,7 +61,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 	var buttons [][]tb.InlineButton
 	for _, category := range categoryTree.GetSubCategoryList() {
 		bt := tb.InlineButton{Unique: sha1string(category), Text: category}
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) HandlerFunc {
+		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
 				bot.showCategory(ctx.Callback().Message, cat, false)
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -80,7 +80,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 	}
 	if isGlobalAdmin {
 		bt := tb.InlineButton{Unique: "groups_no_category", Text: "Senza categoria"}
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) HandlerFunc {
+		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
 				bot.showCategory(ctx.Callback().Message, cat, true)
 				_ = bot.telebot.Respond(ctx.Callback())

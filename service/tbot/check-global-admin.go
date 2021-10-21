@@ -4,22 +4,22 @@ import tb "gopkg.in/tucnak/telebot.v3"
 
 // checkGlobalAdmin is a "firewall" wrapper for global admin only handlers. It
 // checks if the sender is a global admin.
-func (bot *telegramBot) checkGlobalAdmin(actionHandler func(ctx tb.Context)) func(ctx tb.Context) {
-	return func(ctx tb.Context) {
+func (bot *telegramBot) checkGlobalAdmin(actionHandler tb.HandlerFunc) tb.HandlerFunc {
+	return func(ctx tb.Context) error {
 		m := ctx.Message()
 		if m == nil {
 			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
-			return
+			return nil
 		}
 
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
-			return
+			return nil
 		} else if !isGlobalAdmin {
-			return
+			return nil
 		}
-		actionHandler(m)
+		return actionHandler(ctx)
 	}
 }
 
