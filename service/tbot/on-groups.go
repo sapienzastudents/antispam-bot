@@ -2,9 +2,10 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strings"
 	"time"
+
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 
 	tb "gopkg.in/tucnak/telebot.v3"
 )
@@ -100,9 +101,9 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 
 	// Send (or edit) message with button links.
 	sendOptions := &tb.SendOptions{
-		ParseMode: tb.ModeHTML,
+		ParseMode:             tb.ModeHTML,
 		DisableWebPagePreview: true,
-		ReplyMarkup: &tb.ReplyMarkup{InlineKeyboard: buttons},
+		ReplyMarkup:           &tb.ReplyMarkup{InlineKeyboard: buttons},
 	}
 	msg := "Seleziona il corso di laurea"
 	if messageToEdit == nil {

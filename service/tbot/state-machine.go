@@ -2,6 +2,7 @@ package tbot
 
 import (
 	"fmt"
+
 	"github.com/patrickmn/go-cache"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
@@ -64,7 +65,7 @@ func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
 // (in other words, the callback sender must be an admin).
 func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn func(ctx tb.Context, state State)) {
 	bot.telebot.Handle(endpoint, func(ctx tb.Context) error {
-		callback := ctx.Context()
+		callback := ctx.Callback()
 		if callback == nil {
 			bot.logger.WithField("updateid", ctx.Update().ID).Error("Update with nil on Callback, ignored")
 			return nil
@@ -93,5 +94,6 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 				ShowAlert: false,
 			})
 		}
+		return nil
 	})
 }

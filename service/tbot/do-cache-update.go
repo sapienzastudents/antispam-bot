@@ -1,11 +1,12 @@
 package tbot
 
 import (
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v3"

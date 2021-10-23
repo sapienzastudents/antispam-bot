@@ -43,7 +43,6 @@ func (bot *telegramBot) onRemoveGLine(ctx tb.Context, settings chatSettings) {
 	_ = ctx.Send("OK")
 }
 
-
 // onGLine bans on /gline command the user quoted in a group, or bans the user
 // ID given via a private message. Global admins cannot be g-lined.
 //

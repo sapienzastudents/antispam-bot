@@ -81,12 +81,18 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 			Text:   x.Title,
 			Data:   strconv.FormatInt(x.ID, 10),
 		}
-		bot.telebot.Handle(&btn, func(ctx tb.Context) {
+		bot.telebot.Handle(&btn, func(ctx tb.Context) error {
 			callback := ctx.Callback()
-			newchat, _ := bot.telebot.ChatByID(callback.Data)
+
+			id, err := strconv.ParseInt(callback.Data, 10, 64)
+			if err != nil {
+				return err
+			}
+			newchat, _ := bot.telebot.ChatByID(id)
 
 			settings, _ := bot.getChatSettings(newchat)
 			bot.sendSettingsMessage(callback.Sender, callback.Message, callback.Message.Chat, newchat, settings)
+			return nil
 		})
 		chatButtons = append(chatButtons, []tb.InlineButton{btn})
 	}
@@ -103,10 +109,14 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 				Data:   strconv.Itoa(page - 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
-			bot.telebot.Handle(&bt, func(ctx tb.Context) {
+			bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 				callback := ctx.Callback()
-				page, _ := strconv.Atoi(callback.Data)
+				page, err := strconv.Atoi(callback.Data)
+				if err != nil {
+					return err
+				}
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+				return nil
 			})
 		}
 		if showMore {
@@ -116,10 +126,14 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 				Data:   strconv.Itoa(page + 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
-			bot.telebot.Handle(&bt, func(ctx tb.Context) {
+			bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 				callback := ctx.Callback()
-				page, _ := strconv.Atoi(callback.Data)
+				page, err := strconv.Atoi(callback.Data)
+				if err != nil {
+					return err
+				}
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+				return nil
 			})
 		}
 
@@ -128,14 +142,15 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 			Text:   "✖️ Close / Chiudi",
 		}
 		chatButtons = append(chatButtons, []tb.InlineButton{bt})
-		bot.telebot.Handle(&bt, func(ctx tb.Context) {
+		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
 			_ = bot.telebot.Respond(callback)
 			_ = bot.telebot.Delete(callback.Message)
+			return nil
 		})
 
 		msg = "Please select the chatroom:"
-		sendOptions = tb.SendOptions{
+		sendOptions = &tb.SendOptions{
 			ParseMode: tb.ModeMarkdown,
 			ReplyMarkup: &tb.ReplyMarkup{
 				InlineKeyboard: chatButtons,
@@ -144,9 +159,9 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	}
 
 	if messageToEdit == nil {
-		_, err = bot.telebot.Send(chatToSend, msg, &sendOptions)
+		_, err = bot.telebot.Send(chatToSend, msg, sendOptions)
 	} else {
-		_, err = bot.telebot.Edit(messageToEdit, msg, &sendOptions)
+		_, err = bot.telebot.Edit(messageToEdit, msg, sendOptions)
 	}
 	if err != nil {
 		bot.logger.WithError(err).WithField("chatid", chatToSend.ID).Error("Failed to send/edit message for chat")

@@ -18,7 +18,7 @@ func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.Han
 	return func(ctx tb.Context) error {
 		chat := ctx.Chat()
 		if chat == nil {
-			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Strange update with nil on Chat, update ignored")
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Chat, ignored")
 			return nil
 		}
 
@@ -37,18 +37,19 @@ func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.Han
 		if chat.Type != tb.ChatPrivate {
 			// Update chat info in the DB (or add the chat if it is new).
 			if err := bot.db.AddOrUpdateChat(chat); err != nil {
-				bot.logger.WithError(err).Error("Cannot update my chatroom list")
+				bot.logger.WithError(err).Error("Failed to update my chatroom list")
 				return nil
 			}
 
 			// Retrieve chat's settings.
 			var err error
-			settings, err = bot.getChatSettings(chat.ID)
+			settings, err = bot.getChatSettings(chat)
 			if err != nil {
-				bot.logger.WithError(err).Error("Cannot get chat settings")
+				bot.logger.WithError(err).Error("Failed to get chat settings")
 				return nil
 			}
 
+			// Retrieve message's sender.
 			sender := ctx.Sender()
 			if sender == nil {
 				bot.logger.WithFields(logrus.Fields{
@@ -69,7 +70,7 @@ func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.Han
 			if !settings.BotEnabled && !isGlobalAdmin {
 				bot.logger.WithFields(logrus.Fields{
 					"chatid":    chat.ID,
-					"chattitle": chatTitle,
+					"chattitle": chat.Title,
 				}).Debugf("Bot not enabled for chat")
 				return nil
 			}

@@ -1,12 +1,13 @@
 package tbot
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v3"
-	"strconv"
-	"strings"
 )
 
 // getChatSettings retrieves the chat settings from the database for the given

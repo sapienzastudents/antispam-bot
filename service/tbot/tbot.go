@@ -18,13 +18,14 @@
 package tbot
 
 import (
+	"net/http"
+
 	"github.com/patrickmn/go-cache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
 	tb "gopkg.in/tucnak/telebot.v3"
-	"net/http"
 )
 
 // TelegramBot is the interface for implementations of this kind of bots

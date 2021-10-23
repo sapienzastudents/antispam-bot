@@ -57,9 +57,9 @@ func (bot *telegramBot) handleChangeCategory(ctx tb.Context, state State) {
 	}
 }
 
-// handleChangeSubCategory is link handleChangeCategory, but for sub-categories.
+// handleChangeSubCategory is lke handleChangeCategory, but for sub-categories.
 func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb.Context, state State) {
-	return func(context tb.Context, state State) {
+	return func(ctx tb.Context, state State) {
 		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback)
 
