@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/pkg/errors"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
 	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-redis/redis"
+	"github.com/pkg/errors"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
