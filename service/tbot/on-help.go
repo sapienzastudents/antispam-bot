@@ -73,6 +73,11 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			Text:   "🇬🇧 Groups / 🇮🇹 Gruppi",
 		}
 		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
+			cb := ctx.Callback()
+			if cb == nil {
+				bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Callback, ignored")
+				return nil
+			}
 			_ = bot.telebot.Respond(ctx.Callback())
 
 			// Note that the second parameter is always ignored in onGroups, so

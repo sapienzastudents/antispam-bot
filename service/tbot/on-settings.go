@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -58,7 +59,14 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chatToConfigure.Title, chatToConfigure.ID))
 
 	// Inform user about missing permissions
-	me, _ := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
+	me, err := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
+	if err != nil {
+		bot.logger.WithError(err).WithFields(logrus.Fields{
+			"chatid":   chatToConfigure.ID,
+			"chattitle": chatToConfigure.Title,
+		}).Error("Failed to get my info on chat")
+		return
+	}
 	missingPrivileges := synthetizePrivileges(me)
 	if me.Role != tb.Administrator {
 		reply.WriteString("❌❌❌ The bot is not an admin! Admin permissions are needed for all functions\n")
