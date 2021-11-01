@@ -1,14 +1,18 @@
 package cas
 
 import (
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
-// New builds a new CAS instance. If the autoupdate parameter is true, launches a goroutine for database auto-update in
-// background. The logger is used for debug logging. The client parameter can be used to override the default HTTP
-// client (if nil, the default http client will be used).
+// New returns a CAS instance.
+//
+// If autoupdate is true, it launches a goroutine that updates the database in
+// background and the given logger is used for debug.
+//
+// If client is not nil it will be used to override default HTTP client.
 func New(autoupdate bool, logger logrus.FieldLogger, client *http.Client) (CAS, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 1 * time.Minute}
@@ -16,7 +20,7 @@ func New(autoupdate bool, logger logrus.FieldLogger, client *http.Client) (CAS, 
 	c := cas{
 		c:      client,
 		logger: logger,
-		db:     make(map[int]int8),
+		db:     make(map[int64]int8),
 	}
 	if autoupdate {
 		go c.worker()

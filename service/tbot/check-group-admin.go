@@ -1,31 +1,41 @@
 package tbot
 
 import (
-	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// checkGroupAdmin is a "firewall" wrapper for group admin only handlers. It checks if the sender is an admin of the
-// chat, or a global admin
-func (bot *telegramBot) checkGroupAdmin(actionHandler func(*tb.Message, chatSettings)) func(*tb.Message, chatSettings) {
-	return func(m *tb.Message, settings chatSettings) {
+// checkGroupAdmin returns a function suited to be passed to refreshDBInfo.
+//
+// It is a "firewall" wrapper for group admin only handlers. It checks if the
+// sender is an admin of the chat or a global admin.
+func (bot *telegramBot) checkGroupAdmin(actionHandler contextualChatSettingsFunc) contextualChatSettingsFunc {
+	return func(ctx tb.Context, settings chatSettings) {
+		m := ctx.Message()
+		if m == nil {
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+			return
+		}
+
 		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
 		if err != nil {
-			bot.logger.WithError(err).Error("can't check if the user is a global admin")
+			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return
 		}
 
 		if m.Private() || (!m.Private() && settings.ChatAdmins.IsAdmin(m.Sender)) || isGlobalAdmin {
-			actionHandler(m, settings)
+			actionHandler(ctx, settings)
 			return
 		}
-		_ = bot.telebot.Delete(m)
+		_ = ctx.Delete()
 		msg, _ := bot.telebot.Send(m.Chat, "Sorry, only group admins can use this command")
 		bot.setMessageExpiry(msg, 10*time.Second)
 	}
 }
 
-// chatAdminHandler register a new handler that is available only to groups admins or global admins
+// chatAdminHandler registers a new handler that is available only to groups
+// admins or global admins.
 func (bot *telegramBot) chatAdminHandler(endpoint interface{}, fn contextualChatSettingsFunc) {
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(bot.checkGroupAdmin(fn))))
 }

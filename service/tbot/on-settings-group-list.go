@@ -2,32 +2,39 @@ package tbot
 
 import (
 	"fmt"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"sort"
 	"strconv"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 const SettingsGroupListPageSize = 10
 
-// sendGroupListForSettings creates the group list for settings page, which means that this list is a flat list (no
-// categories involved) which contains only groups where the user is allowed to configure things (e.g. groups where
-// he/she is an admin). It's sent in private to the user. After clicking on a button of the list (i.e. on a group), the
-// settings pane will be sent to him/her
+// sendGroupListForSettings sends a message with the group list that user is
+// allowed to configure.
+//
+// The list is a flat list of groups (no categories involved), which contains
+// only groups where the user is allowed to configure things (e.g. groups where
+// he is an admin). It is sent in private to the user. After clicking on a
+// button of the list (on a group), the settings page will be sent to him.
 func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, page int) {
-
-	// Rationale: we need to list all groups where the user is admin. This list can be _huge_. So we need to paging it.
-	// In order to page the list of groups, we need to filter the list before paging. So this function will:
-	// 1. Get the full list of chatrooms of the bot
-	// 2. Check if the user is an admin for each chatroom (creating a list of "candidates" chats)
-	// 3. Slice the list to the max number of pages (in constant SettingsGroupListPageSize), starting from the page
-	//    indicated
-	// 4. Then, create the message (text + list of buttons)
-
+	// We need to list all groups where the user is admin. This list can be
+	// huge. So we need to paging it.
+	//
+	// In order to page the list of groups, we need to filter the list before
+	// paging. So this function will:
+	//
+	//	1. Get the full list of chatrooms of the bot
+	//	2. Check if the user is an admin for each chatroom (creating a list of
+	//	"candidates" chats)
+	//	3. Slice the list to the max number of pages (in constant
+	//	SettingsGroupListPageSize), starting from the page indicated
+	//	4. Then, create the message (text + list of buttons)
 	var chatButtons [][]tb.InlineButton
-	var showMore = false
+	showMore := false
 	chatrooms, err := bot.db.ListMyChatrooms()
 	if err != nil {
-		bot.logger.WithError(err).Error("cant get chatroom list")
+		bot.logger.WithError(err).Error("Failed to get chatroom list")
 		return
 	}
 
@@ -38,7 +45,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 
 	isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
 	if err != nil {
-		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return
 	}
 
@@ -48,7 +55,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		if !isGlobalAdmin {
 			chatsettings, err := bot.getChatSettings(x)
 			if err != nil {
-				bot.logger.WithError(err).WithField("chat", x.ID).Warn("can't get chatroom settings")
+				bot.logger.WithError(err).WithField("chat", x.ID).Warn("Failed to get chatroom settings")
 				continue
 			}
 			if !chatsettings.ChatAdmins.IsAdmin(sender) {
@@ -74,17 +81,24 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 			Text:   x.Title,
 			Data:   strconv.FormatInt(x.ID, 10),
 		}
-		bot.telebot.Handle(&btn, func(callback *tb.Callback) {
-			newchat, _ := bot.telebot.ChatByID(callback.Data)
+		bot.telebot.Handle(&btn, func(ctx tb.Context) error {
+			callback := ctx.Callback()
+
+			id, err := strconv.ParseInt(callback.Data, 10, 64)
+			if err != nil {
+				return err
+			}
+			newchat, _ := bot.telebot.ChatByID(id)
 
 			settings, _ := bot.getChatSettings(newchat)
 			bot.sendSettingsMessage(callback.Sender, callback.Message, callback.Message.Chat, newchat, settings)
+			return nil
 		})
 		chatButtons = append(chatButtons, []tb.InlineButton{btn})
 	}
 
-	var sendOptions = tb.SendOptions{}
-	var msg string
+	sendOptions := &tb.SendOptions{}
+	msg := ""
 	if len(chatButtons) == 0 {
 		msg = "You are not an admin in a chat where the bot is."
 	} else {
@@ -95,36 +109,48 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 				Data:   strconv.Itoa(page - 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
-			bot.telebot.Handle(&bt, func(callback *tb.Callback) {
-				page, _ := strconv.Atoi(callback.Data)
+			bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+				callback := ctx.Callback()
+				page, err := strconv.Atoi(callback.Data)
+				if err != nil {
+					return err
+				}
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+				return nil
 			})
 		}
 		if showMore {
-			var bt = tb.InlineButton{
+			bt := tb.InlineButton{
 				Unique: "groups_settings_list_next",
 				Text:   "Next ➡️",
 				Data:   strconv.Itoa(page + 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
-			bot.telebot.Handle(&bt, func(callback *tb.Callback) {
-				page, _ := strconv.Atoi(callback.Data)
+			bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+				callback := ctx.Callback()
+				page, err := strconv.Atoi(callback.Data)
+				if err != nil {
+					return err
+				}
 				bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, page)
+				return nil
 			})
 		}
 
-		var bt = tb.InlineButton{
+		bt := tb.InlineButton{
 			Unique: "groups_settings_list_close",
 			Text:   "✖️ Close / Chiudi",
 		}
 		chatButtons = append(chatButtons, []tb.InlineButton{bt})
-		bot.telebot.Handle(&bt, func(callback *tb.Callback) {
+		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+			callback := ctx.Callback()
 			_ = bot.telebot.Respond(callback)
 			_ = bot.telebot.Delete(callback.Message)
+			return nil
 		})
 
 		msg = "Please select the chatroom:"
-		sendOptions = tb.SendOptions{
+		sendOptions = &tb.SendOptions{
 			ParseMode: tb.ModeMarkdown,
 			ReplyMarkup: &tb.ReplyMarkup{
 				InlineKeyboard: chatButtons,
@@ -133,11 +159,11 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 	}
 
 	if messageToEdit == nil {
-		_, err = bot.telebot.Send(chatToSend, msg, &sendOptions)
+		_, err = bot.telebot.Send(chatToSend, msg, sendOptions)
 	} else {
-		_, err = bot.telebot.Edit(messageToEdit, msg, &sendOptions)
+		_, err = bot.telebot.Edit(messageToEdit, msg, sendOptions)
 	}
 	if err != nil {
-		bot.logger.WithError(err).WithField("chatid", chatToSend.ID).Error("can't send/edit message for chat")
+		bot.logger.WithError(err).WithField("chatid", chatToSend.ID).Error("Failed to send/edit message for chat")
 	}
 }

@@ -1,6 +1,8 @@
 package tbot
 
 import (
+	"time"
+
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -8,8 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
-	tb "gopkg.in/tucnak/telebot.v2"
-	"time"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 type Options struct {

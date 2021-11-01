@@ -8,7 +8,9 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// IsUserBanned checks if the user is banned in the bot (G-Line)
+// IsUserBanned returns true if the given user ID is banned in the bot (G-Line).
+//
+// Time complexity: O(1).
 func (db *_botDatabase) IsUserBanned(userid int64) (bool, error) {
 	err := db.redisconn.HGet(context.TODO(), "banlist", strconv.FormatInt(userid, 10)).Err()
 	if err == redis.Nil {
@@ -19,12 +21,16 @@ func (db *_botDatabase) IsUserBanned(userid int64) (bool, error) {
 	return false, err
 }
 
-// SetUserBanned mark the user as banned in the bot (G-Line)
+// SetUserBanned marks the given user ID as banned in the bot (G-Line).
+//
+// Time complexity: O(1).
 func (db *_botDatabase) SetUserBanned(userid int64) error {
 	return db.redisconn.HSet(context.TODO(), "banlist", strconv.FormatInt(userid, 10), time.Now().String()).Err()
 }
 
-// RemoveUserBanned unmark the user as banned in the bot (G-Line)
+// RemoveUserBanned unmarks the user as banned in the bot (G-Line).
+//
+// Time complexity: O(1).
 func (db *_botDatabase) RemoveUserBanned(userid int64) error {
 	return db.redisconn.HDel(context.TODO(), "banlist", strconv.FormatInt(userid, 10), time.Now().String()).Err()
 }

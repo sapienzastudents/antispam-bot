@@ -5,35 +5,47 @@ import (
 	"strings"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	"github.com/sirupsen/logrus"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onSettings is triggered by /settings command, sent either in a group or privately to the bot. When sent privately,
-// the list of groups where he/she is admin is sent as a reply. Then, by clicking on one of these groups, the bot sends
-// the settings panel for that group. Instead, when /settings command is sent in a public group, the settings panel of
-// that group is sent directly in the group itself. Note that in the latter case everyone is able to see all settings
-// (but only admins can change settings, of course)
-func (bot *telegramBot) onSettings(m *tb.Message, settings chatSettings) {
+// onSettings is triggered by /settings command, sent either in a group or
+// privately to the bot. The behaviour is different:
+//
+//	- When sent privately, onSettings replies with a list of groups where the
+//	user is admin. Then, by clicking on one of these groups, the bot sends the
+//	settings panel for that group.
+//	- When sent in a public group, onSettings send the settings panel of that
+//	group directly in the group itself. Note that in the latter case everyone is
+//	able to see all settings (but only admins can change settings, of course).
+func (bot *telegramBot) onSettings(ctx tb.Context, settings chatSettings) {
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+
 	bot.botCommandsRequestsTotal.WithLabelValues("settings").Inc()
 
 	isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
 	if err != nil {
-		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return
 	}
 
 	if !m.Private() && (isGlobalAdmin || settings.ChatAdmins.IsAdmin(m.Sender)) {
-		// Messages in a chatroom - show settings panel for chatroom
+		// Messages in a chatroom: show settings panel for chatroom.
 		bot.sendSettingsMessage(m.Sender, nil, m.Chat, m.Chat, settings)
 	} else {
-		// Private message - show group list when he/she is admin
+		// Private message: show group list when he is admin.
 		bot.sendGroupListForSettings(m.Sender, nil, m.Chat, 0)
 	}
 }
 
-// sendSettingsMessage sends the setting panel by either re-using a previous message (if messageToEdit != nil) or sending
-// a new message in chatToSend. The settings panel is very complex: the message and the button composition depends on
-// current chat settings
+// sendSettingsMessage sends the setting panel to the given chat. If
+// messageToEdit is not nil, it edits that message instead of sending a new one.
+//
+// The message and button composition depends on current chat settings.
 func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
 	var reply = strings.Builder{}
 	var inlineKeyboard [][]tb.InlineButton
@@ -47,7 +59,14 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chatToConfigure.Title, chatToConfigure.ID))
 
 	// Inform user about missing permissions
-	me, _ := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
+	me, err := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
+	if err != nil {
+		bot.logger.WithError(err).WithFields(logrus.Fields{
+			"chatid":   chatToConfigure.ID,
+			"chattitle": chatToConfigure.Title,
+		}).Error("Failed to get my info on chat")
+		return
+	}
 	missingPrivileges := synthetizePrivileges(me)
 	if me.Role != tb.Administrator {
 		reply.WriteString("❌❌❌ The bot is not an admin! Admin permissions are needed for all functions\n")
@@ -76,7 +95,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				Unique: "settings_enable_disable_bot",
 				Text:   enableDisableButtonText,
 			}
-			bot.handleAdminCallbackStateful(&enableDisableBotButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+			bot.handleAdminCallbackStateful(&enableDisableBotButton, bot.callbackSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 				settings.BotEnabled = !settings.BotEnabled
 				return settings
 			}))
@@ -87,7 +106,8 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 					Unique: "settings_goto_antispam",
 					Text:   "✍️ Anti Spam",
 				}
-				bot.handleAdminCallbackStateful(&antispamSettingsButton, func(callback *tb.Callback, state State) {
+				bot.handleAdminCallbackStateful(&antispamSettingsButton, func(ctx tb.Context, state State) {
+					callback := ctx.Callback()
 					_ = bot.telebot.Respond(callback)
 
 					settings, _ := bot.getChatSettings(state.ChatToEdit)
@@ -115,7 +135,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				Unique: "settings_enable_disable_delete_on_join",
 				Text:   deleteJoinMessagesText,
 			}
-			bot.handleAdminCallbackStateful(&deleteJoinMessages, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+			bot.handleAdminCallbackStateful(&deleteJoinMessages, bot.callbackSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 				settings.OnJoinDelete = !settings.OnJoinDelete
 				return settings
 			}))
@@ -134,7 +154,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				Unique: "settings_enable_disable_delete_on_leave",
 				Text:   deleteLeaveMessagesText,
 			}
-			bot.handleAdminCallbackStateful(&deleteLeaveMessages, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+			bot.handleAdminCallbackStateful(&deleteLeaveMessages, bot.callbackSettings(func(context tb.Context, settings chatSettings) chatSettings {
 				settings.OnLeaveDelete = !settings.OnLeaveDelete
 				return settings
 			}))
@@ -157,7 +177,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				Unique: "settings_show_hide_group",
 				Text:   hideShowButtonText,
 			}
-			bot.handleAdminCallbackStateful(&hideShowBotButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+			bot.handleAdminCallbackStateful(&hideShowBotButton, bot.callbackSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 				settings.Hidden = !settings.Hidden
 				return settings
 			}))
@@ -192,9 +212,10 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		Unique: "reload_group_info",
 		Text:   "🛑 Restart bot",
 	}
-	bot.handleAdminCallbackStateful(&reloadGroupInfoBt, func(callback *tb.Callback, state State) {
+	bot.handleAdminCallbackStateful(&reloadGroupInfoBt, func(ctx tb.Context, state State) {
 		_ = bot.DoCacheUpdateForChat(state.ChatToEdit.ID)
 
+		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 			Text: "Bot restarted",
 		})
@@ -208,7 +229,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		Unique: "settings_message_refresh",
 		Text:   "🔄 Refresh",
 	}
-	bot.handleAdminCallbackStateful(&settingsRefreshButton, bot.callbackSettings(func(callback *tb.Callback, settings chatSettings) chatSettings {
+	bot.handleAdminCallbackStateful(&settingsRefreshButton, bot.callbackSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		return settings
 	}))
 
@@ -217,8 +238,8 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		Unique: "settings_close",
 		Text:   "🚪 Close",
 	}
-	bot.handleAdminCallbackStateful(&closeBtn, func(callback *tb.Callback, state State) {
-		_ = bot.telebot.Delete(callback.Message)
+	bot.handleAdminCallbackStateful(&closeBtn, func(ctx tb.Context, state State) {
+		_ = bot.telebot.Delete(ctx.Callback().Message)
 	})
 
 	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{settingsRefreshButton, reloadGroupInfoBt})
@@ -238,18 +259,23 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	}
 }
 
-// callbackSettings is a helper for callbacks in Settings panel. It loads automatically the chat-to-edit settings, and
-// save them at the end of the callback
-func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, chatSettings) chatSettings) func(*tb.Callback, State) {
-	return func(callback *tb.Callback, state State) {
+// callbackSettings wraps the given function and returns a function suited to be
+// passed in handleAdminCallbackStateful.
+//
+// It is an helper for callbacks in Settings panel, it loads automatically the
+// ChatToEdit settings from the given State and save them at the end of the
+// callback.
+func (bot *telegramBot) callbackSettings(fn func(ctx tb.Context, settings chatSettings) chatSettings) func(tb.Context, State) {
+	return func(ctx tb.Context, state State) {
 		settings, err := bot.getChatSettings(state.ChatToEdit)
 		if err != nil {
-			bot.logger.WithError(err).Error("Cannot get chat settings")
+			bot.logger.WithError(err).Error("Failed to get chat settings")
 			return
 		}
 
 		// Execute callback
-		newsettings := fn(callback, settings)
+		newsettings := fn(ctx, settings)
+		callback := ctx.Callback()
 		_ = bot.db.SetChatSettings(state.ChatToEdit.ID, newsettings.ChatSettings)
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 			Text:      "Ok",
@@ -261,7 +287,8 @@ func (bot *telegramBot) callbackSettings(fn func(*tb.Callback, chatSettings) cha
 	}
 }
 
-func (bot *telegramBot) backToSettingsFromCallback(callback *tb.Callback, state State) {
+func (bot *telegramBot) backToSettingsFromCallback(ctx tb.Context, state State) {
 	settings, _ := bot.getChatSettings(state.ChatToEdit)
+	callback := ctx.Callback()
 	bot.sendSettingsMessage(callback.Sender, callback.Message, callback.Message.Chat, state.ChatToEdit, settings)
 }

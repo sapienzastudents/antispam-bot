@@ -2,10 +2,12 @@ package tbot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// muteUser will mute a user. It has no effect on chat admins. It records the action in the log
+// muteUser mutes the given user on the given chat.
+//
+// It has no effect on chat admins. It records the action in the log.
 func (bot *telegramBot) muteUser(chat *tb.Chat, user *tb.User, chatsettings chatSettings, reason string) {
 	logfields := logrus.Fields{
 		"userid": user.ID,
@@ -19,7 +21,7 @@ func (bot *telegramBot) muteUser(chat *tb.Chat, user *tb.User, chatsettings chat
 
 	member, err := bot.telebot.ChatMemberOf(chat, user)
 	if err != nil {
-		bot.logger.WithError(err).WithFields(logfields).Error("mute action: cannot get member object for user")
+		bot.logger.WithError(err).WithFields(logfields).Error("mute action: failed to get member object for user")
 		return
 	}
 
@@ -28,7 +30,7 @@ func (bot *telegramBot) muteUser(chat *tb.Chat, user *tb.User, chatsettings chat
 	member.CanSendOther = false
 	err = bot.telebot.Restrict(chat, member)
 	if err != nil {
-		bot.logger.WithError(err).WithFields(logfields).Error("mute action: cannot save member restriction")
+		bot.logger.WithError(err).WithFields(logfields).Error("mute action: failed to save member restriction")
 		return
 	}
 

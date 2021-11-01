@@ -6,15 +6,17 @@ import (
 	"strings"
 )
 
-// IsGlobalAdmin checks if the user ID is a bot admin in redis hash key global -> admins. If the key doesn't exist,
-// the function always returns false
-func (db *_botDatabase) IsGlobalAdmin(userID int) (bool, error) {
+// IsGlobalAdmin checks if the given user ID is a bot admin.
+//
+// Time complexity: O(n) where "n" is the length of the global admin list.
+func (db *_botDatabase) IsGlobalAdmin(userID int64) (bool, error) {
 	globalAdminListExists, err := db.redisconn.HExists(context.TODO(), "global", "admins").Result()
 	if err != nil {
 		return false, err
 	}
 
 	if globalAdminListExists {
+		// If the key doesn't exist, the function always returns false.
 		admins, err := db.redisconn.HGet(context.TODO(), "global", "admins").Result()
 		if err != nil {
 			return false, err
@@ -26,11 +28,7 @@ func (db *_botDatabase) IsGlobalAdmin(userID int) (bool, error) {
 			if err != nil {
 				continue
 			}
-			// Currently, we need to cast the user ID here to int64 as telebot API uses int and not int64 for user IDs
-			// (this is a technical debt in the library). Once we update to the new version we should be able to either
-			// use int64 direcly (as hopefully the library will be fixed) or we will cast the userID outside this
-			// function
-			if ID == int64(userID) {
+			if ID == userID {
 				return true, nil
 			}
 		}

@@ -1,13 +1,17 @@
 package tbot
 
 import (
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// handleChangeCategory is the callback handler for "change category" button in settings pane. It shows the list of
-// current categories, and a button to create a new category. Each click on a category will trigger the list of
-// subcategories handled by handleChangeSubCategory
-func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
+// handleChangeCategory is the callback handler for "change category" button in
+// settings pane.
+//
+// It shows the list of current categories, and a button to create a new
+// category. Each click on a category will trigger the list of subcategories
+// handled by handleChangeSubCategory.
+func (bot *telegramBot) handleChangeCategory(ctx tb.Context, state State) {
+	callback := ctx.Callback()
 	_ = bot.telebot.Respond(callback)
 
 	// Add "new category" button
@@ -15,7 +19,8 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 		Text:   "✏️ Aggiungine una nuova",
 		Unique: "settings_add_new_category",
 	}
-	bot.handleAdminCallbackStateful(&customCategoryBt, func(callback *tb.Callback, state State) {
+	bot.handleAdminCallbackStateful(&customCategoryBt, func(ctx tb.Context, state State) {
+		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback)
 		_, _ = bot.telebot.Edit(callback.Message,
 			"Scrivi il nome del corso di laurea.\n"+
@@ -30,7 +35,7 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 	// Add existing categories
 	categories, err := bot.db.GetChatTree()
 	if err != nil {
-		bot.logger.WithError(err).Error("can't get category tree")
+		bot.logger.WithError(err).Error("Failed to get category tree")
 		return
 	}
 
@@ -48,20 +53,21 @@ func (bot *telegramBot) handleChangeCategory(callback *tb.Callback, _ State) {
 		InlineKeyboard: buttons,
 	})
 	if err != nil {
-		bot.logger.WithError(err).Error("error sending message to the user in settings")
+		bot.logger.WithError(err).Error("Failed to message to the user in settings")
 	}
 }
 
-// handleChangeSubCategory is similar to handleChangeCategory, but for sub-categories
-func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callback *tb.Callback, state State) {
-	return func(callback *tb.Callback, state State) {
+// handleChangeSubCategory is lke handleChangeCategory, but for sub-categories.
+func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb.Context, state State) {
+	return func(ctx tb.Context, state State) {
+		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback)
 
 		settings, _ := bot.getChatSettings(state.ChatToEdit)
 		settings.MainCategory = categoryName
 		err := bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 		if err != nil {
-			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't save chat settings")
+			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("Failed to save chat settings")
 			return
 		}
 
@@ -70,7 +76,8 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callba
 			Text:   "✏️ Aggiungine una nuova",
 			Unique: "settings_add_new_subcategory",
 		}
-		bot.handleAdminCallbackStateful(&customCategoryBt, func(callback *tb.Callback, state State) {
+		bot.handleAdminCallbackStateful(&customCategoryBt, func(ctx tb.Context, state State) {
+			callback := ctx.Callback()
 			_ = bot.telebot.Respond(callback)
 			_, _ = bot.telebot.Edit(callback.Message, "Scrivi il nome della sotto-categoria.\n\nEsempio: Primo anno")
 
@@ -83,13 +90,14 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callba
 			Text:   "Nessuna sotto-categoria",
 			Unique: "settings_no_sub_cat",
 		}
-		bot.handleAdminCallbackStateful(&noCategoryBt, func(callback *tb.Callback, state State) {
+		bot.handleAdminCallbackStateful(&noCategoryBt, func(ctx tb.Context, state State) {
+			callback := ctx.Callback()
 			_ = bot.telebot.Respond(callback)
 			settings, _ := bot.getChatSettings(state.ChatToEdit)
 			settings.SubCategory = ""
 			err := bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 			if err != nil {
-				bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't save chat settings")
+				bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("Failed to save chat settings")
 				return
 			}
 
@@ -108,7 +116,7 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callba
 		// Add sub-categories list
 		rootChatTree, err := bot.db.GetChatTree()
 		if err != nil {
-			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't load chat tree")
+			bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("Failed to load chat tree")
 			return
 		}
 		for cat := range rootChatTree.SubCategories[settings.MainCategory].SubCategories {
@@ -116,15 +124,16 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callba
 				Text:   cat,
 				Unique: sha1string(settings.MainCategory + cat),
 			}
-			bot.handleAdminCallbackStateful(&bt, func(subCategoryName string) func(callback *tb.Callback, state State) {
-				return func(callback *tb.Callback, state State) {
+			bot.handleAdminCallbackStateful(&bt, func(subCategoryName string) func(ctx tb.Context, state State) {
+				return func(ctx tb.Context, state State) {
+					callback := ctx.Callback()
 					_ = bot.telebot.Respond(callback)
 
 					settings, _ := bot.getChatSettings(state.ChatToEdit)
 					settings.SubCategory = subCategoryName
 					err := bot.db.SetChatSettings(state.ChatToEdit.ID, settings.ChatSettings)
 					if err != nil {
-						bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("can't save chat settings")
+						bot.logger.WithError(err).WithField("chatid", state.ChatToEdit.ID).Error("Failed to save chat settings")
 						return
 					}
 
@@ -146,7 +155,7 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(callba
 			InlineKeyboard: buttons,
 		})
 		if err != nil {
-			bot.logger.WithError(err).Error("error sending message to the user in settings")
+			bot.logger.WithError(err).Error("Failed to send message to the user in settings")
 		}
 	}
 }

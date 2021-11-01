@@ -2,7 +2,7 @@ package tbot
 
 import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 // performAction is a multiplexer function used to do an action (muteUser, banUser, kickUser, deleteMessage) based on

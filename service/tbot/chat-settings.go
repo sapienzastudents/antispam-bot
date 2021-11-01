@@ -1,16 +1,20 @@
 package tbot
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	tb "gopkg.in/tucnak/telebot.v2"
-	"strconv"
-	"strings"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// getChatSettings retrieves the chat settings from the database. If not settings were previously created, this command
-// creates a new set of settings based on some default values
+// getChatSettings retrieves the chat settings from the database for the given
+// chat.
+//
+// If there are not settings previously created, it creates a new set of
+// settings based on some default values and returns it.
 func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 	settings, err := bot.db.GetChatSettings(chat.ID)
 	if err == botdatabase.ErrChatNotFound {
@@ -50,13 +54,13 @@ func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 
 		chatAdmins, err := bot.telebot.AdminsOf(chat)
 		if err != nil {
-			return chatSettings{}, errors.Wrap(err, "can't get admin list for chat")
+			return chatSettings{}, errors.Wrap(err, "failed to get admin list for chat")
 		}
 		settings.ChatAdmins.SetFromChat(chatAdmins)
 
 		err = bot.db.SetChatSettings(chat.ID, settings)
 		if err != nil {
-			return chatSettings{}, errors.Wrap(err, "can't save chat settings for new chat")
+			return chatSettings{}, errors.Wrap(err, "failed to save chat settings for new chat")
 		}
 	}
 
@@ -105,14 +109,14 @@ func (s *chatSettings) Log(action string, by *tb.User, on *tb.User, description 
 		if s.LogChannel > 0 {
 			_, err := s.b.Send(&tb.Chat{ID: s.LogChannel}, strbuf.String(), tb.ModeMarkdown)
 			if err != nil {
-				s.logger.WithError(err).WithField("chatid", s.LogChannel).Error("can't send message to log channel")
+				s.logger.WithError(err).WithField("chatid", s.LogChannel).Error("failed to send message to log channel")
 			}
 		}
 
 		if s.globalLog > 0 {
 			_, err := s.b.Send(&tb.Chat{ID: s.globalLog}, strbuf.String(), tb.ModeMarkdown)
 			if err != nil {
-				s.logger.WithError(err).WithField("chatid", s.globalLog).Error("can't send message to log channel")
+				s.logger.WithError(err).WithField("chatid", s.globalLog).Error("failed to send message to log channel")
 			}
 		}
 	}
@@ -123,13 +127,13 @@ func (s *chatSettings) LogForward(message *tb.Message) {
 	if s.LogChannel > 0 {
 		_, err := s.b.Forward(&tb.Chat{ID: s.LogChannel}, message)
 		if err != nil {
-			s.logger.WithError(err).WithField("chatid", s.LogChannel).Error("can't forward message to log channel")
+			s.logger.WithError(err).WithField("chatid", s.LogChannel).Error("failed to forward message to log channel")
 		}
 	}
 	if s.globalLog > 0 {
 		_, err := s.b.Forward(&tb.Chat{ID: s.globalLog}, message)
 		if err != nil {
-			s.logger.WithError(err).WithField("chatid", s.globalLog).Error("can't forward message to log channel")
+			s.logger.WithError(err).WithField("chatid", s.globalLog).Error("failed to forward message to log channel")
 		}
 	}
 }

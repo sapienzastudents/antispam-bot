@@ -1,15 +1,18 @@
 package tbot
 
 import (
-	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// setMessageExpiry set an expiration for the message. In other words, the message m will be deleted after d time.
+// setMessageExpiry sets the given expiration for the given message. In other
+// words, the message m will be deleted after exp time.
 //
-// This function launches a goroutine. All TTLs won't survive a bot reboot (messages won't be deleted)
-func (bot *telegramBot) setMessageExpiry(m *tb.Message, d time.Duration) {
-	t := time.NewTimer(d)
+// This function launches a goroutine. All TTLs won't survive a bot reboot
+// (messages won't be deleted).
+func (bot *telegramBot) setMessageExpiry(m *tb.Message, exp time.Duration) {
+	t := time.NewTimer(exp)
 	go func(m *tb.Message) {
 		<-t.C
 		_ = bot.telebot.Delete(m)

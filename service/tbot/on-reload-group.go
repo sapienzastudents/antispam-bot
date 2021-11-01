@@ -1,20 +1,25 @@
 package tbot
 
-import (
-	tb "gopkg.in/tucnak/telebot.v2"
-)
+import tb "gopkg.in/tucnak/telebot.v3"
 
-// onReloadGroup is executed on /reload. It refreshes the cache for the chat where the command is issued
-func (bot *telegramBot) onReloadGroup(m *tb.Message, _ chatSettings) {
+// onReloadGroup refreshes the cache for the group where /reload command is sent.
+func (bot *telegramBot) onReloadGroup(ctx tb.Context, settings chatSettings) {
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+
+	// /reload is useless on private chat...
 	if !m.Private() {
 		bot.botCommandsRequestsTotal.WithLabelValues("reload").Inc()
 
 		err := bot.DoCacheUpdateForChat(m.Chat.ID)
 		if err != nil {
-			_, _ = bot.telebot.Send(m.Chat, "Error during bot reload")
-			bot.logger.WithError(err).Warning("Error during bot reload")
+			_ = ctx.Send("An error has been detected during reload, contact an administrator!")
+			bot.logger.WithError(err).Warning("Failed to refresh cache")
 		} else {
-			_, _ = bot.telebot.Send(m.Chat, "Bot reloaded")
+			_ = ctx.Send("Bot reloaded!")
 		}
 	}
 }

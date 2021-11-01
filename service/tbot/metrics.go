@@ -1,12 +1,13 @@
 package tbot
 
 import (
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 // MetricsHandler returns a HTTP handler for exposing metrics
@@ -17,22 +18,30 @@ func (bot *telegramBot) MetricsHandler() http.Handler {
 	})
 }
 
-// metrics collects metrics for commands, users and chats (reply latency, message counts, and more)
-func (bot *telegramBot) metrics(fn func(m *tb.Message)) func(m *tb.Message) {
-	return func(m *tb.Message) {
+// metrics returns an HandlerFunc suited to be passed on bot. It wraps the given
+// handler and collects metrics for commands, users and chats (reply latency,
+// message counts and more).
+func (bot *telegramBot) metrics(fn tb.HandlerFunc) tb.HandlerFunc {
+	return func(ctx tb.Context) error {
 		startms := time.Now()
-		fn(m)
+		fn(ctx)
 		bot.messageProcessedTotal.Inc()
-		if !m.Private() {
-			bot.groupMessagesCount.WithLabelValues(strconv.FormatInt(m.Chat.ID, 10), m.Chat.Title).Inc()
+
+		msg := ctx.Message()
+		if msg == nil {
+			return nil // Skip metrics for non-message updates.
+		}
+		if !msg.Private() {
+			bot.groupMessagesCount.WithLabelValues(strconv.FormatInt(msg.Chat.ID, 10), msg.Chat.Title).Inc()
 			var userName string
-			if m.Sender.Username == "" {
-				userName = strings.TrimSpace(m.Sender.FirstName + " " + m.Sender.LastName)
+			if msg.Sender.Username == "" {
+				userName = strings.TrimSpace(msg.Sender.FirstName + " " + msg.Sender.LastName)
 			} else {
-				userName = "@" + m.Sender.Username
+				userName = "@" + msg.Sender.Username
 			}
-			bot.userMessageCount.WithLabelValues(strconv.FormatInt(int64(m.Sender.ID), 10), userName).Inc()
+			bot.userMessageCount.WithLabelValues(strconv.FormatInt(msg.Sender.ID, 10), userName).Inc()
 		}
 		bot.botReplyLatency.Observe(float64(time.Since(startms) / time.Millisecond))
+		return nil
 	}
 }

@@ -2,7 +2,7 @@ package tbot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 // deleteMessage is useful when deleting a message that needs to be recorded in the log (e.g. a non-system message). It

@@ -2,135 +2,148 @@ package tbot
 
 import (
 	"fmt"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"strings"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onGroups fires when the user sends a /groups command in private or in a group. See sendGroupListForLinks as this
-// function is an alias for sendGroupListForLinks
-func (bot *telegramBot) onGroups(m *tb.Message, _ chatSettings) {
-	bot.sendGroupListForLinks(m.Sender, nil, m.Chat, m)
+// onGroups replies when the user sends /groups or /gruppi command in a private
+// char or in a group.
+//
+// It is just a wrapper to sendGroupListForLinks.
+func (bot *telegramBot) onGroups(ctx tb.Context, settings chatSettings) {
+	bot.sendGroupListForLinks(ctx.Sender(), nil, ctx.Chat(), ctx.Message())
 }
 
-// sendGroupListForLinks sends a list of categories as buttons. When clicking on a category/button, the message is
-// replaced with the list of groups, divided in subcategories
+// sendGroupListForLinks sends a list of groups categories as buttons. When the
+// user clicks on a button, the message is replaced with the list of groups,
+// divided in subcategories.
+//
+// messageToEdit and messageFromUser can be nil.
 func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb.Message, chatToSend *tb.Chat, messageFromUser *tb.Message) {
 	bot.botCommandsRequestsTotal.WithLabelValues("groups").Inc()
 
+	if sender == nil {
+		bot.logger.Warn("Have nil on sender, can't send links")
+		return
+	}
+	if chatToSend == nil {
+		bot.logger.Warn("Have nil on chatToSend, can't send links")
+		return
+	}
+
 	categoryTree, err := bot.db.GetChatTree()
 	if err != nil {
-		bot.logger.WithError(err).Error("Error getting chatroom list")
+		bot.logger.WithError(err).Error("Failed to get chatroom list")
 		msg, _ := bot.telebot.Send(chatToSend, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
 		bot.setMessageExpiry(msg, 30*time.Second)
 		return
 	}
 
-	// Rationale: in Telegram, we can add a matrix of InlineButtons. Each row (outer index) can be composed by multiple
-	// buttons (inner index). However, categories can be very long, so we stick with one button per row.
+	// In Telegram we can add a matrix of InlineButtons. Each row (outer index)
+	// can be composed by multiple buttons (inner index). However, categories
+	// can be very long, so we stick with one button per row.
 	//
-	// Rationale: we support only two layers of "categories": now we draw the first one as a list of buttons. Note that
-	// we need to show the right category for the right button, so:
-	// * we register the button for the category using the sha1 of the name (the whole name might be too long, or
-	//   contains illegal chars)
-	// * we register a callback handler using a closure to bind the category variable (so we can show the right
-	//   subcategory list)
+	// We support only two layers of "categories": now we draw the first one as
+	// a list of buttons. Note that we need to show the right category for the
+	// right button, so:
 	//
-	// Don't try to use the custom "Data" field for buttons here: it doesn't work due some limitations on Telegram side.
+	//	- we register the button for the category using the sha1 of the name
+	//	(the whole name might be too long, or contains illegal chars);
+	//	- we register a callback handler using a closure to bind the category
+	//	variable (so we can show the right subcategory list).
+	//
+	// Don't try to use the custom "Data" field for buttons here: it doesn't
+	// work due some limitations on Telegram side.
 
 	var buttons [][]tb.InlineButton
 	for _, category := range categoryTree.GetSubCategoryList() {
-		var bt = tb.InlineButton{
-			Unique: sha1string(category),
-			Text:   category,
-		}
-		buttons = append(buttons, []tb.InlineButton{bt})
-
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
-			return func(callback *tb.Callback) {
-				bot.showCategory(callback.Message, cat, false)
-				_ = bot.telebot.Respond(callback)
+		bt := tb.InlineButton{Unique: sha1string(category), Text: category}
+		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
+			return func(ctx tb.Context) error {
+				bot.showCategory(ctx.Callback().Message, cat, false)
+				_ = bot.telebot.Respond(ctx.Callback())
+				return nil
 			}
 		}(categoryTree.SubCategories[category]))
+		buttons = append(buttons, []tb.InlineButton{bt})
 	}
 
-	// Global admins are able to see a special category which contains all groups without a category. This is for
-	// troubleshooting purposes
+	// Global admins are able to see a special category which contains all
+	// groups without a category. This is for troubleshooting purposes.
 	isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
 	if err != nil {
-		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return
 	}
-
 	if isGlobalAdmin {
-		var bt = tb.InlineButton{
-			Unique: "groups_no_category",
-			Text:   "Senza categoria",
-		}
-		buttons = append(buttons, []tb.InlineButton{bt})
-
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) func(callback *tb.Callback) {
-			return func(callback *tb.Callback) {
-				bot.showCategory(callback.Message, cat, true)
-				_ = bot.telebot.Respond(callback)
+		bt := tb.InlineButton{Unique: "groups_no_category", Text: "Senza categoria"}
+		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
+			return func(ctx tb.Context) error {
+				bot.showCategory(ctx.Callback().Message, cat, true)
+				_ = bot.telebot.Respond(ctx.Callback())
+				return nil
 			}
 		}(categoryTree))
+		buttons = append(buttons, []tb.InlineButton{bt})
 	}
 
-	var bt = tb.InlineButton{
-		Unique: "groups_list_close",
-		Text:   "🚪 Close / Chiudi",
-	}
-	buttons = append(buttons, []tb.InlineButton{bt})
-	bot.telebot.Handle(&bt, func(callback *tb.Callback) {
-		_ = bot.telebot.Respond(callback)
-		_ = bot.telebot.Delete(callback.Message)
+	bt := tb.InlineButton{Unique: "groups_list_close", Text: "🚪 Close / Chiudi"}
+	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+		_ = bot.telebot.Respond(ctx.Callback())
+		_ = bot.telebot.Delete(ctx.Callback().Message)
+		return nil
 	})
+	buttons = append(buttons, []tb.InlineButton{bt})
 
-	var sendOptions = tb.SendOptions{
+	// Send (or edit) message with button links.
+	sendOptions := &tb.SendOptions{
 		ParseMode:             tb.ModeHTML,
 		DisableWebPagePreview: true,
-		ReplyMarkup: &tb.ReplyMarkup{
-			InlineKeyboard: buttons,
-		},
+		ReplyMarkup:           &tb.ReplyMarkup{InlineKeyboard: buttons},
 	}
 	msg := "Seleziona il corso di laurea"
 	if messageToEdit == nil {
-		// No previous messages, send a new one
-		_, err = bot.telebot.Send(sender, msg, &sendOptions)
+		// No previous messages, send a new one.
+		_, err = bot.telebot.Send(sender, msg, sendOptions)
 	} else {
-		// Previous messages present, edit that one
-		_, err = bot.telebot.Edit(messageToEdit, msg, &sendOptions)
+		// Previous messages present, edit that one.
+		_, err = bot.telebot.Edit(messageToEdit, msg, sendOptions)
 	}
-
 	if messageFromUser != nil {
-		// We sent the message to the user, however he/she blocked us (or never started a conversation). Send a public
-		// message in the group saying that he/she needs to talk in private with the bot first
 		if err == tb.ErrNotStartedByUser || err == tb.ErrBlockedByUser {
+			// We sent the message to the user, however he blocked us (or never
+			// started a conversation). Send a public message in the group
+			// saying that he needs to talk in private with the bot first.
 			replyMessage, _ := bot.telebot.Send(chatToSend, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!",
 				&tb.SendOptions{ReplyTo: messageFromUser})
 
-			// Self destruct message in 10s to avoid spamming
+			// Self destruct messages to avoid spamming.
 			bot.setMessageExpiry(messageFromUser, 10*time.Second)
 			bot.setMessageExpiry(replyMessage, 10*time.Second)
 		} else if err != nil {
-			bot.logger.WithError(err).Warning("can't send group list message to the user")
+			bot.logger.WithError(err).Error("Failed to send group list message to the user")
 		} else if !messageFromUser.Private() {
-			// The user sent /groups command in a group, however we were able to write him/her in private. Delete the
-			// message in the group to avoid spamming
+			// The user sent /groups command in a group, however we were able to
+			// write him in private. Delete the message in the group to avoid
+			// spamming.
 			_ = bot.telebot.Delete(messageFromUser)
 		}
 	}
 }
 
-// showCategory shows the content of the category (e.g. chats associated with this category, and sub categories with
-// chats associated to them) by editing the previous message
+// showCategory shows the content of the given category (e.g. chats associated
+// with this category, and subcategories with chats associated to them) by
+// editing the previous message.
+//
+// TODO: Document "isgeneral" parameter.
 func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool) {
 	msg := strings.Builder{}
 
-	// Show groups in this category before sub-categories
+	// Show groups in this category before sub-categories.
 	if len(category.Chats) > 0 {
 		for _, v := range category.GetChats() {
 			_ = bot.printGroupLinksTelegram(&msg, v)
@@ -161,20 +174,21 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 		DisableWebPagePreview: true,
 	})
 	if err != nil {
-		bot.logger.WithError(err).Warning("can't edit message to the user")
+		bot.logger.WithError(err).Warning("Failed to edit message to the user")
 	}
 
-	// Delete link list after 10 minutes because invite links can expire, and users have been caught rely on old
-	// messages from the bot
+	// Force users to ask new invite links because old ones can expire and they
+	// can be used accidentally.
 	bot.setMessageExpiry(m, 10*time.Minute)
 }
 
-// printGroupLinksTelegram formats the group link line in a message (e.g. the line with the group name and the invite
-// link). If the group is hidden, this function writes nothing
+// printGroupLinksTelegram formats the group link line in a message (e.g. the
+// line with the group name and the invite link) and write the result on msg. If
+// the group is hidden, this function writes nothing.
 func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
 	settings, err := bot.getChatSettings(v)
 	if err != nil {
-		bot.logger.WithError(err).WithField("chat", v.ID).Error("Error getting chatroom config")
+		bot.logger.WithError(err).WithField("chat", v.ID).Error("Failed to get chatroom config")
 		return err
 	}
 	if settings.Hidden {

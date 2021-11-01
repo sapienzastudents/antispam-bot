@@ -4,33 +4,50 @@ import (
 	"fmt"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	"github.com/sirupsen/logrus"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// onTerminate is executed when /terminate command is issued. The /terminate command is brutal, as it warns the user
-// that he/she is going to be terminated in 60 seconds. There is no way to stop the countdown.
-func (bot *telegramBot) onTerminate(m *tb.Message, settings chatSettings) {
+// onTerminate terminates the user that the reply /terminate command refers to.
+//
+// It first warn the user, then starts a contdown of 60 seconds and there is no
+// way to stop the timer.
+func (bot *telegramBot) onTerminate(ctx tb.Context, settings chatSettings) {
 	bot.botCommandsRequestsTotal.WithLabelValues("terminate").Inc()
 
-	_ = bot.telebot.Delete(m)
-	if m.ReplyTo == nil || m.Private() {
-		// No sense when no user is quoted (in public groups) or if the message is sent in private...
+	m := ctx.Message()
+	if m == nil {
+		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+		return
+	}
+	_ = ctx.Delete()
+
+	if !m.IsReply() || m.Private() {
+		// No sense when no user is quoted (in public groups) or if the message
+		// is sent in private...
 		return
 	}
 
+	// Do not terminate an admin (remember: The Admin Is Always Right®).
 	isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
 	if err != nil {
-		bot.logger.WithError(err).Error("can't check if the user is a global admin")
+		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return
 	}
-
-	// If the user is an admin, be polite (remember: The Admin Is Always Right®)
 	if settings.ChatAdmins.IsAdmin(m.ReplyTo.Sender) || isGlobalAdmin {
 		return
 	}
 
-	bot.logger.Debugf("Terminate by %d (%s %s %s) for %d (%s %s %s)", m.Sender.ID, m.Sender.Username, m.Sender.FirstName, m.Sender.LastName,
-		m.ReplyTo.Sender.ID, m.ReplyTo.Sender.Username, m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName)
+	bot.logger.WithFields(logrus.Fields{
+		"adminid":        m.Sender.ID,
+		"adminusername":  m.Sender.Username,
+		"adminfirstname": m.Sender.FirstName,
+		"adminlastname":  m.Sender.LastName,
+		"user":           m.ReplyTo.Sender.ID,
+		"userusername":   m.ReplyTo.Sender.Username,
+		"userfirstname":  m.ReplyTo.Sender.FirstName,
+		"userlastname":   m.ReplyTo.Sender.LastName,
+	}).Debug("User going to be terminated")
 
 	if m.Sender.Username != "" {
 		_, _ = bot.telebot.Reply(m.ReplyTo, fmt.Sprintf("🚨 @%s You will be terminated in 60 seconds, there will be no further warnings", m.ReplyTo.Sender.Username))
@@ -43,7 +60,7 @@ func (bot *telegramBot) onTerminate(m *tb.Message, settings chatSettings) {
 
 		member, err := bot.telebot.ChatMemberOf(m.Chat, m.ReplyTo.Sender)
 		if err != nil {
-			bot.logger.WithError(err).Error("Can't ban user ", m.ReplyTo.Sender)
+			bot.logger.WithError(err).WithField("userid", m.ReplyTo.ID).Error("Failed to ban user")
 			return
 		}
 

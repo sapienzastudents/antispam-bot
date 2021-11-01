@@ -2,10 +2,12 @@ package tbot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// kickUser will kick a user. It has no effect on chat admins. It records the action in the log
+// kickUser kicks the given user on the given chat.
+//
+// It has no effect on chat admins. It records the action in the log.
 func (bot *telegramBot) kickUser(chat *tb.Chat, user *tb.User, chatsettings chatSettings, reason string) {
 	logfields := logrus.Fields{
 		"userid": user.ID,
@@ -19,22 +21,21 @@ func (bot *telegramBot) kickUser(chat *tb.Chat, user *tb.User, chatsettings chat
 
 	member, err := bot.telebot.ChatMemberOf(chat, user)
 	if err != nil {
-		bot.logger.WithError(err).WithFields(logfields).Error("kick action: cannot get member object for user")
+		bot.logger.WithError(err).WithFields(logfields).Error("kick action: failed to get member object for user")
 		return
 	}
 
-	// Rationale: there is no method for kicking a user in Telegram. Banning and un-banning a user is the way to kick
-	// a user from the chat
-
+	// There is no method for kicking a user in Telegram. Banning and un-banning
+	// a user is the way to kick a user from the chat.
 	err = bot.telebot.Ban(chat, member)
 	if err != nil {
-		bot.logger.WithError(err).WithFields(logfields).Error("kick action: cannot ban user")
+		bot.logger.WithError(err).WithFields(logfields).Error("kick action: failed to ban user")
 		return
 	}
 
 	err = bot.telebot.Unban(chat, user)
 	if err != nil {
-		bot.logger.WithError(err).WithFields(logfields).Error("kick action: cannot unban user")
+		bot.logger.WithError(err).WithFields(logfields).Error("kick action: failed to unban user")
 		return
 	}
 	bot.logger.WithFields(logfields).WithField("reason", reason).Info("kick user")

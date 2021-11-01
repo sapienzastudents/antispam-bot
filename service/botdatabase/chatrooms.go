@@ -7,11 +7,15 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// AddOrUpdateChat adds or update the chat info into the DB. As Telegram doesn't offer a way to track in which
-// chatrooms the bot is, we need to store it in Redis
+// AddOrUpdateChat adds or updates the chat info into the DB.
+//
+// As Telegram doesn't offer a way to track in which chatrooms the bot is, we
+// need to store it in Redis.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) AddOrUpdateChat(c *tb.Chat) error {
 	jsonbin, err := json.Marshal(c)
 	if err != nil {
@@ -20,8 +24,12 @@ func (db *_botDatabase) AddOrUpdateChat(c *tb.Chat) error {
 	return db.redisconn.HSet(context.TODO(), "chatrooms", strconv.FormatInt(c.ID, 10), string(jsonbin)).Err()
 }
 
-// DeleteChat remove all chatroom info by removing the named field in sets: "public-links", "settings" and "chatrooms"
+// DeleteChat removes all chatroom info of the given chat ID.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) DeleteChat(chatID int64) error {
+	// DeleteChat works by removing the named field in sets: "public-links",
+	// "settings" and "chatrooms".
 	err := db.redisconn.HDel(context.TODO(), "public-links", strconv.FormatInt(chatID, 10)).Err()
 	if err != nil {
 		return err
@@ -33,7 +41,9 @@ func (db *_botDatabase) DeleteChat(chatID int64) error {
 	return db.redisconn.HDel(context.TODO(), "chatrooms", strconv.FormatInt(chatID, 10)).Err()
 }
 
-// ChatroomsCount returns the count of chatrooms where the bot is
+// ChatroomsCount returns the count of chatrooms where the bot is.
+//
+// Time complexity: O(1).
 func (db *_botDatabase) ChatroomsCount() (int64, error) {
 	ret, err := db.redisconn.HLen(context.TODO(), "chatrooms").Result()
 	if err == redis.Nil {
@@ -42,13 +52,16 @@ func (db *_botDatabase) ChatroomsCount() (int64, error) {
 	return ret, err
 }
 
-// ListMyChatrooms returns the list of chatrooms where the bot is by de-serializing the tb.Chat for each chatroom
+// ListMyChatrooms returns the list of chatrooms where the bot is.
+//
+// Time complexity: O(n) where "n" is the number of chat where the bot is.
 func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 	var chatrooms []*tb.Chat
 
 	var cursor uint64 = 0
 	var err error
 	var keys []string
+	// ListMyChatrooms works by by deserializing the tb.Chat for each chatroom.
 	for {
 		keys, cursor, err = db.redisconn.HScan(context.TODO(), "chatrooms", cursor, "", -1).Result()
 		if err == redis.Nil {

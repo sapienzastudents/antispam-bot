@@ -2,12 +2,14 @@ package tbot
 
 import (
 	"fmt"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"time"
+
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// simpleHandler is a simple handler with metrics and chat cache refresh. Use this for registering bot actions when no
-// filters are required
+// simpleHandler adds the given function as handler for the given endpoint. It
+// wraps fn with metrics and chat cache refresh. Use this for registering bot
+// actions when no filters are required.
 func (bot *telegramBot) simpleHandler(endpoint interface{}, fn contextualChatSettingsFunc) {
 	bot.telebot.Handle(endpoint, bot.metrics(bot.refreshDBInfo(fn)))
 }
@@ -45,14 +47,19 @@ func (bot *telegramBot) ListenAndServe() error {
 	// Global-administrative commands
 	bot.globalAdminHandler("/sighup", bot.onSigHup)
 	bot.globalAdminHandler("/groupscheck", bot.onGroupsPrivileges)
-	bot.globalAdminHandler("/updatewww", bot.onGlobalUpdateWww)
+	bot.globalAdminHandler("/updatewww", bot.onGlobalUpdateWWW)
 	bot.globalAdminHandler("/gline", bot.onGLine)
 	bot.globalAdminHandler("/remove_gline", bot.onRemoveGLine)
 
 	// Utilities
-	bot.simpleHandler("/id", func(m *tb.Message, _ chatSettings) {
+	bot.simpleHandler("/id", func(ctx tb.Context, settings chatSettings) {
 		bot.botCommandsRequestsTotal.WithLabelValues("id").Inc()
-		_, _ = bot.telebot.Send(m.Chat, fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
+		m := ctx.Message()
+		if m == nil {
+			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
+			return
+		}
+		_ = ctx.Send(fmt.Sprint("Your ID is: ", m.Sender.ID, "\nThis chat ID is: ", m.Chat.ID))
 	})
 
 	bot.logger.Info("Init ok, starting bot")

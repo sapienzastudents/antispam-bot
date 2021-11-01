@@ -1,9 +1,10 @@
 package tbot
 
-import tb "gopkg.in/tucnak/telebot.v2"
+import tb "gopkg.in/tucnak/telebot.v3"
 
 // onGuide fires when guide button is pressed.
-func (bot *telegramBot) onGuide(m *tb.Message) {
+func (bot *telegramBot) onGuide(ctx tb.Context) {
+	m := ctx.Message()
 	// This action is fired on button pressed, so we change "page" in the
 	// message. Uses can go back pressing "Close" button.
 	defer func() {
@@ -20,9 +21,11 @@ func (bot *telegramBot) onGuide(m *tb.Message) {
 
 	var chatButtons [][]tb.InlineButton
 	chatButtons = append(chatButtons, []tb.InlineButton{bt})
-	bot.telebot.Handle(&bt, func(callback *tb.Callback) {
+	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback)
 		_ = bot.telebot.Delete(callback.Message)
+		return nil
 	})
 
 	const message = `

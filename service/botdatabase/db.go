@@ -4,88 +4,65 @@ import (
 	"errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	tb "gopkg.in/tucnak/telebot.v2"
+	tb "gopkg.in/tucnak/telebot.v3"
 )
 
 type Database interface {
-	// IsGlobalAdmin checks if the user ID is a bot admin.
-	//
-	// Time complexity: O(n) where "n" is the length of the global admin list
-	IsGlobalAdmin(userID int) (bool, error)
+	// IsGlobalAdmin returns true if the given user ID is a bot admin.
+	IsGlobalAdmin(userID int64) (bool, error)
 
-	// GetChatSettings returns the chat settings of the bot for the given chat.
-	//
-	// Time complexity: O(1)
+	// GetChatSettings returns the chat settings of the bot for the given chat
+	// ID.
 	GetChatSettings(chatID int64) (ChatSettings, error)
 
-	// SetChatSettings save the chat settings of the bot for the given chat.
-	//
-	// Time complexity: O(1)
+	// SetChatSettings save the chat settings of the bot for the given chat ID.
 	SetChatSettings(chatID int64, settings ChatSettings) error
 
 	// ListMyChatrooms returns the list of chatrooms where the bot is.
-	//
-	// Time complexity: O(n) where "n" is the number of chat where the bot is
 	ListMyChatrooms() ([]*tb.Chat, error)
 
-	// ChatroomsCount returns the count of chatrooms where the bot is
-	//
-	// Time complexity: O(1)
+	// ChatroomsCount returns the count of chatrooms where the bot is.
 	ChatroomsCount() (int64, error)
 
-	// AddOrUpdateChat adds or update the chat info into the DB. As Telegram doesn't offer a way to track in which
-	// chatrooms the bot is, we need to store it in Redis
+	// AddOrUpdateChat adds or updates the chat info into the DB.
 	//
-	// Time complexity: O(1)
+	// As Telegram doesn't offer a way to track in which chatrooms the bot is,
+	// we need to store it in Redis.
 	AddOrUpdateChat(c *tb.Chat) error
 
-	// DeleteChat remove all chatroom info
-	//
-	// Time complexity: O(1)
+	// DeleteChat removes all chatroom info.
 	DeleteChat(int64) error
 
-	// GetChatTree returns the chat tree (categories)
-	//
-	// Time complexity: O(n) where "n" is the number of chatroom where the bot is
+	// GetChatTree returns the chat tree (categories).
 	GetChatTree() (ChatCategoryTree, error)
 
-	// GetInviteLink returns the cached invite link
-	//
-	// Time complexity: O(1)
+	// GetInviteLink returns the cached invite link.
 	GetInviteLink(chatID int64) (string, error)
 
-	// SetInviteLink save the invite link
-	//
-	// Time complexity: O(1)
+	// SetInviteLink saves the given invite link.
 	SetInviteLink(chatID int64, inviteLink string) error
 
-	// GetUUIDFromChat returns the UUID for the given chat ID. The UUID can be used e.g. in web links
+	// GetUUIDFromChat returns the UUID for the given chat ID.
 	//
-	// Time complexity: O(1)
+	// The UUID can be used e.g. in web links.
 	GetUUIDFromChat(int64) (uuid.UUID, error)
 
-	// GetChatIDFromUUID returns the chat ID for the given UUID
-	//
-	// Time complexity: O(n) where "n" is the number of chatrooms where the bot is
+	// GetChatIDFromUUID returns the chat ID for the given UUID.
 	GetChatIDFromUUID(uuid.UUID) (int64, error)
 
-	// IsUserBanned checks if the user is banned in the bot (G-Line)
-	//
-	// Time complexity: O(1)
-	IsUserBanned(int64) (bool, error)
+	// IsUserBanned returns true if the given user ID is banned in the bot
+	// (G-Line).
+	IsUserBanned(userID int64) (bool, error)
 
-	// SetUserBanned mark the user as banned in the bot (G-Line)
-	//
-	// Time complexity: O(1)
-	SetUserBanned(int64) error
+	// SetUserBanned marks the given user ID as banned in the bot (G-Line).
+	SetUserBanned(userID int64) error
 
-	// RemoveUserBanned unmark the user as banned in the bot (G-Line)
-	//
-	// Time complexity: O(1)
-	RemoveUserBanned(int64) error
+	// RemoveUserBanned unmarks the given user ID as banned in the bot (G-Line).
+	RemoveUserBanned(userID int64) error
 }
 
-// New returns a new instance of the bot database conforming to Database interface
+// New returns a new instance of the bot database conforming to Database
+// interface.
 func New(redisclient *redis.Client) (Database, error) {
 	if redisclient == nil {
 		return nil, errors.New("no redis connection specified")
@@ -96,6 +73,7 @@ func New(redisclient *redis.Client) (Database, error) {
 	}, nil
 }
 
+// _botDatabase is the concrete type that implements Database interface.
 type _botDatabase struct {
 	redisconn *redis.Client
 }
