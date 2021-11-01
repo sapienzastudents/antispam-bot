@@ -1,0 +1,34 @@
+# GitLab pipeline to build, test and release this Telegram bot.
+image: golang:1.16
+
+stages:
+  - build
+  - test
+
+variables:
+  # We need to move GOPATH under repository's root directory because GitLab
+  # allows to cache only directories under this.
+  GOPATH: $CI_PROJECT_DIR/.go
+
+cache:
+  paths:
+    - .go/
+  key:
+    files:
+      - go.mod
+      - go.sum
+
+antispam-bot:
+  stage: build
+  script: go build ./cmd/telegram/
+  artifacts:
+    name: "antispam-telegram-bot-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID"
+    paths:
+      - telegram
+      - README.md
+      - LICENSE
+
+vet:
+  stage: test
+  script: go vet ./...
+  dependencies: [] # This job doesn't use artifacts!
