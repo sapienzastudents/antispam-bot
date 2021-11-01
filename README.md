@@ -93,8 +93,6 @@ When not ticked, they're planned:
   * [ ] Auto-kick deleted accounts
 * [x] Index all groups and provide invite links (opt-out by group admin)
   * [X] Split groups by course (degree program)
-* [ ] Create an instance for other networks with all those services:
-  * [ ] Discord
 * [ ] Create a way to index answers and try to provide some clues (maybe some
   AI/NLP?)
 * [X] Publish the group index on sapienzahub.it website
@@ -107,7 +105,7 @@ When not ticked, they're planned:
 * [x] Switch to `logrus` for structured logging
   * [ ] Use structured logging fields for logging
 * [ ] Expose HTTP endpoint (optionally)
-* [ ] Rewrite the bot using `telebot.v3` library to fix some structural issues
+* [x] Rewrite the bot using `telebot.v3` library to fix some structural issues
 * [ ] Write some documentation
 * [ ] Write a "fallback system" for lost groups
   * When a group lose all admins, and the bot can promote a new admin, there
@@ -117,11 +115,10 @@ When not ticked, they're planned:
 
 ## How to build
 
-If you want the production version (stripped/compressed binary), use `make antispam-telegram-bot`
+To build the bot use `go build ./` and you get `antispam-telegram-bot` binary
+ready to use.
 
-To build a development version (not stripped, uncompressed), use `make dev`
-
-To build a Docker container, use `make docker`
+To build a Docker container, use `make docker`.
 
 ## How to spin your own instance
 

@@ -55,6 +55,3 @@ test:
 .PHONY: deploy
 deploy:
 	kubectl -n default set image deploy/antispam-tbot antispam-tbot=enrico204/antispam-telegram-bot@$(shell skopeo inspect docker://enrico204/antispam-telegram-bot:latest | jq -r ".Digest")
-
-dev:
-	CGO_ENABLED=0 GOOS=linux REDIS_URL=redis://127.0.0.1:6379/0 BOT_TOKEN="${BOT_TOKEN}" go run ./cmd/telegram/
