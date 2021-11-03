@@ -1,10 +1,10 @@
 package tbot
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v3"
@@ -54,13 +54,13 @@ func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 
 		chatAdmins, err := bot.telebot.AdminsOf(chat)
 		if err != nil {
-			return chatSettings{}, errors.Wrap(err, "failed to get admin list for chat")
+			return chatSettings{}, fmt.Errorf("failed to get admin list for chat: %w", err)
 		}
 		settings.ChatAdmins.SetFromChat(chatAdmins)
 
 		err = bot.db.SetChatSettings(chat.ID, settings)
 		if err != nil {
-			return chatSettings{}, errors.Wrap(err, "failed to save chat settings for new chat")
+			return chatSettings{}, fmt.Errorf("failed to save chat settings for new chat: %w", err)
 		}
 	}
 

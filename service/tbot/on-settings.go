@@ -62,7 +62,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	me, err := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
 	if err != nil {
 		bot.logger.WithError(err).WithFields(logrus.Fields{
-			"chatid":   chatToConfigure.ID,
+			"chatid":    chatToConfigure.ID,
 			"chattitle": chatToConfigure.Title,
 		}).Error("Failed to get my info on chat")
 		return

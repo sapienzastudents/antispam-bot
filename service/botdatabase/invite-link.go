@@ -2,10 +2,10 @@ package botdatabase
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 )
 
 // ErrInviteLinkNotFound is returned when the invite link was not found in the database

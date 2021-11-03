@@ -2,12 +2,11 @@ package cas
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var (

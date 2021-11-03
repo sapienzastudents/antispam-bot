@@ -1,9 +1,10 @@
 package tbot
 
 import (
+	"fmt"
+
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
@@ -30,11 +31,11 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 
 		ID, ok := apierr.Parameters["migrate_to_chat_id"].(int64)
 		if !ok {
-			return "", errors.Wrap(err, "migrate_to_chat_id is not an int64")
+			return "", fmt.Errorf("migrate_to_chat_id is not an int64: %w", err)
 		}
 		newChatInfo, err := bot.telebot.ChatByID(ID)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to get chat info for migrated supergroup")
+			return "", fmt.Errorf("failed to get chat info for migrated supergroup: %w", err)
 		}
 
 		// Save the new chat info
@@ -43,12 +44,12 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 		// Get the invite link (again! Let's hope that this is the last time...)
 		inviteLink, err = bot.telebot.InviteLink(newChatInfo)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to get invite link from API")
+			return "", fmt.Errorf("failed to get invite link from API: %w", err)
 		}
 	} else if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
-		return "", errors.Wrap(err, "no permissions for invite link")
+		return "", fmt.Errorf("no permissions for invite link: %w", err)
 	} else if err != nil {
-		return "", errors.Wrap(err, "failed to get invite link from API")
+		return "", fmt.Errorf("failed to get invite link from API: %w", err)
 	}
 
 	// Save the invite link in the DB/cache for later
