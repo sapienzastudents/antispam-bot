@@ -1,6 +1,8 @@
 package tbot
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -8,7 +10,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -74,23 +75,23 @@ func (bot *telegramBot) DoCacheUpdateForChat(chatID int64) error {
 			_ = bot.db.DeleteChat(chatID)
 			return ErrChatNotFound
 		}
-		return errors.Wrap(err, "failed to get chat by id")
+		return fmt.Errorf("failed to get chat by id: %w", err)
 	}
 
 	admins, err := bot.telebot.AdminsOf(chat)
 	if err != nil {
-		return errors.Wrap(err, "failed to get chat admins")
+		return fmt.Errorf("failed to get chat admins: %w", err)
 	}
 
 	chatsettings, err := bot.db.GetChatSettings(chat.ID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get chat settings")
+		return fmt.Errorf("failed to get chat settings: %w", err)
 	}
 
 	chatsettings.ChatAdmins.SetFromChat(admins)
 	err = bot.db.SetChatSettings(chat.ID, chatsettings)
 	if err != nil {
-		return errors.Wrap(err, "failed to save chat settings")
+		return fmt.Errorf("failed to save chat settings: %w", err)
 	}
 
 	return bot.db.AddOrUpdateChat(chat)

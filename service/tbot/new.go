@@ -1,10 +1,10 @@
 package tbot
 
 import (
+	"errors"
 	"time"
 
 	"github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"

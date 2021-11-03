@@ -142,7 +142,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			Unique: "guide",
 			Text:   "⚙️ 🇬🇧 How to add a group / 🇮🇹 Come aggiungere un gruppo",
 		}
-		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error  {
+		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
 			_ = bot.telebot.Respond(callback)
 			bot.onGuide(ctx)

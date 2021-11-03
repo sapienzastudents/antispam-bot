@@ -3,10 +3,11 @@ package botdatabase
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -121,7 +122,7 @@ func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 	}
 
 	err = json.Unmarshal([]byte(jsonb), &settings)
-	return settings, errors.Wrap(err, "error decoding chat settings from JSON")
+	return settings, fmt.Errorf("error decoding chat settings from JSON: %w", err)
 }
 
 // SetChatSettings saves the chat settings of the bot for the given chat ID.

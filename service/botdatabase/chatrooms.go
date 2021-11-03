@@ -3,10 +3,10 @@ package botdatabase
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -67,14 +67,14 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 		if err == redis.Nil {
 			return chatrooms, nil
 		} else if err != nil {
-			return nil, errors.Wrap(err, "error scanning chatrooms in redis")
+			return nil, fmt.Errorf("failed to scan chatrooms: %w", err)
 		}
 
 		for i := 0; i < len(keys); i += 2 {
 			room := tb.Chat{}
 			err = json.Unmarshal([]byte(keys[i+1]), &room)
 			if err != nil {
-				return nil, errors.Wrap(err, "error scanning chatroom "+keys[i+1])
+				return nil, fmt.Errorf("failed to scan chatroom %q: %w", keys[i+1], err)
 			}
 
 			chatrooms = append(chatrooms, &room)

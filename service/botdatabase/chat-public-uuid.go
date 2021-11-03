@@ -2,11 +2,12 @@ package botdatabase
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 var ErrChatUUIDNotFound = errors.New("chat uuid not found")
@@ -42,7 +43,7 @@ func (db *_botDatabase) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
 			return 0, ErrChatUUIDNotFound
 		}
 		if err != nil {
-			return 0, errors.Wrap(err, "error scanning uuids in redis")
+			return 0, fmt.Errorf("failed to scan uuids: %w", err)
 		}
 
 		for i := 0; i < len(keys); i += 2 {

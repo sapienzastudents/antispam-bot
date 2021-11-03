@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/pkg/errors"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -63,7 +62,7 @@ func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
 	for _, v := range chatrooms {
 		settings, err := db.GetChatSettings(v.ID)
 		if err != nil {
-			return ret, errors.Wrap(err, fmt.Sprintf("can't get chat category for chat %d", v.ID))
+			return ret, fmt.Errorf("failed to get chat category for chat %d: %w", v.ID, err)
 		}
 
 		if settings.MainCategory == "" {
