@@ -38,8 +38,8 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	}
 }
 
-// on Help command replies with a small help message following two buttons,
-// "Groups" and "Settings".
+// on Help command replies on /help with a small help message following two
+// buttons, "Groups" and "Settings".
 //
 // It replies also for /start command. When that command is followed by an UUID,
 // then calls startFromUUID to handle the UUID and chat mapping.
@@ -49,6 +49,9 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 	if err := ctx.Delete(); err != nil {
 		bot.logger.WithError(err).Warn("Failed to delete message")
 	}
+
+	// IETF language tag used to localize messages.
+	lang := ctx.Sender().LanguageCode
 
 	msg := ctx.Message()
 	if msg == nil {
@@ -70,7 +73,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		var buttons [][]tb.InlineButton
 		groupsBt := tb.InlineButton{
 			Unique: "bt_action_groups",
-			Text:   "🇬🇧 Groups / 🇮🇹 Gruppi",
+			Text:   bot.bundle.T(lang, "Groups"),
 		}
 		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
 			cb := ctx.Callback()
@@ -126,7 +129,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		if settingsVisible {
 			settingsBt := tb.InlineButton{
 				Unique: "bt_action_settings",
-				Text:   "🇬🇧 Settings / 🇮🇹 Impostazioni",
+				Text:   bot.bundle.T(lang, "Settings"),
 			}
 			bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -140,7 +143,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// on a group.
 		guidebt := tb.InlineButton{
 			Unique: "guide",
-			Text:   "⚙️ 🇬🇧 How to add a group / 🇮🇹 Come aggiungere un gruppo",
+			Text:   bot.bundle.T(lang, "How to add a group"),
 		}
 		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
@@ -153,7 +156,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// Close button.
 		bt := tb.InlineButton{
 			Unique: "help_close",
-			Text:   "Close / Chiudi",
+			Text:   bot.bundle.T(lang, "Close"),
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
@@ -163,7 +166,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		})
 
 		// Send reply with buttons.
-		err = ctx.Send("🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?",
+		err = ctx.Send(bot.bundle.T(lang, "Hi! What are you looking for?"),
 			&tb.ReplyMarkup{InlineKeyboard: buttons})
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to send message on help")

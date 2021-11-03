@@ -20,11 +20,13 @@ package tbot
 import (
 	"net/http"
 
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
+
 	"github.com/patrickmn/go-cache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -50,6 +52,9 @@ type telegramBot struct {
 
 	// cas is the CAS database interface, if any
 	cas cas.CAS
+
+	// Bundle is the Bundle instance to get localized strings.
+	bundle *i18n.Bundle
 
 	// gitTemporaryDir is the directory where the bot will temporarly check out the website repository in order to
 	// modify the content of the links page

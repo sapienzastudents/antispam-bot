@@ -121,8 +121,10 @@ func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 		return ChatSettings{}, err
 	}
 
-	err = json.Unmarshal([]byte(jsonb), &settings)
-	return settings, fmt.Errorf("error decoding chat settings from JSON: %w", err)
+	if err = json.Unmarshal([]byte(jsonb), &settings); err != nil {
+		return settings, fmt.Errorf("error decoding chat settings from JSON: %w", err)
+	}
+	return settings, nil
 }
 
 // SetChatSettings saves the chat settings of the bot for the given chat ID.
