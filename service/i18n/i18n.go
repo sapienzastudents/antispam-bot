@@ -2,9 +2,10 @@ package i18n
 
 import (
 	"embed"
-	"errors"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -49,13 +50,16 @@ func New(logger logrus.FieldLogger) (*Bundle, error) {
 
 		// Extract language code.
 		lang := entry.Name()
+		if !strings.HasSuffix(lang, ".json") { // Ignore non JSON files.
+			continue
+		}
 		if len(lang) < 2 {
 			return nil, fmt.Errorf("unexpected non-JSON file under data i18n directory: %q", lang)
 		}
 		lang = lang[:2]
 
 		// Read and parse JSON file.
-		path := "data/"+entry.Name()
+		path := "data/" + entry.Name()
 		data, err := l10n.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read JSON file: %w", err)
