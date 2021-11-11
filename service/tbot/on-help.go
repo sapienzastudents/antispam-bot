@@ -7,8 +7,9 @@ import (
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// startFromUUID replies to the user with the invite link of a chat from a UUID. The UUID is used in the website to
-// avoid SPAM bots. All links in the website will cause the user to send a "/start UUID" message
+// startFromUUID replies to the user with the invite link of a chat from a UUID.
+// The UUID is used in the website to avoid SPAM bots. All links in the website
+// will cause the user to send a "/start UUID" message
 func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	chatUUID, err := uuid.Parse(payload)
 	if err != nil {
@@ -23,18 +24,19 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	}
 
 	var msg string
+	lang := sender.LanguageCode
 
 	inviteLink, err := bot.getInviteLink(&tb.Chat{ID: chatID})
 	if err != nil {
-		bot.logger.WithError(err).WithField("chat", chatID).Warning("can't generate invite link")
-		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
+		bot.logger.WithError(err).WithField("chat", chatID).Warning("Failed to generate invite link")
+		msg = bot.bundle.T(lang, "Oops, I'm broken, please get in touch with my admin!")
 	} else {
-		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto (se dice che non è funzionante, riprova ad usarlo tra 1-2 minuti):\n\n🇬🇧 Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):\n\n" + inviteLink
+		msg = bot.bundle.T(lang, "Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):") + "\n\n" + inviteLink
 	}
 
 	_, err = bot.telebot.Send(sender, msg)
 	if err != nil {
-		bot.logger.WithError(err).Warn("can't send message on help from web")
+		bot.logger.WithError(err).Warn("Failed to send message on help from web")
 	}
 }
 
