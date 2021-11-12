@@ -5,5 +5,16 @@
     "How to add a group": "Come aggiungere un gruppo",
     "Close": "Chiudi",
     "Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):": "Ciao! Il link di invito è questo qui sotto (se dice che non è funzionante, riprova ad usarlo tra 1-2 minuti):",
-    "Oops, I'm broken, please get in touch with my admin!": "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto!"
+    "Oops, I'm broken, please get in touch with my admin!": "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto!",
+    "What you need to do to add a group on the network:\n\n": "Ecco cosa devi fare per aggiungere il gruppo alla rete:\n\n",
+    "<b>0.</b> Check if your group is already on the list;\n": "<b>0.</b> Controlla se il gruppo è già presente nell'elenco;\n",
+    "<b>1.</b> Create the group;\n": "<b>1.</b> Crea il gruppo;\n",
+    "<b>2.</b> Add this bot as admin with all permissions <b>except</b> for anonymous;\n": "<b>2.</b> Aggiungi il bot come amministratore con tutti permessi <b>tranne</b> quello di rimanere anonimo;\n",
+    "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> and follow the instructions on the message.\n\n": "<b>3.</b> Scrivi al bot inviando il comando <code>/start</code>, vai su <code>Impostazioni</code>, seleziona la chat appena creata, quindi clicca su <code>Modifica categoria</code> e segui le istruzioni indicate nel messaggio.\n\n",
+    "Thank you for joining the community!": "Grazie per esserti unito alla comunità!",
+    "Without any category": "Senza categoria",
+    "Select degree course": "Seleziona il corso di laurea",
+    "Oops, I can't text you a direct message, start a direct conversation with me first!": "Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!",
+    "No groups in this category": "Nessun gruppo in questa categoria",
+    "JOIN": "ENTRA"
 }

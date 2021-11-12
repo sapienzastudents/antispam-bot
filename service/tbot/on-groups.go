@@ -35,10 +35,12 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		return
 	}
 
+	lang := sender.LanguageCode
+
 	categoryTree, err := bot.db.GetChatTree()
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to get chatroom list")
-		msg, _ := bot.telebot.Send(chatToSend, "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-(")
+		msg, _ := bot.telebot.Send(chatToSend, bot.bundle.T(lang, "Oops, I'm broken, please get in touch with my admin!"))
 		bot.setMessageExpiry(msg, 30*time.Second)
 		return
 	}
@@ -64,7 +66,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		bt := tb.InlineButton{Unique: sha1string(category), Text: category}
 		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
-				bot.showCategory(ctx.Callback().Message, cat, false)
+				bot.showCategory(ctx.Callback().Message, cat, false, lang)
 				_ = bot.telebot.Respond(ctx.Callback())
 				return nil
 			}
@@ -80,10 +82,10 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		return
 	}
 	if isGlobalAdmin {
-		bt := tb.InlineButton{Unique: "groups_no_category", Text: "Senza categoria"}
+		bt := tb.InlineButton{Unique: "groups_no_category", Text: bot.bundle.T(lang, "Without any category")}
 		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
-				bot.showCategory(ctx.Callback().Message, cat, true)
+				bot.showCategory(ctx.Callback().Message, cat, true, lang)
 				_ = bot.telebot.Respond(ctx.Callback())
 				return nil
 			}
@@ -91,7 +93,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		buttons = append(buttons, []tb.InlineButton{bt})
 	}
 
-	bt := tb.InlineButton{Unique: "groups_list_close", Text: "🚪 Close / Chiudi"}
+	bt := tb.InlineButton{Unique: "groups_list_close", Text: "🚪 " + bot.bundle.T(lang, "Close")}
 	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 		_ = bot.telebot.Respond(ctx.Callback())
 		_ = bot.telebot.Delete(ctx.Callback().Message)
@@ -105,7 +107,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		DisableWebPagePreview: true,
 		ReplyMarkup:           &tb.ReplyMarkup{InlineKeyboard: buttons},
 	}
-	msg := "Seleziona il corso di laurea"
+	msg := bot.bundle.T(lang, "Select degree course")
 	if messageToEdit == nil {
 		// No previous messages, send a new one.
 		_, err = bot.telebot.Send(sender, msg, sendOptions)
@@ -113,12 +115,14 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		// Previous messages present, edit that one.
 		_, err = bot.telebot.Edit(messageToEdit, msg, sendOptions)
 	}
+
 	if messageFromUser != nil {
 		if err == tb.ErrNotStartedByUser || err == tb.ErrBlockedByUser {
 			// We sent the message to the user, however he blocked us (or never
 			// started a conversation). Send a public message in the group
 			// saying that he needs to talk in private with the bot first.
-			replyMessage, _ := bot.telebot.Send(chatToSend, "🇮🇹 Oops, non posso scriverti un messaggio diretto, inizia prima una conversazione diretta con me!\n\n🇬🇧 Oops, I can't text you a direct message, start a direct conversation with me first!",
+			replyMessage, _ := bot.telebot.Send(chatToSend,
+				bot.bundle.T(lang, "Oops, I can't text you a direct message, start a direct conversation with me first!"),
 				&tb.SendOptions{ReplyTo: messageFromUser})
 
 			// Self destruct messages to avoid spamming.
@@ -140,13 +144,13 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 // editing the previous message.
 //
 // TODO: Document "isgeneral" parameter.
-func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool) {
+func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool, lang string) {
 	msg := strings.Builder{}
 
 	// Show groups in this category before sub-categories.
 	if len(category.Chats) > 0 {
 		for _, v := range category.GetChats() {
-			_ = bot.printGroupLinksTelegram(&msg, v)
+			_ = bot.printGroupLinksTelegram(&msg, v, lang)
 		}
 		msg.WriteString("\n")
 	}
@@ -159,14 +163,14 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 			msg.WriteString(subcat)
 			msg.WriteString("</b>\n")
 			for _, v := range l2cat.GetChats() {
-				_ = bot.printGroupLinksTelegram(&msg, v)
+				_ = bot.printGroupLinksTelegram(&msg, v, lang)
 			}
 			msg.WriteString("\n")
 		}
 	}
 
 	if msg.Len() == 0 {
-		msg.WriteString("Nessun gruppo in questa categoria")
+		msg.WriteString(bot.bundle.T(lang, "No groups in this category"))
 	}
 
 	m, err := bot.telebot.Edit(m, msg.String(), &tb.SendOptions{
@@ -185,7 +189,7 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 // printGroupLinksTelegram formats the group link line in a message (e.g. the
 // line with the group name and the invite link) and write the result on msg. If
 // the group is hidden, this function writes nothing.
-func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat) error {
+func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat, lang string) error {
 	settings, err := bot.getChatSettings(v)
 	if err != nil {
 		bot.logger.WithError(err).WithField("chat", v.ID).Error("Failed to get chatroom config")
@@ -202,7 +206,8 @@ func (bot *telegramBot) printGroupLinksTelegram(msg *strings.Builder, v *tb.Chat
 
 	msg.WriteString(v.Title)
 	msg.WriteString(": ")
-	msg.WriteString(fmt.Sprintf("<a href=\"%s\">[ENTRA]</a>", inviteLink))
-	msg.WriteString("\n")
+	msg.WriteString(fmt.Sprintf("<a href=\"%s\">[", inviteLink))
+	msg.WriteString(bot.bundle.T(lang, "JOIN"))
+	msg.WriteString("]</a>\n")
 	return nil
 }
