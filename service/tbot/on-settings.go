@@ -55,8 +55,10 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	state.ChatToEdit = chatToConfigure
 	state.Save()
 
+	lang := user.LanguageCode
+
 	// Begin settings pane message
-	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chatToConfigure.Title, chatToConfigure.ID))
+	reply.WriteString(fmt.Sprintf(bot.bundle.T(lang, "Bot settings for chat %s (%d)\n\n"), chatToConfigure.Title, chatToConfigure.ID))
 
 	// Inform user about missing permissions
 	me, err := bot.telebot.ChatMemberOf(chatToConfigure, bot.telebot.Me)
@@ -69,9 +71,9 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	}
 	missingPrivileges := synthetizePrivileges(me)
 	if me.Role != tb.Administrator {
-		reply.WriteString("❌❌❌ The bot is not an admin! Admin permissions are needed for all functions\n")
+		reply.WriteString("❌❌❌ " + bot.bundle.T(lang, "The bot is not an admin! Admin permissions are needed for all functions\n"))
 	} else if len(missingPrivileges) != 0 {
-		reply.WriteString("❌❌❌ Missing permissions:\n")
+		reply.WriteString("❌❌❌ " + bot.bundle.T(lang, "Missing permissions:\n"))
 		for _, k := range missingPrivileges {
 			reply.WriteString("• " + botPermissionsText[k] + "\n")
 		}
@@ -83,13 +85,13 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		if me.CanDeleteMessages && me.CanRestrictMembers {
 			// ============================== Enable / Disable bot button
 			if settings.BotEnabled {
-				reply.WriteString("✅ Bot enabled\n")
+				reply.WriteString("✅ " + bot.bundle.T(lang, "Bot enabled\n"))
 			} else {
-				reply.WriteString("💤 Bot disabled\n")
+				reply.WriteString("💤 " + bot.bundle.T(lang, "Bot disabled\n"))
 			}
-			enableDisableButtonText := "✅ Enable bot"
+			enableDisableButtonText := "✅ " + bot.bundle.T(lang, "Enable bot")
 			if settings.BotEnabled {
-				enableDisableButtonText = "❌ Disable bot"
+				enableDisableButtonText = "❌ " + bot.bundle.T(lang, "Disable bot")
 			}
 			enableDisableBotButton := tb.InlineButton{
 				Unique: "settings_enable_disable_bot",
@@ -104,14 +106,14 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				// ============================== Go to antispam menu
 				antispamSettingsButton := tb.InlineButton{
 					Unique: "settings_goto_antispam",
-					Text:   "✍️ Anti Spam",
+					Text:   "✍️ " + bot.bundle.T(lang, "Anti Spam"),
 				}
 				bot.handleAdminCallbackStateful(&antispamSettingsButton, func(ctx tb.Context, state State) {
 					callback := ctx.Callback()
 					_ = bot.telebot.Respond(callback)
 
 					settings, _ := bot.getChatSettings(state.ChatToEdit)
-					bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, state.ChatToEdit, settings)
+					bot.sendAntispamSettingsMessage(callback.Message, callback.Sender.LanguageCode, state.ChatToEdit, settings)
 				})
 
 				inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{enableDisableBotButton, antispamSettingsButton})
@@ -123,13 +125,13 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		if settings.BotEnabled && me.CanDeleteMessages {
 			// ============================== Delete join messages
 			if settings.OnJoinDelete {
-				reply.WriteString("✅ Delete join message (after spam detection)\n")
+				reply.WriteString("✅ " + bot.bundle.T(lang, "Delete join message (after spam detection)\n"))
 			} else {
-				reply.WriteString("💤 Do not delete join messages (after spam detection)\n")
+				reply.WriteString("💤 " + bot.bundle.T(lang, "Do not delete join messages (after spam detection)\n"))
 			}
-			deleteJoinMessagesText := "✅ Del join msgs"
+			deleteJoinMessagesText := "✅ " + bot.bundle.T(lang, "Del join msgs")
 			if settings.OnJoinDelete {
-				deleteJoinMessagesText = "❌ Don't del join msgs"
+				deleteJoinMessagesText = "❌ " + bot.bundle.T(lang, "Don't del join msgs")
 			}
 			deleteJoinMessages := tb.InlineButton{
 				Unique: "settings_enable_disable_delete_on_join",
@@ -142,13 +144,13 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 
 			// ============================== Delete part messages
 			if settings.OnLeaveDelete {
-				reply.WriteString("✅ Delete leave message\n")
+				reply.WriteString("✅ " + bot.bundle.T(lang, "Delete leave message\n"))
 			} else {
-				reply.WriteString("💤 Do not delete leave messages\n")
+				reply.WriteString("💤 " + bot.bundle.T(lang, "Do not delete leave messages\n"))
 			}
-			deleteLeaveMessagesText := "✅ Del leave msgs"
+			deleteLeaveMessagesText := "✅ " + bot.bundle.T(lang, "Del leave msgs")
 			if settings.OnLeaveDelete {
-				deleteLeaveMessagesText = "❌ Don't del leave msgs"
+				deleteLeaveMessagesText = "❌ " + bot.bundle.T(lang, "Don't del leave msgs")
 			}
 			deleteLeaveMessages := tb.InlineButton{
 				Unique: "settings_enable_disable_delete_on_leave",
@@ -165,13 +167,13 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		if me.CanInviteUsers {
 			// ============================== Hide / show group in group lista
 			if !settings.Hidden {
-				reply.WriteString("\n👀 Group visible in group index")
+				reply.WriteString("\n👀 " + bot.bundle.T(lang, "Group visible in group index"))
 			} else {
-				reply.WriteString("\n⛔️ Group hidden from group index")
+				reply.WriteString("\n⛔️ " + bot.bundle.T(lang, "Group hidden from group index"))
 			}
-			hideShowButtonText := "👀 Show group"
+			hideShowButtonText := "👀 " + bot.bundle.T(lang, "Show group")
 			if !settings.Hidden {
-				hideShowButtonText = "⛔️ Hide group"
+				hideShowButtonText = "⛔️ " + bot.bundle.T(lang, "Hide group")
 			}
 			hideShowBotButton := tb.InlineButton{
 				Unique: "settings_show_hide_group",
@@ -183,9 +185,9 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 			}))
 
 			// ============================== Edit category
-			reply.WriteString("\nGroup index category: ")
+			reply.WriteString(bot.bundle.T(lang, "\nGroup index category: "))
 			if settings.MainCategory == "" {
-				reply.WriteString("none\n")
+				reply.WriteString(bot.bundle.T(lang, "none\n"))
 			} else {
 				reply.WriteString(settings.MainCategory)
 				reply.WriteString(" ")
@@ -193,7 +195,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 				reply.WriteString("\n")
 			}
 			reply.WriteString("\n")
-			editCategoryButtonText := "✏️ Edit category"
+			editCategoryButtonText := "✏️  " + bot.bundle.T(lang, "Edit category")
 			editCategoryButton := tb.InlineButton{
 				Unique: "settings_edit_group_category",
 				Text:   editCategoryButtonText,
@@ -204,20 +206,20 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		}
 	}
 
-	reply.WriteString("\nLast updated: ")
+	reply.WriteString(bot.bundle.T(lang, "\nLast updated: "))
 	reply.WriteString(time.Now().Format(time.RFC1123Z))
 
 	// ============================== Reload Group Info
 	reloadGroupInfoBt := tb.InlineButton{
 		Unique: "reload_group_info",
-		Text:   "🛑 Restart bot",
+		Text:   "🛑 " + bot.bundle.T(lang, "Restart bot"),
 	}
 	bot.handleAdminCallbackStateful(&reloadGroupInfoBt, func(ctx tb.Context, state State) {
 		_ = bot.DoCacheUpdateForChat(state.ChatToEdit.ID)
 
 		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-			Text: "Bot restarted",
+			Text: bot.bundle.T(lang, "Bot restarted"),
 		})
 
 		settings, _ := bot.getChatSettings(state.ChatToEdit)
@@ -227,7 +229,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	// ============================== Refresh
 	settingsRefreshButton := tb.InlineButton{
 		Unique: "settings_message_refresh",
-		Text:   "🔄 Refresh",
+		Text:   "🔄 " + bot.bundle.T(lang, "Refresh"),
 	}
 	bot.handleAdminCallbackStateful(&settingsRefreshButton, bot.callbackSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		return settings
@@ -236,7 +238,7 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	// ============================== Close settings
 	closeBtn := tb.InlineButton{
 		Unique: "settings_close",
-		Text:   "🚪 Close",
+		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
 	}
 	bot.handleAdminCallbackStateful(&closeBtn, func(ctx tb.Context, state State) {
 		_ = bot.telebot.Delete(ctx.Callback().Message)
