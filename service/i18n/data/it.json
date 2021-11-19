@@ -19,7 +19,7 @@
     "JOIN": "ENTRA",
     "Prev": "Prec",
     "Next": "Succ",
-    "Please select the chatroom:": "Selezionare la chat",
+    "Please select the chatroom:": "Selezionare la chat:",
     "Bot settings for chat %s (%d)\n\n": "Impostazioni del bot per la chat %s (%d)\n\n",
     "The bot is not an admin! Admin permissions are needed for all functions\n": "Il bot non è un amministratore! I permessi di amministratore sono necessari per le funzionalità\n",
     "Missing permissions:\n": "Permessi mancanti:\n",
@@ -69,5 +69,14 @@
     "Kick Arabic msgs": "Espelli arabi ai messaggi",
     "Don't kick arabs msgs": "Non espel. arabi ai messaggi",
     "CAS disabled": "CAS disabilitato",
-    "CAS enabled": "CAS abilitato"
+    "CAS enabled": "CAS abilitato",
+    "Add new category": "Aggiungi una nuova categoria",
+    "Write the degree course name. You can also write the year, but write it in a second line. As example:\n\nComputer Science (bachelor)\n\nOr\n\n Computer Science\nFirst Year": "Scrivi il nome del corso di laurea. Puoi anche inserire l'anno, ma inseriscilo in una seconda linea. Per esempio:\n\nInformatica (triennale)\n\nOppure\n\nInformatica\nPrimo anno",
+    "Select main category": "Seleziona la categoria principale",
+    "Add new subcategory": "Aggiungi una nuova sottocategoria",
+    "Write the subcategory name. As example:\n\nFirst year": "Scrivi il nome della sottocategoria. Per esempio:\n\nPrimo anno",
+    "No subcategory": "Nessuna sottocategoria",
+    "Select subcategory": "Seleziona sottocategoria",
+    "Back to settings": "Torna alle impostazioni",
+    "Settings saved": "Impostazioni salvate"
 }

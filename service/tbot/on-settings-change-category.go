@@ -14,19 +14,21 @@ func (bot *telegramBot) handleChangeCategory(ctx tb.Context, state State) {
 	callback := ctx.Callback()
 	_ = bot.telebot.Respond(callback)
 
+	lang := ctx.Sender().LanguageCode
+
 	// Add "new category" button
 	customCategoryBt := tb.InlineButton{
-		Text:   "✏️ Aggiungine una nuova",
+		Text:   "✏️  " + bot.bundle.T(lang, "Add new category"),
 		Unique: "settings_add_new_category",
 	}
 	bot.handleAdminCallbackStateful(&customCategoryBt, func(ctx tb.Context, state State) {
 		callback := ctx.Callback()
 		_ = bot.telebot.Respond(callback)
-		_, _ = bot.telebot.Edit(callback.Message,
-			"Scrivi il nome del corso di laurea.\n"+
-				"Se vuoi inserire anche l'anno, mettilo in una seconda riga. Ad esempio:\n\n"+
-				"Informatica (triennale)\n\noppure\n\nInformatica\nPrimo anno")
 
+		lang := ctx.Sender().LanguageCode
+		msg := bot.bundle.T(lang, "Write the degree course name. You can also write the year, but write it in a second line. As example:\n\nComputer Science (bachelor)\n\nOr\n\n Computer Science\nFirst Year")
+
+		_, _ = bot.telebot.Edit(callback.Message, msg)
 		state.AddGlobalCategory = true
 		state.Save()
 	})
@@ -49,15 +51,15 @@ func (bot *telegramBot) handleChangeCategory(ctx tb.Context, state State) {
 		buttons = append(buttons, []tb.InlineButton{bt})
 	}
 
-	_, err = bot.telebot.Edit(callback.Message, "Seleziona la categoria principale", &tb.ReplyMarkup{
-		InlineKeyboard: buttons,
-	})
+	_, err = bot.telebot.Edit(callback.Message,
+		bot.bundle.T(lang, "Select main category"),
+		&tb.ReplyMarkup{InlineKeyboard: buttons})
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to message to the user in settings")
 	}
 }
 
-// handleChangeSubCategory is lke handleChangeCategory, but for sub-categories.
+// handleChangeSubCategory is like handleChangeCategory, but for sub-categories.
 func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb.Context, state State) {
 	return func(ctx tb.Context, state State) {
 		callback := ctx.Callback()
@@ -71,15 +73,20 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 			return
 		}
 
+		lang := ctx.Sender().LanguageCode
+
 		// Add new sub-category
 		customCategoryBt := tb.InlineButton{
-			Text:   "✏️ Aggiungine una nuova",
+			Text:   "✏️  " + bot.bundle.T(lang, "Add new subcategory"),
 			Unique: "settings_add_new_subcategory",
 		}
 		bot.handleAdminCallbackStateful(&customCategoryBt, func(ctx tb.Context, state State) {
 			callback := ctx.Callback()
+			lang := ctx.Sender().LanguageCode
 			_ = bot.telebot.Respond(callback)
-			_, _ = bot.telebot.Edit(callback.Message, "Scrivi il nome della sotto-categoria.\n\nEsempio: Primo anno")
+
+			msg := bot.bundle.T(lang, "Write the subcategory name. As example:\n\nFirst year")
+			_, _ = bot.telebot.Edit(callback.Message, msg)
 
 			state.AddSubCategory = true
 			state.Save()
@@ -87,7 +94,7 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 
 		// No sub category button
 		noCategoryBt := tb.InlineButton{
-			Text:   "Nessuna sotto-categoria",
+			Text:   bot.bundle.T(lang, "No subcategory"),
 			Unique: "settings_no_sub_cat",
 		}
 		bot.handleAdminCallbackStateful(&noCategoryBt, func(ctx tb.Context, state State) {
@@ -101,13 +108,15 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 				return
 			}
 
+			lang := ctx.Sender().LanguageCode
 			settingsBt := tb.InlineButton{
-				Text:   "Torna alle impostazioni",
+				Text:   bot.bundle.T(lang, "Back to settings"),
 				Unique: "back_to_settings",
 			}
 			bot.handleAdminCallbackStateful(&settingsBt, bot.backToSettingsFromCallback)
 
-			_, _ = bot.telebot.Edit(callback.Message, "Impostazioni salvate", &tb.ReplyMarkup{
+			msg := bot.bundle.T(lang, "Settings saved")
+			_, _ = bot.telebot.Edit(callback.Message, msg, &tb.ReplyMarkup{
 				InlineKeyboard: [][]tb.InlineButton{{settingsBt}},
 			})
 		})
@@ -137,13 +146,15 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 						return
 					}
 
+					lang := ctx.Sender().LanguageCode
 					settingsBt := tb.InlineButton{
-						Text:   "Torna alle impostazioni",
+						Text:   bot.bundle.T(lang, "Back to settings"),
 						Unique: "back_to_settings",
 					}
 					bot.handleAdminCallbackStateful(&settingsBt, bot.backToSettingsFromCallback)
 
-					_, _ = bot.telebot.Edit(callback.Message, "Impostazioni salvate", &tb.ReplyMarkup{
+					msg := bot.bundle.T(lang, "Settings saved")
+					_, _ = bot.telebot.Edit(callback.Message, msg, &tb.ReplyMarkup{
 						InlineKeyboard: [][]tb.InlineButton{{settingsBt}},
 					})
 				}
@@ -151,7 +162,8 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 			buttons = append(buttons, []tb.InlineButton{bt})
 		}
 
-		_, err = bot.telebot.Edit(callback.Message, "Seleziona la categoria interna", &tb.ReplyMarkup{
+		msg := bot.bundle.T(lang, "Select subcategory")
+		_, err = bot.telebot.Edit(callback.Message, msg, &tb.ReplyMarkup{
 			InlineKeyboard: buttons,
 		})
 		if err != nil {
