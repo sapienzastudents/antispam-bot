@@ -9,6 +9,7 @@ func (bot *telegramBot) onReloadGroup(ctx tb.Context, settings chatSettings) {
 		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
 		return
 	}
+	lang := ctx.Sender().LanguageCode
 
 	// /reload is useless on private chat...
 	if !m.Private() {
@@ -16,10 +17,10 @@ func (bot *telegramBot) onReloadGroup(ctx tb.Context, settings chatSettings) {
 
 		err := bot.DoCacheUpdateForChat(m.Chat.ID)
 		if err != nil {
-			_ = ctx.Send("An error has been detected during reload, contact an administrator!")
+			_ = ctx.Send(bot.bundle.T(lang, "An error has been detected during reload, contact an administrator!"))
 			bot.logger.WithError(err).Warning("Failed to refresh cache")
 		} else {
-			_ = ctx.Send("Bot reloaded!")
+			_ = ctx.Send(bot.bundle.T(lang, "Bot reloaded!"))
 		}
 	}
 }

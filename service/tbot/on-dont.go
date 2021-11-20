@@ -22,8 +22,9 @@ func (bot *telegramBot) onDont(ctx tb.Context, settings chatSettings) {
 		return
 	}
 
-	_, err := bot.telebot.Reply(msg.ReplyTo, "https://dontasktoask.com\nNon chiedere di chiedere, chiedi pure :)")
-	if err != nil {
+	lang := ctx.Sender().LanguageCode
+	m := "https://dontasktoask.com\n" + bot.bundle.T(lang, "Don't ask to ask, just ask!")
+	if _, err := bot.telebot.Reply(msg.ReplyTo, m); err != nil {
 		bot.logger.WithError(err).Error("Failed to reply")
 		return
 	}

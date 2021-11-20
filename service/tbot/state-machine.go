@@ -89,8 +89,9 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 			// User authorized, call the registered function.
 			fn(ctx, state)
 		} else {
+			lang := ctx.Sender().LanguageCode
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
-				Text:      "Not authorized",
+				Text:      bot.bundle.T(lang, "Not authorized"),
 				ShowAlert: false,
 			})
 		}
