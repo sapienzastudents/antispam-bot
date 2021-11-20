@@ -51,9 +51,9 @@ func (bot *telegramBot) onTerminate(ctx tb.Context, settings chatSettings) {
 
 	lang := m.Sender.LanguageCode
 	if m.Sender.Username != "" {
-		_, _ = bot.telebot.Reply(m.ReplyTo, fmt.Sprintf("🚨 @%s " + bot.bundle.T(lang, "You will be terminated in 60 seconds, there will be no further warnings"), m.ReplyTo.Sender.Username))
+		_, _ = bot.telebot.Reply(m.ReplyTo, fmt.Sprintf("🚨 @%s "+bot.bundle.T(lang, "You will be terminated in 60 seconds, there will be no further warnings"), m.ReplyTo.Sender.Username))
 	} else {
-		_, _ = bot.telebot.Reply(m.ReplyTo, fmt.Sprintf("🚨 %s %s " + bot.bundle.T(lang, "You will be terminated in 60 seconds, there will be no further warnings"), m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName))
+		_, _ = bot.telebot.Reply(m.ReplyTo, fmt.Sprintf("🚨 %s %s "+bot.bundle.T(lang, "You will be terminated in 60 seconds, there will be no further warnings"), m.ReplyTo.Sender.FirstName, m.ReplyTo.Sender.LastName))
 	}
 
 	go func() {
