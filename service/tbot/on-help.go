@@ -7,8 +7,9 @@ import (
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// startFromUUID replies to the user with the invite link of a chat from a UUID. The UUID is used in the website to
-// avoid SPAM bots. All links in the website will cause the user to send a "/start UUID" message
+// startFromUUID replies to the user with the invite link of a chat from a UUID.
+// The UUID is used in the website to avoid SPAM bots. All links in the website
+// will cause the user to send a "/start UUID" message
 func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	chatUUID, err := uuid.Parse(payload)
 	if err != nil {
@@ -23,23 +24,24 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 	}
 
 	var msg string
+	lang := sender.LanguageCode
 
 	inviteLink, err := bot.getInviteLink(&tb.Chat{ID: chatID})
 	if err != nil {
-		bot.logger.WithError(err).WithField("chat", chatID).Warning("can't generate invite link")
-		msg = "Ooops, ho perso qualche rotella, avverti il mio admin che mi sono rotto :-("
+		bot.logger.WithError(err).WithField("chat", chatID).Warning("Failed to generate invite link")
+		msg = bot.bundle.T(lang, "Oops, I'm broken, please get in touch with my admin!")
 	} else {
-		msg = "🇮🇹 Ciao! Il link di invito è questo qui sotto (se dice che non è funzionante, riprova ad usarlo tra 1-2 minuti):\n\n🇬🇧 Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):\n\n" + inviteLink
+		msg = bot.bundle.T(lang, "Hi! The invite link is the following (if Telegram says that it's invalid, wait 1-2 minutes before using it):") + "\n\n" + inviteLink
 	}
 
 	_, err = bot.telebot.Send(sender, msg)
 	if err != nil {
-		bot.logger.WithError(err).Warn("can't send message on help from web")
+		bot.logger.WithError(err).Warn("Failed to send message on help from web")
 	}
 }
 
-// on Help command replies with a small help message following two buttons,
-// "Groups" and "Settings".
+// on Help command replies on /help with a small help message following two
+// buttons, "Groups" and "Settings".
 //
 // It replies also for /start command. When that command is followed by an UUID,
 // then calls startFromUUID to handle the UUID and chat mapping.
@@ -49,6 +51,9 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 	if err := ctx.Delete(); err != nil {
 		bot.logger.WithError(err).Warn("Failed to delete message")
 	}
+
+	// IETF language tag used to localize messages.
+	lang := ctx.Sender().LanguageCode
 
 	msg := ctx.Message()
 	if msg == nil {
@@ -70,7 +75,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		var buttons [][]tb.InlineButton
 		groupsBt := tb.InlineButton{
 			Unique: "bt_action_groups",
-			Text:   "🇬🇧 Groups / 🇮🇹 Gruppi",
+			Text:   bot.bundle.T(lang, "Groups"),
 		}
 		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
 			cb := ctx.Callback()
@@ -126,7 +131,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		if settingsVisible {
 			settingsBt := tb.InlineButton{
 				Unique: "bt_action_settings",
-				Text:   "🇬🇧 Settings / 🇮🇹 Impostazioni",
+				Text:   bot.bundle.T(lang, "Settings"),
 			}
 			bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -140,7 +145,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// on a group.
 		guidebt := tb.InlineButton{
 			Unique: "guide",
-			Text:   "⚙️ 🇬🇧 How to add a group / 🇮🇹 Come aggiungere un gruppo",
+			Text:   bot.bundle.T(lang, "How to add a group"),
 		}
 		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
@@ -153,7 +158,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// Close button.
 		bt := tb.InlineButton{
 			Unique: "help_close",
-			Text:   "Close / Chiudi",
+			Text:   bot.bundle.T(lang, "Close"),
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
@@ -163,7 +168,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		})
 
 		// Send reply with buttons.
-		err = ctx.Send("🇮🇹 Ciao! Cosa cerchi?\n\n🇬🇧 Hi! What are you looking for?",
+		err = ctx.Send(bot.bundle.T(lang, "Hi! What are you looking for?"),
 			&tb.ReplyMarkup{InlineKeyboard: buttons})
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to send message on help")

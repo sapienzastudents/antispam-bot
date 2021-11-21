@@ -14,9 +14,11 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 		}
 	}()
 
+	lang := ctx.Sender().LanguageCode
+
 	bt := tb.InlineButton{
 		Unique: "on-guide-close",
-		Text:   "✖️ Close / Chiudi",
+		Text:   bot.bundle.T(lang, "Close"),
 	}
 
 	var chatButtons [][]tb.InlineButton
@@ -28,16 +30,12 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 		return nil
 	})
 
-	const message = `
-	Ecco cosa devi fare per aggiungere il gruppo alla rete:
-
-	<b>0.</b> Controlla se il gruppo è già presente nell'elenco;
-	<b>1.</b> Crea il gruppo;
-	<b>2.</b> Aggiungi il bot come amministratore con tutti permessi <b>tranne</b> quello di rimanere anonimo;
-	<b>3.</b> Scrivi al bot inviando il comando <code>/start</code>, vai su <code>Impostazioni</code>, seleziona la chat appena creata, quindi clicca su <code>Modifica categoria(✏️)</code> e segui le istruzioni indicate nel messaggio.
-
-	Grazie per esserti unito alla comunità!
-	`
+	msg := bot.bundle.T(lang, "What you need to do to add a group on the network:\n\n") +
+		bot.bundle.T(lang, "<b>0.</b> Check if your group is already on the list;\n") +
+		bot.bundle.T(lang, "<b>1.</b> Create the group;\n") +
+		bot.bundle.T(lang, "<b>2.</b> Add this bot as admin with all permissions <b>except</b> for anonymous;\n") +
+		bot.bundle.T(lang, "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> and follow the instructions on the message.\n\n") +
+		bot.bundle.T(lang, "Thank you for joining the community!")
 
 	sendOptions := &tb.SendOptions{
 		ParseMode: tb.ModeHTML,
@@ -46,7 +44,7 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 		},
 	}
 
-	_, err := bot.telebot.Send(m.Chat, message, sendOptions)
+	_, err := bot.telebot.Send(m.Chat, msg, sendOptions)
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to reply")
 	}

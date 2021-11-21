@@ -18,6 +18,7 @@ func (bot *telegramBot) onRemoveGLine(ctx tb.Context, settings chatSettings) {
 		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
 		return
 	}
+	lang := ctx.Sender().LanguageCode
 
 	if !m.Private() {
 		return
@@ -31,13 +32,13 @@ func (bot *telegramBot) onRemoveGLine(ctx tb.Context, settings chatSettings) {
 	parts := strings.Split(m.Text, " ")
 	userID, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
-		_ = ctx.Send("Invalid ID specified")
+		_ = ctx.Send(bot.bundle.T(lang, "Invalid ID specified"))
 		return
 	}
 
 	if err := bot.db.RemoveUserBanned(userID); err != nil {
 		bot.logger.WithField("chatid", m.Chat.ID).WithError(err).Error("Failed to remove g-line")
-		_ = ctx.Send(fmt.Sprint("Error deleting G-Line for ID: ", err))
+		_ = ctx.Send(fmt.Sprintf(bot.bundle.T(lang, "Failed to delete G-Line for ID %d"), userID))
 		return
 	}
 	_ = ctx.Send("OK")
@@ -57,6 +58,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
 		return
 	}
+	lang := ctx.Sender().LanguageCode
 
 	if m.Sender.IsBot || (m.ReplyTo != nil && m.ReplyTo.Sender != nil && m.ReplyTo.Sender.IsBot) {
 		return
@@ -86,7 +88,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 			return
 		}
 
-		_ = ctx.Send(fmt.Sprint("GLine ok for ", m.ReplyTo.Sender))
+		_ = ctx.Send(fmt.Sprint(bot.bundle.T(lang, "G-Line ok for %d"), m.ReplyTo.Sender.ID))
 		bot.logger.WithFields(logfields).Info("g-line user")
 	}
 
@@ -97,7 +99,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 			parts := strings.Split(m.Text, " ")
 			userID, err := strconv.ParseInt(parts[1], 10, 64)
 			if err != nil {
-				_ = ctx.Send("Invalid ID specified")
+				_ = ctx.Send(bot.bundle.T(lang, "Invalid ID specified"))
 				return
 			}
 			logfields := logrus.Fields{"userid": userID, "by": m.Sender.ID}
@@ -116,7 +118,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 				return
 			}
 
-			_ = ctx.Send(fmt.Sprint("GLine ok for ", userID))
+			_ = ctx.Send(fmt.Sprint(bot.bundle.T(lang, "G-Line ok for %d"), m.ReplyTo.Sender.ID))
 			bot.logger.WithFields(logfields).Info("g-line user")
 		}
 	}

@@ -55,14 +55,15 @@ func (bot *telegramBot) onAnyMessage(ctx tb.Context, settings chatSettings) {
 		state.AddGlobalCategory = false
 		state.Save()
 
+		lang := ctx.Sender().LanguageCode
 		// Button for opening the settings menu again.
 		settingsbt := tb.InlineButton{
 			Unique: "back_to_settings",
-			Text:   "Torna alle impostazioni",
+			Text:   bot.bundle.T(lang, "Back to settings"),
 		}
 		bot.handleAdminCallbackStateful(&settingsbt, bot.backToSettingsFromCallback)
 
-		_, _ = bot.telebot.Send(m.Chat, "Categoria salvata", &tb.ReplyMarkup{
+		_, _ = bot.telebot.Send(m.Chat, bot.bundle.T(lang, "Category saved"), &tb.ReplyMarkup{
 			InlineKeyboard: [][]tb.InlineButton{
 				{settingsbt},
 			},

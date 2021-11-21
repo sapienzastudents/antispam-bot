@@ -4,12 +4,14 @@ import (
 	"errors"
 	"time"
 
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
+
 	"github.com/patrickmn/go-cache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -26,6 +28,9 @@ type Options struct {
 	// CAS is the CAS database instance
 	CAS cas.CAS
 
+	// Bundle is the Bundle instance to get localized strings. Required.
+	Bundle *i18n.Bundle
+
 	// GitTemporaryDir is a temporary directory for git operations
 	GitTemporaryDir string
 
@@ -39,8 +44,10 @@ type Options struct {
 	LongPollerTimeout time.Duration
 }
 
-// New returns a new TelegramBot compliant instance. Returns an error when either one of the required parameters are not
-// set, or if there is an error talking with Telegram servers
+// New returns a new TelegramBot compliant instance.
+//
+// It returns an error when either one of the required parameters are not set,
+// or if there is an error talking with Telegram servers.
 func New(opts Options) (TelegramBot, error) {
 	if opts.Logger == nil {
 		return nil, errors.New("logger not present")
@@ -50,6 +57,9 @@ func New(opts Options) (TelegramBot, error) {
 	}
 	if opts.Token == "" {
 		return nil, errors.New("telegram bot token not specified")
+	}
+	if opts.Bundle == nil {
+		return nil, errors.New("bundle not specified")
 	}
 
 	if opts.LongPollerTimeout == 0 {
@@ -69,6 +79,7 @@ func New(opts Options) (TelegramBot, error) {
 		logger:              opts.Logger,
 		db:                  opts.Database,
 		cas:                 opts.CAS,
+		bundle:              opts.Bundle,
 		gitTemporaryDir:     opts.GitTemporaryDir,
 		gitSSHKey:           opts.GitSSHKeyFile,
 		gitSSHKeyPassphrase: opts.GitSSHKeyPassphrase,

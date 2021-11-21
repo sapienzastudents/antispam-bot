@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
 
 	"github.com/ardanlabs/conf/v2"
@@ -105,6 +106,13 @@ func run() error {
 		return fmt.Errorf("failed to create CAS database: %w", err)
 	}
 
+	// Initialize i18n.
+	log.Info("Initializing i18n support")
+	bundle, err := i18n.New(log)
+	if err != nil {
+		return fmt.Errorf("failed to create i18n bundle: %w", err)
+	}
+
 	// Initialize Telegram bot.
 	log.Info("Initializing Telegram bot connection")
 	bot, err := tbot.New(tbot.Options{
@@ -112,6 +120,7 @@ func run() error {
 		Database:            botdb,
 		Token:               cfg.BotToken,
 		CAS:                 casDB,
+		Bundle:              bundle,
 		GitTemporaryDir:     cfg.GitTmpDir,
 		GitSSHKeyFile:       cfg.GitSSHKey,
 		GitSSHKeyPassphrase: cfg.GitSSHKeyPass,

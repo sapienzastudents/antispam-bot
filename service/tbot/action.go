@@ -24,21 +24,3 @@ func (bot *telegramBot) performAction(message *tb.Message, user *tb.User, settin
 	default:
 	}
 }
-
-// prettyActionName returns a human-friendly name for the action
-func prettyActionName(action botdatabase.BotAction) string {
-	switch action.Action {
-	case botdatabase.ActionMute:
-		return "🔇 Mute"
-	case botdatabase.ActionBan:
-		return "🚷 Ban"
-	case botdatabase.ActionDeleteMsg:
-		return "✂️ Delete"
-	case botdatabase.ActionKick:
-		return "❗️ Kick"
-	case botdatabase.ActionNone:
-		return "💤 Do nothing"
-	default:
-		return "n/a"
-	}
-}

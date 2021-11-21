@@ -29,7 +29,8 @@ func (bot *telegramBot) checkGroupAdmin(actionHandler contextualChatSettingsFunc
 			return
 		}
 		_ = ctx.Delete()
-		msg, _ := bot.telebot.Send(m.Chat, "Sorry, only group admins can use this command")
+		lang := ctx.Sender().LanguageCode
+		msg, _ := bot.telebot.Send(m.Chat, bot.bundle.T(lang, "Sorry, only group admins can use this command"))
 		bot.setMessageExpiry(msg, 10*time.Second)
 	}
 }

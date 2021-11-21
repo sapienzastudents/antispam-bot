@@ -97,6 +97,8 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		chatButtons = append(chatButtons, []tb.InlineButton{btn})
 	}
 
+	lang := sender.LanguageCode
+
 	sendOptions := &tb.SendOptions{}
 	msg := ""
 	if len(chatButtons) == 0 {
@@ -105,7 +107,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		if page >= 1 {
 			var bt = tb.InlineButton{
 				Unique: "groups_settings_list_prev",
-				Text:   "⬅️ Prev",
+				Text:   "⬅️  " + bot.bundle.T(lang, "Prev"),
 				Data:   strconv.Itoa(page - 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
@@ -122,7 +124,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		if showMore {
 			bt := tb.InlineButton{
 				Unique: "groups_settings_list_next",
-				Text:   "Next ➡️",
+				Text:   bot.bundle.T(lang, "Next") + " ➡️",
 				Data:   strconv.Itoa(page + 1),
 			}
 			chatButtons = append(chatButtons, []tb.InlineButton{bt})
@@ -139,7 +141,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 
 		bt := tb.InlineButton{
 			Unique: "groups_settings_list_close",
-			Text:   "✖️ Close / Chiudi",
+			Text:   "✖️  " + bot.bundle.T(lang, "Close"),
 		}
 		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
@@ -149,7 +151,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 			return nil
 		})
 
-		msg = "Please select the chatroom:"
+		msg = bot.bundle.T(lang, "Please select the chatroom:")
 		sendOptions = &tb.SendOptions{
 			ParseMode: tb.ModeMarkdown,
 			ReplyMarkup: &tb.ReplyMarkup{

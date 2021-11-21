@@ -10,75 +10,58 @@ import (
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
-// sendAntispamSettingsMessage sends the antispam settings message pane. This
-// panel is an inner panel (i.e. you need to access settings first, then click
-// on the antispam settings button).
-func (bot *telegramBot) sendAntispamSettingsMessage(messageToEdit *tb.Message, chatToSend *tb.Chat, chatToConfigure *tb.Chat, settings chatSettings) {
-	msg := bot.generateAntispamSettingsMessageText(chatToConfigure, settings)
-	sendOpts := &tb.SendOptions{
-		ParseMode:             tb.ModeMarkdown,
-		ReplyMarkup:           bot.generateAntispamSettingsReplyMarkup(chatToConfigure, settings),
-		DisableWebPagePreview: true,
-	}
-	if messageToEdit != nil {
-		_, _ = bot.telebot.Edit(messageToEdit, msg, sendOpts)
-	} else {
-		_, _ = bot.telebot.Send(chatToSend, msg, sendOpts)
-	}
-}
+// sendAntispamSettingsMessage sends the antispam settings message panel to the
+// chat where the message is sent, localizing the text with the given language.
+//
+// This panel can be accessed when the user clicks on antispam settings button,
+// insied the general settings panel.
+func (bot *telegramBot) sendAntispamSettingsMessage(m *tb.Message, lang string, chatToConfigure *tb.Chat, settings chatSettings) {
+	// Generate message text based on chatToConfigure.
+	buf := strings.Builder{}
 
-// generateAntispamSettingsMessageText returns the message text for
-// sendAntispamSettingsMessage based on the current chat settings.
-func (bot *telegramBot) generateAntispamSettingsMessageText(chat *tb.Chat, settings chatSettings) string {
-	reply := strings.Builder{}
+	buf.WriteString(fmt.Sprintf(bot.bundle.T(lang, "Bot settings for chat %s (%d)\n\n"), chatToConfigure.Title, chatToConfigure.ID))
 
-	reply.WriteString(fmt.Sprintf("Bot settings for chat %s (%d)\n\n", chat.Title, chat.ID))
+	buf.WriteString("\n🇨🇳 " + bot.bundle.T(lang, "*Chinese* blocker:\n"))
+	buf.WriteString(bot.bundle.T(lang, "On join: *"))
+	buf.WriteString(prettyActionName(settings.OnJoinChinese, bot, lang))
+	buf.WriteString("*\n")
+	buf.WriteString(bot.bundle.T(lang, "On message: *"))
+	buf.WriteString(prettyActionName(settings.OnMessageChinese, bot, lang))
+	buf.WriteString("*\n")
 
-	reply.WriteString("\n🇨🇳 *Chinese* blocker:\n")
-	reply.WriteString("On join: *")
-	reply.WriteString(prettyActionName(settings.OnJoinChinese))
-	reply.WriteString("*\n")
-	reply.WriteString("On message: *")
-	reply.WriteString(prettyActionName(settings.OnMessageChinese))
-	reply.WriteString("*\n")
+	buf.WriteString("\n☪️  " + bot.bundle.T(lang, "*Arabic* blocker:\n"))
+	buf.WriteString(bot.bundle.T(lang, "On join: *"))
+	buf.WriteString(prettyActionName(settings.OnJoinArabic, bot, lang))
+	buf.WriteString("*\n")
+	buf.WriteString(bot.bundle.T(lang, "On message: *"))
+	buf.WriteString(prettyActionName(settings.OnMessageArabic, bot, lang))
+	buf.WriteString("*\n")
 
-	reply.WriteString("\n☪️ *Arabic* blocker:\n")
-	reply.WriteString("On join: *")
-	reply.WriteString(prettyActionName(settings.OnJoinArabic))
-	reply.WriteString("*\n")
-	reply.WriteString("On message: *")
-	reply.WriteString(prettyActionName(settings.OnMessageArabic))
-	reply.WriteString("*\n")
+	buf.WriteString(bot.bundle.T(lang, "\nCAS-ban (see https://combot.org/cas/ ):\n"))
+	buf.WriteString(bot.bundle.T(lang, "On any action: *"))
+	buf.WriteString(prettyActionName(settings.OnBlacklistCAS, bot, lang))
+	buf.WriteString("*\n")
 
-	reply.WriteString("\nCAS-ban (see https://combot.org/cas/ ):\n")
-	reply.WriteString("On any action: *")
-	reply.WriteString(prettyActionName(settings.OnBlacklistCAS))
-	reply.WriteString("*\n")
+	msg := buf.String()
 
-	return reply.String()
-}
-
-// generateAntispamSettingsReplyMarkup returns the button list for
-// sendAntispamSettingsMessage based on the current chat settings. Buttons will
-// change the bot settings for antispam.
-func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, settings chatSettings) *tb.ReplyMarkup {
-	// TODO: move button creations in init function (eg. global buttons objects and handler)
+	// Generate reply with button list based on current chat settings. Buttons
+	// will change the bot settings for antispam.
 	// Back settings
 	backBtn := tb.InlineButton{
 		Unique: "settings_back",
-		Text:   "Back",
+		Text:   bot.bundle.T(lang, "Back"),
 	}
 	bot.handleAdminCallbackStateful(&backBtn, bot.backToSettingsFromCallback)
 
 	// On Join Chinese (TODO: add kick action)
-	onJoinChineseKickButtonText := "✅ Ban Chinese on join"
+	onJoinChineseKickButtonText := "✅ " + bot.bundle.T(lang, "Ban Chinese on join")
 	if settings.OnJoinChinese.Action != botdatabase.ActionNone {
-		onJoinChineseKickButtonText = "❌ Don't ban chinese joins"
+		onJoinChineseKickButtonText = "❌ " + bot.bundle.T(lang, "Don't ban chinese joins")
 	}
 	onJoinChineseKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_chinese_on_join",
 		Text:   onJoinChineseKickButtonText,
-		Data:   strconv.FormatInt(chat.ID, 10),
+		Data:   strconv.FormatInt(chatToConfigure.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onJoinChineseKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnJoinChinese.Action == botdatabase.ActionNone {
@@ -94,14 +77,14 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}))
 
 	// On Join Arabic (TODO: add kick action)
-	onJoinArabicKickButtonText := "✅ Ban Arabic on join"
+	onJoinArabicKickButtonText := "✅ " + bot.bundle.T(lang, "Ban Arabic on join")
 	if settings.OnJoinArabic.Action != botdatabase.ActionNone {
-		onJoinArabicKickButtonText = "❌ Don't ban arabs joins"
+		onJoinArabicKickButtonText = "❌ " + bot.bundle.T(lang, "Don't ban arabs joins")
 	}
 	onJoinArabicKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_arabic_on_join",
 		Text:   onJoinArabicKickButtonText,
-		Data:   strconv.FormatInt(chat.ID, 10),
+		Data:   strconv.FormatInt(chatToConfigure.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onJoinArabicKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnJoinArabic.Action == botdatabase.ActionNone {
@@ -117,14 +100,14 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}))
 
 	// On Message Chinese (TODO: add ban action)
-	onMessageChineseKickButtonText := "✅ Kick Chinese msgs"
+	onMessageChineseKickButtonText := "✅ " + bot.bundle.T(lang, "Kick Chinese msgs")
 	if settings.OnMessageChinese.Action != botdatabase.ActionNone {
-		onMessageChineseKickButtonText = "❌ Don't kick chinese msgs"
+		onMessageChineseKickButtonText = "❌ " + bot.bundle.T(lang, "Don't kick chinese msgs")
 	}
 	onMessageChineseKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_chinese_on_msgs",
 		Text:   onMessageChineseKickButtonText,
-		Data:   strconv.FormatInt(chat.ID, 10),
+		Data:   strconv.FormatInt(chatToConfigure.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onMessageChineseKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnMessageChinese.Action == botdatabase.ActionNone {
@@ -140,14 +123,14 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}))
 
 	// On Message Arabic (TODO: add ban action)
-	onMessageArabicKickButtonText := "✅ Kick Arabic msgs"
+	onMessageArabicKickButtonText := "✅ " + bot.bundle.T(lang, "Kick Arabic msgs")
 	if settings.OnMessageArabic.Action != botdatabase.ActionNone {
-		onMessageArabicKickButtonText = "❌ Don't kick arabs msgs"
+		onMessageArabicKickButtonText = "❌ " + bot.bundle.T(lang, "Don't kick arabs msgs")
 	}
 	onMessageArabicKickButton := tb.InlineButton{
 		Unique: "settings_enable_disable_ban_arabic_on_msgs",
 		Text:   onMessageArabicKickButtonText,
-		Data:   strconv.FormatInt(chat.ID, 10),
+		Data:   strconv.FormatInt(chatToConfigure.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&onMessageArabicKickButton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnMessageArabic.Action == botdatabase.ActionNone {
@@ -163,14 +146,14 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 	}))
 
 	// Enable CAS
-	enableCASbuttonText := "❌ CAS disabled"
+	enableCASbuttonText := "❌ " + bot.bundle.T(lang, "CAS disabled")
 	if settings.OnBlacklistCAS.Action != botdatabase.ActionNone {
-		enableCASbuttonText = "✅ CAS enabled"
+		enableCASbuttonText = "✅ " + bot.bundle.T(lang, "CAS enabled")
 	}
 	enableCASbutton := tb.InlineButton{
 		Unique: "settings_enable_disable_cas",
 		Text:   enableCASbuttonText,
-		Data:   strconv.FormatInt(chat.ID, 10),
+		Data:   strconv.FormatInt(chatToConfigure.ID, 10),
 	}
 	bot.handleAdminCallbackStateful(&enableCASbutton, bot.callbackAntispamSettings(func(ctx tb.Context, settings chatSettings) chatSettings {
 		if settings.OnBlacklistCAS.Action == botdatabase.ActionNone {
@@ -185,13 +168,47 @@ func (bot *telegramBot) generateAntispamSettingsReplyMarkup(chat *tb.Chat, setti
 		return settings
 	}))
 
-	return &tb.ReplyMarkup{
+	reply := &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{onJoinChineseKickButton, onJoinArabicKickButton},
 			{onMessageChineseKickButton, onMessageArabicKickButton},
 			{enableCASbutton},
 			{backBtn},
 		},
+	}
+
+	// Send message.
+	sendOpts := &tb.SendOptions{
+		ParseMode:             tb.ModeMarkdown,
+		ReplyMarkup:           reply,
+		DisableWebPagePreview: true,
+	}
+	_, _ = bot.telebot.Edit(m, msg, sendOpts)
+}
+
+// prettyActionName returns an human-friendly name for the given action.
+//
+// If bot instance is nil it always returns English names, otherwhise returns
+// the localized version for the given lang.
+func prettyActionName(action botdatabase.BotAction, bot *telegramBot, lang string) string {
+	T := func(s string) string { return s }
+	if bot != nil {
+		T = func(s string) string { return bot.bundle.T(lang, s) }
+	}
+
+	switch action.Action {
+	case botdatabase.ActionMute:
+		return "🔇 " + T("Mute")
+	case botdatabase.ActionBan:
+		return "🚷 " + T("Ban")
+	case botdatabase.ActionDeleteMsg:
+		return "✂️  " + T("Delete")
+	case botdatabase.ActionKick:
+		return "❗️ " + T("Kick")
+	case botdatabase.ActionNone:
+		return "💤 " + T("Do nothing")
+	default:
+		return "n/a"
 	}
 }
 
@@ -219,6 +236,6 @@ func (bot *telegramBot) callbackAntispamSettings(fn func(tb.Context, chatSetting
 		})
 
 		// Back to chat settings
-		bot.sendAntispamSettingsMessage(callback.Message, callback.Message.Chat, state.ChatToEdit, newsettings)
+		bot.sendAntispamSettingsMessage(callback.Message, callback.Sender.LanguageCode, state.ChatToEdit, newsettings)
 	}
 }
