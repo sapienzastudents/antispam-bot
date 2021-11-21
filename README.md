@@ -77,7 +77,7 @@ that they have; so, if you use the "admin fallback" feature, and you never grant
 When not ticked, they're planned:
 
 * [X] Use CAS blacklist
-* [ ] Multilanguage!
+* [X] Multilanguage!
 * [X] Write an help/welcome message
 * UI/UX
   * [ ] Better messages for users
@@ -118,23 +118,21 @@ When not ticked, they're planned:
 To build the bot use `go build ./` and you get `antispam-telegram-bot` binary
 ready to use.
 
-To build a Docker container, use `make docker`.
-
 ## How to spin your own instance
 
-The executable needs these environment variables set:
+To run your own instance, you need to give at least bot's token and the redis
+URL to connect to the database. Information can be given in two ways:
 
-* `BOT_TOKEN`: the bot token that you get from `BotFather`
-* `REDIS_URL`: the URL for a Redis server instance
-* `DISABLE_CAS`: optional, disable CAS blacklist completely
-* `GIT_TEMP_DIR`: optional, temporary directory for website update
-* `GIT_SSH_KEY`: optional, Git SSH key path for website update
+1. As environment variables (e.g. `BOT_TOKEN`);
+2. As command line argument (e.g. `--bot-token` or `-b`).
 
-The executable supports `.env` file for environment variables.
+Run `antispam-telegram-bot --help` to see all available options. The only
+mandatory information are the following:
 
-A pre-built Docker container is hosted on Docker Hub at the address `enrico204/antispam-telegram-bot`.
+* `BOT_TOKEN` or `--bot-token`: the bot token that you get from BotFather;
+* `REDIS_URL` or `--redis-url`: the URL for a Redis server instance.
 
 ## Contributions
 
-To contribute please open a merge request. All code should be under the current license
-(see `LICENSE` file).
+To contribute please open a merge request. All code should be under the current
+license (see `LICENSE` file).
