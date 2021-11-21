@@ -27,6 +27,7 @@ antispam-bot:
       - antispam-telegram-bot
       - README.md
       - LICENSE
+    expire_in: 3 day
 
 vet:
   stage: test
