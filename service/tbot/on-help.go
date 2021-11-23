@@ -75,7 +75,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		var buttons [][]tb.InlineButton
 		groupsBt := tb.InlineButton{
 			Unique: "bt_action_groups",
-			Text:   bot.bundle.T(lang, "Groups"),
+			Text:   "🏘 " + bot.bundle.T(lang, "Groups"),
 		}
 		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
 			cb := ctx.Callback()
@@ -131,7 +131,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		if settingsVisible {
 			settingsBt := tb.InlineButton{
 				Unique: "bt_action_settings",
-				Text:   bot.bundle.T(lang, "Settings"),
+				Text:   "⚙️ " + bot.bundle.T(lang, "Settings"),
 			}
 			bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -145,7 +145,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// on a group.
 		guidebt := tb.InlineButton{
 			Unique: "guide",
-			Text:   bot.bundle.T(lang, "How to add a group"),
+			Text:   "ℹ️  " + bot.bundle.T(lang, "How to add a group"),
 		}
 		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
@@ -168,7 +168,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		})
 
 		// Send reply with buttons.
-		err = ctx.Send(bot.bundle.T(lang, "Hi! What are you looking for?"),
+		err = ctx.Send("👋 "+bot.bundle.T(lang, "Hi! What are you looking for?"),
 			&tb.ReplyMarkup{InlineKeyboard: buttons})
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to send message on help")

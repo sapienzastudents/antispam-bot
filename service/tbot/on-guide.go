@@ -18,7 +18,7 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 
 	bt := tb.InlineButton{
 		Unique: "on-guide-close",
-		Text:   bot.bundle.T(lang, "Close"),
+		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
 	}
 
 	var chatButtons [][]tb.InlineButton
@@ -34,8 +34,8 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 		bot.bundle.T(lang, "<b>0.</b> Check if your group is already on the list;\n") +
 		bot.bundle.T(lang, "<b>1.</b> Create the group;\n") +
 		bot.bundle.T(lang, "<b>2.</b> Add this bot as admin with all permissions <b>except</b> for anonymous;\n") +
-		bot.bundle.T(lang, "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> and follow the instructions on the message.\n\n") +
-		bot.bundle.T(lang, "Thank you for joining the community!")
+		bot.bundle.T(lang, "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> (✏️) and follow the instructions on the message.\n\n") +
+		bot.bundle.T(lang, "Thank you for joining the community!") + " 🙏"
 
 	sendOptions := &tb.SendOptions{
 		ParseMode: tb.ModeHTML,

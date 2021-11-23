@@ -10,7 +10,7 @@
     "<b>0.</b> Check if your group is already on the list;\n": "<b>0.</b> Controlla se il gruppo è già presente nell'elenco;\n",
     "<b>1.</b> Create the group;\n": "<b>1.</b> Crea il gruppo;\n",
     "<b>2.</b> Add this bot as admin with all permissions <b>except</b> for anonymous;\n": "<b>2.</b> Aggiungi il bot come amministratore con tutti permessi <b>tranne</b> quello di rimanere anonimo;\n",
-    "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> and follow the instructions on the message.\n\n": "<b>3.</b> Scrivi al bot inviando il comando <code>/start</code>, vai su <code>Impostazioni</code>, seleziona la chat appena creata, quindi clicca su <code>Modifica categoria</code> e segui le istruzioni indicate nel messaggio.\n\n",
+    "<b>3.</b> Write to the bot with <code>/start</code> command, go to <code>Settings</code>, select the chat you've just added, then click on <code>Modify category</code> (✏️) and follow the instructions on the message.\n\n": "<b>3.</b> Scrivi al bot inviando il comando <code>/start</code>, vai su <code>Impostazioni</code>, seleziona la chat appena creata, quindi clicca su <code>Modifica categoria</code> (✏️) e segui le istruzioni indicate nel messaggio.\n\n",
     "Thank you for joining the community!": "Grazie per esserti unito alla comunità!",
     "Without any category": "Senza categoria",
     "Select degree course": "Seleziona il corso di laurea",
