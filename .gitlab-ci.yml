@@ -32,7 +32,7 @@ build-amd64-linux:
       - LICENSE
     expire_in: 3 day
 
-.build-armv7-linux:
+build-armv7-linux:
   stage: build
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
