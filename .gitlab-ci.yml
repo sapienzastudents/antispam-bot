@@ -21,6 +21,8 @@ cache:
 
 build-amd64-linux:
   stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
   script: GOARCH=amd64 GOOS=linux go build ./
   artifacts:
     name: "linux-amd64-antispam-telegram-bot-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID"
@@ -33,7 +35,7 @@ build-amd64-linux:
 .build-armv7-linux:
   stage: build
   rules:
-    - if: $CI_COMMIT_TAG  # Run job only when a tag is created
+    - if: '$CI_COMMIT_BRANCH == "master"'
   script: GOARM=7 GOARCH=arm GOOS=linux go build ./
   artifacts:
     name: "linux-armv7-antispam-telegram-bot-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID"
@@ -45,6 +47,7 @@ build-amd64-linux:
 
 vet:
   stage: test
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
   script: go vet ./...
   dependencies: [] # This job doesn't use artifacts!
-
