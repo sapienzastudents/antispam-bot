@@ -141,7 +141,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 
 		bt := tb.InlineButton{
 			Unique: "groups_settings_list_close",
-			Text:   "✖️  " + bot.bundle.T(lang, "Close"),
+			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
 		}
 		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
