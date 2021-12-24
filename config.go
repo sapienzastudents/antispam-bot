@@ -41,7 +41,7 @@ func getConfig() (BotConfig, error) {
 	// Override values from YAML if specified and if it exists.
 	data, err := os.ReadFile(cfg.Path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return cfg, fmt.Errorf("failed to read config file, while it exists: %w")
+		return cfg, fmt.Errorf("failed to read config file, while it exists: %w", err)
 	}
 	if err == nil {
 		if err := yaml.Unmarshal(data, &cfg); err != nil {
