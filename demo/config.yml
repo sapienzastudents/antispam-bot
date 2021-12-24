@@ -1,0 +1,8 @@
+bottoken: "TOKEN"
+#redisurl: "redis://127.0.0.1:6379" # This is an hardcoded default.
+#git: # Optional arguments.
+#  tmpdir: "/tmp/xxx"
+#  sshkey: "..."
+#  sshkeypas: "..."
+#casupdate: true # Default
+loglevel: debug

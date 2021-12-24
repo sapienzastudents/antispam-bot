@@ -32,54 +32,29 @@ func main() {
 	}
 }
 
-// Bot configuration.
-type Config struct {
-	BotToken      string `conf:"default:-,flag:bot-token,short:b,help:Bot token"`
-	RedisURL      string `conf:"default:redis://127.0.0.1:6379,flag:redis-url,short:r,help:redis URL"`
-	GitTmpDir     string `conf:"default:-,flag:git-dir,help:git temporary director"`
-	GitSSHKey     string `conf:"default:-,flag:git-ssh-key,help:SSH key used with git"`
-	GitSSHKeyPass string `conf:"default:-,flag:git-ssh-key-pass,help:SSH key's password"`
-	CASUpdate     bool   `conf:"default:true,flag:cas-update,help:Update automatically CAS database"`
-}
-
-// Returns the loaded configuration, read from both command line and environment
-// variables.
-func getConfig() (Config, error) {
-	cfg := Config{}
-	help, err := conf.Parse("", &cfg)
-	if err != nil {
-		if errors.Is(err, conf.ErrHelpWanted) {
-			fmt.Println(help)
-			os.Exit(0)
-		}
-		return cfg, fmt.Errorf("parsing config: %w", err)
-	}
-
-	// Clean these variables for security purposes.
-	if err := os.Setenv("GIT_SSH_KEY_PASS", ""); err != nil {
-		return cfg, err
-	}
-	if err := os.Setenv("GIT_SSH_KEY", ""); err != nil {
-		return cfg, err
-	}
-
-	return cfg, nil
-}
-
 // Initializes and starts the bot.
 func run() error {
-	// Initialize configuration.
+	// Load configuration and defaults.
 	cfg, err := getConfig()
 	if err != nil {
+		if errors.Is(err, conf.ErrHelpWanted) {
+			return nil
+		}
 		return err
 	}
 
 	// Inizialite logger.
 	log := logrus.New()
 	log.SetOutput(os.Stdout)
-	log.SetLevel(logrus.DebugLevel)
+	lvl, err := logrus.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("failed to parse configuration: %w", err)
+	}
+	log.SetLevel(lvl)
 
 	log.Info("Antispam Telegram Bot, version ", AppVersion, " build ", BuildDate)
+
+	log.Debugf("Loaded configuration: %+v", cfg)
 
 	// Initialize redis connection.
 	log.Info("Initializing redis DB connection")
@@ -121,9 +96,9 @@ func run() error {
 		Token:               cfg.BotToken,
 		CAS:                 casDB,
 		Bundle:              bundle,
-		GitTemporaryDir:     cfg.GitTmpDir,
-		GitSSHKeyFile:       cfg.GitSSHKey,
-		GitSSHKeyPassphrase: cfg.GitSSHKeyPass,
+		GitTemporaryDir:     cfg.Git.TmpDir,
+		GitSSHKeyFile:       cfg.Git.SSHKey,
+		GitSSHKeyPassphrase: cfg.Git.SSHKeyPass,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
