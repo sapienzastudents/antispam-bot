@@ -49,7 +49,7 @@ func (bot *telegramBot) sendAntispamSettingsMessage(m *tb.Message, lang string, 
 	// Back settings
 	backBtn := tb.InlineButton{
 		Unique: "settings_back",
-		Text:   bot.bundle.T(lang, "Back"),
+		Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
 	}
 	bot.handleAdminCallbackStateful(&backBtn, bot.backToSettingsFromCallback)
 

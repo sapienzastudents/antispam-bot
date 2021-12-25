@@ -158,7 +158,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 		// Close button.
 		bt := tb.InlineButton{
 			Unique: "help_close",
-			Text:   bot.bundle.T(lang, "Close"),
+			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
 		}
 		buttons = append(buttons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {

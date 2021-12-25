@@ -110,7 +110,7 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 
 			lang := ctx.Sender().LanguageCode
 			settingsBt := tb.InlineButton{
-				Text:   bot.bundle.T(lang, "Back to settings"),
+				Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
 				Unique: "back_to_settings",
 			}
 			bot.handleAdminCallbackStateful(&settingsBt, bot.backToSettingsFromCallback)
@@ -148,7 +148,7 @@ func (bot *telegramBot) handleChangeSubCategory(categoryName string) func(ctx tb
 
 					lang := ctx.Sender().LanguageCode
 					settingsBt := tb.InlineButton{
-						Text:   bot.bundle.T(lang, "Back to settings"),
+						Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
 						Unique: "back_to_settings",
 					}
 					bot.handleAdminCallbackStateful(&settingsBt, bot.backToSettingsFromCallback)

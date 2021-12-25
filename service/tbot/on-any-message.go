@@ -59,7 +59,7 @@ func (bot *telegramBot) onAnyMessage(ctx tb.Context, settings chatSettings) {
 		// Button for opening the settings menu again.
 		settingsbt := tb.InlineButton{
 			Unique: "back_to_settings",
-			Text:   bot.bundle.T(lang, "Back to settings"),
+			Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
 		}
 		bot.handleAdminCallbackStateful(&settingsbt, bot.backToSettingsFromCallback)
 
