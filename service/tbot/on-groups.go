@@ -173,8 +173,21 @@ func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCat
 		msg.WriteString(bot.bundle.T(lang, "No groups in this category"))
 	}
 
+	// Back button to group category list.
+	backBtn := tb.InlineButton{
+		Unique: "groups_link_list_back",
+		Text:   "◀ " + bot.bundle.T(lang, "Back"),
+	}
+	bot.telebot.Handle(&backBtn, func(ctx tb.Context) error {
+		callback := ctx.Callback()
+		bot.sendGroupListForLinks(callback.Sender, callback.Message, callback.Message.Chat, nil)
+		return nil
+	})
+	keyboard := [][]tb.InlineButton{[]tb.InlineButton{backBtn}}
+
 	m, err := bot.telebot.Edit(m, msg.String(), &tb.SendOptions{
 		ParseMode:             tb.ModeHTML,
+		ReplyMarkup:           &tb.ReplyMarkup{InlineKeyboard: keyboard},
 		DisableWebPagePreview: true,
 	})
 	if err != nil {
