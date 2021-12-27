@@ -9,18 +9,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// BotConfig descrives the bot's configuration.
+// BotConfig describes the bot's configuration.
 type BotConfig struct {
-	Path     string `conf:"default:./config.yml,flag:config,short:c,help:configuration file"`
-	BotToken string `conf:"default:-,flag:bot-token,short:b,help:Bot token"`
-	RedisURL string `conf:"default:redis://127.0.0.1:6379,flag:redis-url,short:r,help:redis URL"`
-	Git      struct {
+	Path      string `conf:"default:./config.yml,flag:config,short:c,help:configuration file"`
+	BotToken  string `conf:"default:-,flag:bot-token,short:b,help:Bot token"`
+	RedisURL  string `conf:"default:redis://127.0.0.1:6379,flag:redis-url,short:r,help:redis URL"`
+	LogLevel  string `conf:"default:info,flag:log-level,short:l,help:Minimium log level"`
+	CASUpdate bool   `conf:"default:true,flag:cas-update,help:Update automatically CAS database"`
+	Git       struct {
 		TmpDir     string `conf:"default:-,flag:git-dir,help:git temporary director"`
 		SSHKey     string `conf:"default:-,flag:git-ssh-key,help:SSH key used with git"`
 		SSHKeyPass string `conf:"default:-,flag:git-ssh-key-pass,help:SSH key's password"`
 	}
-	CASUpdate bool   `conf:"default:true,flag:cas-update,help:Update automatically CAS database"`
-	LogLevel  string `conf:"default:info,flag:log-level,short:l,help:Minimium log level"`
+	GlobalAdmin int64 `conf:"default:0,flag:global-admin,short:g,help:Default global admin"`
 }
 
 // getConfig returns a BotConfig struct with loaded values from environment

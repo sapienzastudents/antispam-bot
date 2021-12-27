@@ -6,3 +6,4 @@ bottoken: "TOKEN"
 #  sshkeypas: "..."
 #casupdate: true # Default
 loglevel: debug
+globaladmin: 0

@@ -73,6 +73,11 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to create DB connection: %w", err)
 	}
+	if cfg.GlobalAdmin == 0 {
+		log.Warn("No default bot admin given, some functionalities cannot be guaranteed")
+	} else if err := botdb.AddGlobalAdmin(cfg.GlobalAdmin); err != nil {
+		return fmt.Errorf("failed add default global admin: %w", err)
+	}
 
 	// Initialize CAS database.
 	log.Info("Initializing CAS database")

@@ -12,6 +12,9 @@ type Database interface {
 	// IsGlobalAdmin returns true if the given user ID is a bot admin.
 	IsGlobalAdmin(userID int64) (bool, error)
 
+	// AddGlobalAdmin adds the given user as bot admin.
+	AddGlobalAdmin(userID int64) error
+
 	// GetChatSettings returns the chat settings of the bot for the given chat
 	// ID.
 	GetChatSettings(chatID int64) (ChatSettings, error)
