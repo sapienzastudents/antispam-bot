@@ -30,6 +30,12 @@ func (db *_botDatabase) IsGlobalAdmin(userID int64) (bool, error) {
 				return false, fmt.Errorf("during migration from old database: %w", err)
 			}
 		}
+
+		// Delete old database, otherwhise the migration is done at every call
+		// of IsGlobalAdmin.
+		if err := db.redisconn.HDel(context.TODO(), "global", "admins").Err(); err != nil {
+			return false, fmt.Errorf("on HDEL on old database: %w", err)
+		}
 	}
 
 	id := strconv.FormatInt(userID, 10)
