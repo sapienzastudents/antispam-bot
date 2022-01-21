@@ -75,12 +75,34 @@ func (db *_botDatabase) ListMyChatrooms() ([]*tb.Chat, error) {
 		}
 
 		for i := 0; i < len(keys); i += 2 {
-			room := tb.Chat{}
-			err = json.Unmarshal([]byte(keys[i+1]), &room)
+			// ChatTmp is a partial copy of telebot.Chat, because some field
+			// marshalled into JSON cannot be unmarhalled, there is an error in
+			// the library. This is a temporary fix.
+			type ChatTmp struct {
+				ID        int64       `json:"id"`
+				Type      tb.ChatType `json:"type"`
+				Title     string      `json:"title"`
+				FirstName string      `json:"first_name"`
+				LastName  string      `json:"last_name"`
+				Username  string      `json:"username"`
+				Still     bool        `json:"is_member,omitempty"`
+			}
+
+			chat := ChatTmp{}
+			err = json.Unmarshal([]byte(keys[i+1]), &chat)
 			if err != nil {
 				return nil, fmt.Errorf("failed to scan chatroom %q: %w", keys[i+1], err)
 			}
 
+			room := tb.Chat{
+				ID:        chat.ID,
+				Type:      chat.Type,
+				Title:     chat.Title,
+				FirstName: chat.FirstName,
+				LastName:  chat.LastName,
+				Username:  chat.Username,
+				Still:     chat.Still,
+			}
 			chatrooms = append(chatrooms, &room)
 		}
 
