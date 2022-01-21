@@ -17,6 +17,10 @@ import (
 //
 // Time complexity: O(1).
 func (db *_botDatabase) AddOrUpdateChat(c *tb.Chat) error {
+	// Do not marshal PinnedMessage because it cannot be unmarshalled (there is
+	// a bug in the telebot library).
+	c.PinnedMessage = nil
+
 	jsonbin, err := json.Marshal(c)
 	if err != nil {
 		return err

@@ -45,6 +45,11 @@ func run() error {
 
 	// Inizialite logger.
 	log := logrus.New()
+	log.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+		DisableQuote:     true,
+		PadLevelText:     true,
+	})
 	log.SetOutput(os.Stdout)
 	lvl, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
