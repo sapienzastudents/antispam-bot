@@ -12,7 +12,7 @@ import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/bot"
 
 	"github.com/ardanlabs/conf/v2"
 	"github.com/go-redis/redis/v8"
@@ -100,7 +100,7 @@ func run() error {
 
 	// Initialize Telegram bot.
 	log.Info("Initializing Telegram bot connection")
-	bot, err := tbot.New(tbot.Options{
+	bot, err := bot.New(bot.Options{
 		Logger:              log,
 		Database:            botdb,
 		Token:               cfg.BotToken,
