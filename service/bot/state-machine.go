@@ -79,7 +79,7 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 			return nil
 		}
 
-		isGlobalAdmin, err := bot.db.IsGlobalAdmin(callback.Sender.ID)
+		isGlobalAdmin, err := bot.db.IsBotAdmin(callback.Sender.ID)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return nil

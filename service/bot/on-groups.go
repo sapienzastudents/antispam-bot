@@ -76,7 +76,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 
 	// Global admins are able to see a special category which contains all
 	// groups without a category. This is for troubleshooting purposes.
-	isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
+	isGlobalAdmin, err := bot.db.IsBotAdmin(sender.ID)
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return

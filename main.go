@@ -80,7 +80,7 @@ func run() error {
 	}
 	if cfg.GlobalAdmin == 0 {
 		log.Warn("No default bot admin given, some functionalities cannot be guaranteed")
-	} else if err := botdb.AddGlobalAdmin(cfg.GlobalAdmin); err != nil {
+	} else if err := botdb.AddBotAdmin(cfg.GlobalAdmin); err != nil {
 		return fmt.Errorf("failed add default global admin: %w", err)
 	}
 

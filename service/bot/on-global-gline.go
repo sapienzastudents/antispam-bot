@@ -72,7 +72,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 			"by":     m.ReplyTo.Sender.ID,
 		}
 
-		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
+		isGlobalAdmin, err := bot.db.IsBotAdmin(m.ReplyTo.Sender.ID)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return
@@ -104,7 +104,7 @@ func (bot *telegramBot) onGLine(ctx tb.Context, settings chatSettings) {
 			}
 			logfields := logrus.Fields{"userid": userID, "by": m.Sender.ID}
 
-			isGlobalAdmin, err := bot.db.IsGlobalAdmin(userID)
+			isGlobalAdmin, err := bot.db.IsBotAdmin(userID)
 			if err != nil {
 				bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 				return

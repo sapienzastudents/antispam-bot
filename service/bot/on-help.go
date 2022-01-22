@@ -97,7 +97,7 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Sender, ignored")
 			return
 		}
-		isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
+		isGlobalAdmin, err := bot.db.IsBotAdmin(sender.ID)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return

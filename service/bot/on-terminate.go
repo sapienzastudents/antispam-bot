@@ -29,7 +29,7 @@ func (bot *telegramBot) onTerminate(ctx tb.Context, settings chatSettings) {
 	}
 
 	// Do not terminate an admin (remember: The Admin Is Always Right®).
-	isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.ReplyTo.Sender.ID)
+	isGlobalAdmin, err := bot.db.IsBotAdmin(m.ReplyTo.Sender.ID)
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return

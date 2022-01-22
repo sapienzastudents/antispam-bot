@@ -43,7 +43,7 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 		return chatrooms[i].Title < chatrooms[j].Title
 	})
 
-	isGlobalAdmin, err := bot.db.IsGlobalAdmin(sender.ID)
+	isGlobalAdmin, err := bot.db.IsBotAdmin(sender.ID)
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 		return

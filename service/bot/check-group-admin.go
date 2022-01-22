@@ -18,7 +18,7 @@ func (bot *telegramBot) checkGroupAdmin(actionHandler contextualChatSettingsFunc
 			return
 		}
 
-		isGlobalAdmin, err := bot.db.IsGlobalAdmin(m.Sender.ID)
+		isGlobalAdmin, err := bot.db.IsBotAdmin(m.Sender.ID)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
 			return
