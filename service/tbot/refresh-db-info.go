@@ -36,7 +36,7 @@ func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.Han
 		// Updates from groups need special care.
 		if chat.Type != tb.ChatPrivate {
 			// Update chat info in the DB (or add the chat if it is new).
-			if err := bot.db.AddOrUpdateChat(chat); err != nil {
+			if err := bot.db.AddChat(chat); err != nil {
 				bot.logger.WithError(err).Error("Failed to update my chatroom list")
 				return nil
 			}

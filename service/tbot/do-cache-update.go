@@ -25,7 +25,7 @@ func (bot *telegramBot) DoCacheUpdate() error {
 	startms := time.Now()
 	bot.logger.Info("Chat admin scan start")
 
-	chats, err := bot.db.ListMyChatrooms()
+	chats, err := bot.db.ListMyChats()
 	if err != nil {
 		return err
 	}
@@ -94,5 +94,5 @@ func (bot *telegramBot) DoCacheUpdateForChat(chatID int64) error {
 		return fmt.Errorf("failed to save chat settings: %w", err)
 	}
 
-	return bot.db.AddOrUpdateChat(chat)
+	return bot.db.AddChat(chat)
 }

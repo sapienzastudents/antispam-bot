@@ -47,7 +47,7 @@ func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
 	ret := ChatCategoryTree{}
 
 	// Get the flat list of chatrooms where the bot is.
-	chatrooms, err := db.ListMyChatrooms()
+	chatrooms, err := db.ListMyChats()
 	if err != nil {
 		return ret, err
 	}

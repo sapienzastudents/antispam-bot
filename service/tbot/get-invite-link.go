@@ -39,7 +39,7 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 		}
 
 		// Save the new chat info
-		_ = bot.db.AddOrUpdateChat(newChatInfo)
+		_ = bot.db.AddChat(newChatInfo)
 
 		// Get the invite link (again! Let's hope that this is the last time...)
 		inviteLink, err = bot.telebot.InviteLink(newChatInfo)

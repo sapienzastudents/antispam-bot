@@ -32,7 +32,7 @@ func (bot *telegramBot) onGroupsPrivileges(ctx tb.Context, settings chatSettings
 		bot.logger.WithError(err).Error("Failed to reply on /groupscheck")
 	}
 
-	chatrooms, err := bot.db.ListMyChatrooms()
+	chatrooms, err := bot.db.ListMyChats()
 	if err != nil {
 		bot.logger.WithError(err).Error("Failed to get chatroom list")
 	} else {

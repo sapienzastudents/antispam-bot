@@ -23,7 +23,7 @@ type Database interface {
 	SetChatSettings(chatID int64, settings ChatSettings) error
 
 	// ListMyChatrooms returns the list of chatrooms where the bot is.
-	ListMyChatrooms() ([]*tb.Chat, error)
+	ListMyChats() ([]*tb.Chat, error)
 
 	// ChatroomsCount returns the count of chatrooms where the bot is.
 	ChatroomsCount() (int64, error)
@@ -32,7 +32,7 @@ type Database interface {
 	//
 	// As Telegram doesn't offer a way to track in which chatrooms the bot is,
 	// we need to store it in Redis.
-	AddOrUpdateChat(c *tb.Chat) error
+	AddChat(c *tb.Chat) error
 
 	// DeleteChat removes all chatroom info.
 	DeleteChat(int64) error
