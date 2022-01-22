@@ -3,7 +3,7 @@ package tbot
 import (
 	"fmt"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
 	"github.com/sirupsen/logrus"
 	tb "gopkg.in/tucnak/telebot.v3"
@@ -14,7 +14,7 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 	inviteLink, err := bot.db.GetInviteLink(chat.ID)
 	if err == nil {
 		return inviteLink, nil
-	} else if err != botdatabase.ErrInviteLinkNotFound {
+	} else if err != database.ErrInviteLinkNotFound {
 		return "", err
 	}
 

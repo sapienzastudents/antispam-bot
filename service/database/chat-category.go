@@ -1,4 +1,4 @@
-package botdatabase
+package database
 
 import (
 	"fmt"
@@ -14,8 +14,6 @@ type ChatCategoryTree struct {
 }
 
 // GetSubCategoryList returns an ordered list of sub categories in this node.
-//
-// Time complexity: O(n + n*log(n)) where "n" is the number of chats.
 func (c *ChatCategoryTree) GetSubCategoryList() []string {
 	var ret []string
 	for subcat := range c.SubCategories {
@@ -26,8 +24,6 @@ func (c *ChatCategoryTree) GetSubCategoryList() []string {
 }
 
 // GetChats returns an ordered list of chats in this node.
-//
-// Time complexity: O(n*log(n)) where "n" is the number of chats.
 func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 	sort.Slice(c.Chats, func(i, j int) bool {
 		return c.Chats[i].Title < c.Chats[j].Title
@@ -40,10 +36,7 @@ func (c *ChatCategoryTree) GetChats() []*tb.Chat {
 // It builds the chat tree by calling GetChatSettings for each chatroom, and
 // creating a second level in the tree using sub categories. This means that
 // this function can return only tree with two levels, for now.
-//
-//
-// Time complexity: O(n) where "n" is the number of chatroom where the bot is.
-func (db *_botDatabase) GetChatTree() (ChatCategoryTree, error) {
+func (db *Database) GetChatTree() (ChatCategoryTree, error) {
 	ret := ChatCategoryTree{}
 
 	// Get the flat list of chatrooms where the bot is.

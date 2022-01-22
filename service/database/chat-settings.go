@@ -1,4 +1,4 @@
-package botdatabase
+package database
 
 import (
 	"context"
@@ -108,13 +108,11 @@ type ChatSettings struct {
 }
 
 // GetChatSettings returns the chat settings of the bot for the given chat ID.
-//
-// Time complexity: O(1).
-func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
+func (db *Database) GetChatSettings(chatID int64) (ChatSettings, error) {
 	// GetChatSettings deserializes the JSON with the ChatSettings structure
 	// inside the "settings" HSET (the field name is the chat ID as string).
 	settings := ChatSettings{}
-	jsonb, err := db.redisconn.HGet(context.TODO(), "settings", strconv.FormatInt(chatID, 10)).Result()
+	jsonb, err := db.conn.HGet(context.TODO(), "settings", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		return settings, ErrChatNotFound
 	} else if err != nil {
@@ -128,14 +126,12 @@ func (db *_botDatabase) GetChatSettings(chatID int64) (ChatSettings, error) {
 }
 
 // SetChatSettings saves the chat settings of the bot for the given chat ID.
-//
-// Time complexity: O(1).
-func (db *_botDatabase) SetChatSettings(chatID int64, settings ChatSettings) error {
+func (db *Database) SetChatSettings(chatID int64, settings ChatSettings) error {
 	// SetChatSettings saves the settings by serializing it into a JSON, and
 	// puts it in the "settings" HSET (the field name is the chat ID as string).
 	jsonb, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	return db.redisconn.HSet(context.TODO(), "settings", strconv.FormatInt(chatID, 10), jsonb).Err()
+	return db.conn.HSet(context.TODO(), "settings", strconv.FormatInt(chatID, 10), jsonb).Err()
 }

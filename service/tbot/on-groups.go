@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
 	tb "gopkg.in/tucnak/telebot.v3"
 )
@@ -64,7 +64,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 	var buttons [][]tb.InlineButton
 	for _, category := range categoryTree.GetSubCategoryList() {
 		bt := tb.InlineButton{Unique: sha1string(category), Text: category}
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
+		bot.telebot.Handle(&bt, func(cat database.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
 				bot.showCategory(ctx.Callback().Message, cat, false, lang)
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -83,7 +83,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 	}
 	if isGlobalAdmin {
 		bt := tb.InlineButton{Unique: "groups_no_category", Text: bot.bundle.T(lang, "Without any category")}
-		bot.telebot.Handle(&bt, func(cat botdatabase.ChatCategoryTree) tb.HandlerFunc {
+		bot.telebot.Handle(&bt, func(cat database.ChatCategoryTree) tb.HandlerFunc {
 			return func(ctx tb.Context) error {
 				bot.showCategory(ctx.Callback().Message, cat, true, lang)
 				_ = bot.telebot.Respond(ctx.Callback())
@@ -144,7 +144,7 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 // editing the previous message.
 //
 // TODO: Document "isgeneral" parameter.
-func (bot *telegramBot) showCategory(m *tb.Message, category botdatabase.ChatCategoryTree, isgeneral bool, lang string) {
+func (bot *telegramBot) showCategory(m *tb.Message, category database.ChatCategoryTree, isgeneral bool, lang string) {
 	msg := strings.Builder{}
 
 	// Show groups in this category before sub-categories.

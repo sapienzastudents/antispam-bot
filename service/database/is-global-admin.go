@@ -1,4 +1,4 @@
-package botdatabase
+package database
 
 import (
 	"context"
@@ -8,14 +8,14 @@ import (
 )
 
 // IsGlobalAdmin returns true if the given userID is a bot admin.
-func (db *_botDatabase) IsGlobalAdmin(userID int64) (bool, error) {
+func (db *Database) IsGlobalAdmin(userID int64) (bool, error) {
 	// Migrate old database.
-	oldGlobalAdmins, err := db.redisconn.HExists(context.TODO(), "global", "admins").Result()
+	oldGlobalAdmins, err := db.conn.HExists(context.TODO(), "global", "admins").Result()
 	if err != nil {
 		return false, err
 	}
 	if oldGlobalAdmins {
-		admins, err := db.redisconn.HGet(context.TODO(), "global", "admins").Result()
+		admins, err := db.conn.HGet(context.TODO(), "global", "admins").Result()
 		if err != nil {
 			return false, fmt.Errorf("on HGET from old database: %w", err)
 		}
@@ -33,13 +33,13 @@ func (db *_botDatabase) IsGlobalAdmin(userID int64) (bool, error) {
 
 		// Delete old database, otherwhise the migration is done at every call
 		// of IsGlobalAdmin.
-		if err := db.redisconn.HDel(context.TODO(), "global", "admins").Err(); err != nil {
+		if err := db.conn.HDel(context.TODO(), "global", "admins").Err(); err != nil {
 			return false, fmt.Errorf("on HDEL on old database: %w", err)
 		}
 	}
 
 	id := strconv.FormatInt(userID, 10)
-	is, err := db.redisconn.SIsMember(context.TODO(), "global-admins", id).Result()
+	is, err := db.conn.SIsMember(context.TODO(), "global-admins", id).Result()
 	if err != nil {
 		return false, fmt.Errorf("on SISMEMBER: %w", err)
 	}

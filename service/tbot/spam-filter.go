@@ -2,7 +2,8 @@ package tbot
 
 import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/antispam"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
+
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -20,7 +21,7 @@ func (bot *telegramBot) spamFilter(m *tb.Message, settings chatSettings, textval
 		// chinese texts in a period of time when bots were targetting our
 		// group. This check is trying to avoid banning people randomly just for
 		// having chinese/arabic names, however false positive might arise.
-		if settings.OnMessageChinese.Action != botdatabase.ActionNone {
+		if settings.OnMessageChinese.Action != database.ActionNone {
 			chinesePercent := antispam.ChineseChars(text)
 			bot.logger.Debugf("SPAM detection (msg id %d): chinese %f", m.ID, chinesePercent)
 			if chinesePercent > 0.05 {
@@ -29,7 +30,7 @@ func (bot *telegramBot) spamFilter(m *tb.Message, settings chatSettings, textval
 			}
 		}
 
-		if settings.OnMessageArabic.Action != botdatabase.ActionNone {
+		if settings.OnMessageArabic.Action != database.ActionNone {
 			arabicPercent := antispam.ArabicChars(text)
 			bot.logger.Debugf("SPAM detection (msg id %d): arabic %f", m.ID, arabicPercent)
 			if arabicPercent > 0.05 {

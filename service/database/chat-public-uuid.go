@@ -1,4 +1,4 @@
-package botdatabase
+package database
 
 import (
 	"context"
@@ -15,14 +15,12 @@ var ErrChatUUIDNotFound = errors.New("chat uuid not found")
 // GetUUIDFromChat returns the UUID for the given chat ID.
 //
 // The UUID can be used e.g. in web links.
-//
-// Time complexity: O(1).
-func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
-	chatUUIDString, err := db.redisconn.HGet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10)).Result()
+func (db *Database) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
+	chatUUIDString, err := db.conn.HGet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10)).Result()
 	if err == redis.Nil {
 		// Not found
 		chatUUID := uuid.New()
-		err = db.redisconn.HSet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10), chatUUID.String()).Err()
+		err = db.conn.HSet(context.TODO(), "public-links", strconv.FormatInt(chatID, 10), chatUUID.String()).Err()
 		return chatUUID, err
 	} else if err != nil {
 		return uuid.Nil, err
@@ -31,14 +29,12 @@ func (db *_botDatabase) GetUUIDFromChat(chatID int64) (uuid.UUID, error) {
 }
 
 // GetChatIDFromUUID returns the chat ID for the given UUID.
-//
-// Time complexity: O(n) where "n" is the number of chatrooms where the bot is.
-func (db *_botDatabase) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
+func (db *Database) GetChatIDFromUUID(lookupUUID uuid.UUID) (int64, error) {
 	var cursor uint64 = 0
 	var err error
 	var keys []string
 	for {
-		keys, cursor, err = db.redisconn.HScan(context.TODO(), "public-links", cursor, "", -1).Result()
+		keys, cursor, err = db.conn.HScan(context.TODO(), "public-links", cursor, "", -1).Result()
 		if err == redis.Nil {
 			return 0, ErrChatUUIDNotFound
 		}

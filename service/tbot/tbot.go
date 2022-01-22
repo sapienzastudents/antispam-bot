@@ -20,8 +20,8 @@ package tbot
 import (
 	"net/http"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 
 	"github.com/patrickmn/go-cache"
@@ -48,7 +48,7 @@ type telegramBot struct {
 
 	// db is the main database instance, use this for settings, cache and other things that needs to survive between
 	// reboots
-	db botdatabase.Database
+	db *database.Database
 
 	// cas is the CAS database interface, if any
 	cas cas.CAS

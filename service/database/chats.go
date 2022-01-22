@@ -1,4 +1,4 @@
-package botdatabase
+package database
 
 import (
 	"context"
@@ -15,12 +15,12 @@ import (
 // structure.
 //
 // TODO: This method can be removed in the future.
-func (db *_botDatabase) migrateOldChats() error {
+func (db *Database) migrateOldChats() error {
 	var cursor uint64 = 0
 	var err error
 	var keys []string
 	for {
-		keys, cursor, err = db.redisconn.HScan(context.TODO(), "chatrooms", cursor, "", -1).Result()
+		keys, cursor, err = db.conn.HScan(context.TODO(), "chatrooms", cursor, "", -1).Result()
 		if errors.Is(err, redis.Nil) {
 			return nil // Old key doesn't exist, nothing to migrate.
 		} else if err != nil {
@@ -51,7 +51,7 @@ func (db *_botDatabase) migrateOldChats() error {
 	}
 
 	// Delete old key, so the next call will skip the migration.
-	if err := db.redisconn.Del(context.TODO(), "chatrooms").Err(); err != nil {
+	if err := db.conn.Del(context.TODO(), "chatrooms").Err(); err != nil {
 		return fmt.Errorf("on deleting \"chatrooms\": %w", err)
 	}
 	return nil
@@ -63,16 +63,16 @@ func (db *_botDatabase) migrateOldChats() error {
 // need to store it in Redis.
 //
 // Only ID and Title fields in tb.Chat are saved into the DB.
-func (db *_botDatabase) AddChat(c *tb.Chat) error {
+func (db *Database) AddChat(c *tb.Chat) error {
 	// First add the given chat ID as tracked chats.
 	id := strconv.FormatInt(c.ID, 10)
-	if err := db.redisconn.SAdd(context.TODO(), "chats", id).Err(); err != nil {
+	if err := db.conn.SAdd(context.TODO(), "chats", id).Err(); err != nil {
 		return fmt.Errorf("on adding/updating the given chat to \"chats\" hash set: %w", err)
 	}
 
 	// Then save chat's details.
 	hid := "chats:" + id
-	if err := db.redisconn.HSet(context.TODO(), hid, "title", c.Title).Err(); err != nil {
+	if err := db.conn.HSet(context.TODO(), hid, "title", c.Title).Err(); err != nil {
 		return fmt.Errorf("on adding/updating the given chat title to %q hash: %w", hid, err)
 	}
 
@@ -82,28 +82,28 @@ func (db *_botDatabase) AddChat(c *tb.Chat) error {
 // DeleteChat removes the chat info of the given chat ID.
 //
 // If the given chat ID doesn't exists this method does nothing.
-func (db *_botDatabase) DeleteChat(id int64) error {
+func (db *Database) DeleteChat(id int64) error {
 	if err := db.migrateOldChats(); err != nil {
 		return fmt.Errorf("on migrating old chat's database: %w", err)
 	}
 
 	// Chat info are stored on multiple keys on DB, we must remove each one.
 	sid := strconv.FormatInt(id, 10)
-	if err := db.redisconn.SRem(context.TODO(), "chats", sid).Err(); err != nil {
+	if err := db.conn.SRem(context.TODO(), "chats", sid).Err(); err != nil {
 		return fmt.Errorf("on removing the given chat ID from \"chats\" hash set: %w", err)
 	}
 
 	// Chat's details.
 	hid := "chats:" + sid
-	if err := db.redisconn.Del(context.TODO(), hid).Err(); err != nil {
+	if err := db.conn.Del(context.TODO(), hid).Err(); err != nil {
 		return fmt.Errorf("on removing chat info %q key: %w", hid, err)
 	}
 
 	// Remove also info stored on these keys.
-	if err := db.redisconn.HDel(context.TODO(), "public-links", sid).Err(); err != nil {
+	if err := db.conn.HDel(context.TODO(), "public-links", sid).Err(); err != nil {
 		return fmt.Errorf("on removing chat's public link from \"public-links\": %w", err)
 	}
-	if err := db.redisconn.HDel(context.TODO(), "settings", sid).Err(); err != nil {
+	if err := db.conn.HDel(context.TODO(), "settings", sid).Err(); err != nil {
 		return fmt.Errorf("on removing chat's settings from \"settings\": %w", err)
 	}
 
@@ -111,12 +111,12 @@ func (db *_botDatabase) DeleteChat(id int64) error {
 }
 
 // ChatroomsCount returns the number of tracked chats.
-func (db *_botDatabase) ChatroomsCount() (int64, error) {
+func (db *Database) ChatroomsCount() (int64, error) {
 	if err := db.migrateOldChats(); err != nil {
 		return 0, fmt.Errorf("on migrating old chat's database: %w", err)
 	}
 
-	ret, err := db.redisconn.SCard(context.TODO(), "chats").Result()
+	ret, err := db.conn.SCard(context.TODO(), "chats").Result()
 	if errors.Is(err, redis.Nil) {
 		return 0, nil
 	}
@@ -124,7 +124,7 @@ func (db *_botDatabase) ChatroomsCount() (int64, error) {
 }
 
 // ListMyChatrooms returns the list of tracked chats.
-func (db *_botDatabase) ListMyChats() ([]*tb.Chat, error) {
+func (db *Database) ListMyChats() ([]*tb.Chat, error) {
 	if err := db.migrateOldChats(); err != nil {
 		return nil, fmt.Errorf("on migrating old chat's database: %w", err)
 	}
@@ -136,7 +136,7 @@ func (db *_botDatabase) ListMyChats() ([]*tb.Chat, error) {
 	var keys []string
 	// ListMyChatrooms works by by deserializing the tb.Chat for each chatroom.
 	for {
-		keys, cursor, err = db.redisconn.SScan(context.TODO(), "chats", cursor, "", -1).Result()
+		keys, cursor, err = db.conn.SScan(context.TODO(), "chats", cursor, "", -1).Result()
 		if errors.Is(err, redis.Nil) {
 			return chats, nil
 		} else if err != nil {
@@ -153,7 +153,7 @@ func (db *_botDatabase) ListMyChats() ([]*tb.Chat, error) {
 			chat.ID = id
 
 			hid := "chats:" + key
-			title, err := db.redisconn.HGet(context.TODO(), hid, "title").Result()
+			title, err := db.conn.HGet(context.TODO(), hid, "title").Result()
 			if err != nil {
 				return nil, fmt.Errorf("on retrieving chat's title from %q key: %w", hid, err)
 			}

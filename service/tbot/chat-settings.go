@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
+
 	"github.com/sirupsen/logrus"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	tb "gopkg.in/tucnak/telebot.v3"
 )
 
@@ -17,39 +18,39 @@ import (
 // settings based on some default values and returns it.
 func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 	settings, err := bot.db.GetChatSettings(chat.ID)
-	if err == botdatabase.ErrChatNotFound {
+	if err == database.ErrChatNotFound {
 		err = nil
 		// Chat settings not found, load default values
-		settings = botdatabase.ChatSettings{
+		settings = database.ChatSettings{
 			BotEnabled:    true,
 			OnJoinDelete:  false,
 			OnLeaveDelete: false,
-			OnJoinChinese: botdatabase.BotAction{
-				Action:   botdatabase.ActionNone,
+			OnJoinChinese: database.BotAction{
+				Action:   database.ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
-			OnJoinArabic: botdatabase.BotAction{
-				Action:   botdatabase.ActionNone,
+			OnJoinArabic: database.BotAction{
+				Action:   database.ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
-			OnMessageChinese: botdatabase.BotAction{
-				Action:   botdatabase.ActionNone,
+			OnMessageChinese: database.BotAction{
+				Action:   database.ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
-			OnMessageArabic: botdatabase.BotAction{
-				Action:   botdatabase.ActionNone,
+			OnMessageArabic: database.BotAction{
+				Action:   database.ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
-			OnBlacklistCAS: botdatabase.BotAction{
-				Action:   botdatabase.ActionNone,
+			OnBlacklistCAS: database.BotAction{
+				Action:   database.ActionNone,
 				Duration: 0,
 				Delay:    0,
 			},
-			ChatAdmins: botdatabase.ChatAdminList{},
+			ChatAdmins: database.ChatAdminList{},
 		}
 
 		chatAdmins, err := bot.telebot.AdminsOf(chat)
@@ -72,7 +73,7 @@ func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 }
 
 type chatSettings struct {
-	botdatabase.ChatSettings
+	database.ChatSettings
 
 	globalLog int64
 	b         *tb.Bot

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 
 	"github.com/patrickmn/go-cache"
@@ -20,7 +20,7 @@ type Options struct {
 	Logger logrus.FieldLogger
 
 	// Database is needed for chat cache and settings. Required
-	Database botdatabase.Database
+	Database *database.Database
 
 	// Token is the Telegram bot token, from BotFather. Required
 	Token string

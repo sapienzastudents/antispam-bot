@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/botdatabase"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/tbot"
@@ -74,7 +74,7 @@ func run() error {
 	}
 
 	log.Info("Initializing database")
-	botdb, err := botdatabase.New(redisDB)
+	botdb, err := database.New(redisDB)
 	if err != nil {
 		return fmt.Errorf("failed to create DB connection: %w", err)
 	}
