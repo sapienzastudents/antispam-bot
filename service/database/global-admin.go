@@ -59,3 +59,23 @@ func (db *Database) AddBotAdmin(id int64) error {
 	}
 	return nil
 }
+
+// GetBotAdmins returns all bot admins as a slice of IDs.
+func (db *Database) GetBotAdmins() ([]int64, error) {
+	var admins []int64
+
+	res, err := db.conn.SMembers(context.TODO(), "global-admins").Result()
+	if err != nil {
+		return admins, fmt.Errorf("on \"SMEMEBRS global-admins\": %w", err)
+	}
+
+	admins = make([]int64, 0, len(res))
+	for _, str := range res {
+		admin, err := strconv.ParseInt(str, 10, 64)
+		if err != nil {
+			return admins, fmt.Errorf("on parsing admin's ID: %w", err)
+		}
+		admins = append(admins, admin)
+	}
+	return admins, nil
+}

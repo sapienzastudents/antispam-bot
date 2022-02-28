@@ -16,3 +16,5 @@ require (
 	gopkg.in/tucnak/telebot.v3 v3.0.0-20210930165304-9a08d98f4ee7
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
+
+replace gopkg.in/tucnak/telebot.v3 => ../telebot

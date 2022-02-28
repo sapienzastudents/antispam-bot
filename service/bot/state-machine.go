@@ -17,10 +17,16 @@ type State struct {
 	// ChatToEdit is the chat the user is editing
 	ChatToEdit *tb.Chat
 
-	// AddGlobalCategory is a flag indicating that the next text message is the name of the global category
+	// AddGlobalCategory is a flag indicating that the next text message is the
+	// name of the global category
 	AddGlobalCategory bool
 
-	// AddSubCategory is a flag indicating that the next message is the name of the sub category
+	// AddBotAdmin is a flag indicating that the next text message is the ID of
+	// a new bot admin.
+	AddBotAdmin bool
+
+	// AddSubCategory is a flag indicating that the next message is the name of
+	// the sub category
 	AddSubCategory bool
 
 	bot             *telegramBot
@@ -36,8 +42,6 @@ func (s *State) Save() {
 }
 
 // newState creates a new empty state for the given user.
-//
-// Time complexity: O(1).
 func (bot *telegramBot) newState(user *tb.User, chatWithTheUser *tb.Chat) State {
 	return State{
 		user:            user,
@@ -47,8 +51,6 @@ func (bot *telegramBot) newState(user *tb.User, chatWithTheUser *tb.Chat) State 
 }
 
 // getStateFor returns the current state for the given user.
-//
-// Time complexity: O(1)
 func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
 	state, ok := bot.statemgmt.Get(fmt.Sprintf("%d %d", user.ID, chat.ID))
 	if !ok {
@@ -63,6 +65,13 @@ func (bot *telegramBot) getStateFor(user *tb.User, chat *tb.Chat) State {
 // endpoint. It is used for an admin action callback, injecting the user state.
 // The callback restricts the action callback to a chat admin or a global admin
 // (in other words, the callback sender must be an admin).
+
+// handleAdminCallbackStateful adds the given function as handler for the given
+// endpoint.
+//
+// It is used for an admin action callback, injecting the user state. The
+// callback sender must be an (bot or group) admin (if the callback is on a
+// private chat, it must be only a bot admin).
 func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn func(ctx tb.Context, state State)) {
 	bot.telebot.Handle(endpoint, func(ctx tb.Context) error {
 		callback := ctx.Callback()
@@ -73,7 +82,7 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 
 		state := bot.getStateFor(callback.Sender, callback.Message.Chat)
 
-		settings, err := bot.getChatSettings(state.ChatToEdit)
+		settings, err := bot.getChatSettings(callback.Message.Chat)
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to get chat settings in handleAdminCallbackStateful")
 			return nil
@@ -85,11 +94,25 @@ func (bot *telegramBot) handleAdminCallbackStateful(endpoint interface{}, fn fun
 			return nil
 		}
 
+		lang := ctx.Sender().LanguageCode
+
+		// If the callback is on a private chat the sender must be only a bot
+		// admin.
+		if callback.Message.Private() {
+			if isGlobalAdmin {
+				// User authorized, call the registered function.
+				fn(ctx, state)
+			} else {
+				_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
+					Text:      bot.bundle.T(lang, "Not authorized"),
+					ShowAlert: false,
+				})
+			}
+		}
+
 		if settings.ChatAdmins.IsAdmin(callback.Sender) || isGlobalAdmin {
-			// User authorized, call the registered function.
 			fn(ctx, state)
 		} else {
-			lang := ctx.Sender().LanguageCode
 			_ = bot.telebot.Respond(callback, &tb.CallbackResponse{
 				Text:      bot.bundle.T(lang, "Not authorized"),
 				ShowAlert: false,

@@ -141,6 +141,19 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
+		if isGlobalAdmin {
+			adminSettingsBt := tb.InlineButton{
+				Unique: "bt_action_admin_settings",
+				Text:   "👮" + bot.bundle.T(lang, "Admins settings"),
+			}
+			bot.telebot.Handle(&adminSettingsBt, func(ctx tb.Context) error {
+				_ = bot.telebot.Respond(ctx.Callback())
+				bot.sendAdminsForSettings(ctx.Sender(), ctx.Message())
+				return nil
+			})
+			buttons = append(buttons, []tb.InlineButton{adminSettingsBt})
+		}
+
 		// Help button, used to show a small help message on how to add the bot
 		// on a group.
 		guidebt := tb.InlineButton{

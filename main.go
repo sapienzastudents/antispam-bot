@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
-	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/bot"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/cas"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
+	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/i18n"
 
 	"github.com/ardanlabs/conf/v2"
 	"github.com/go-redis/redis/v8"

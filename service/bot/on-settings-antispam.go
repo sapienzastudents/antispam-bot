@@ -14,7 +14,7 @@ import (
 // chat where the message is sent, localizing the text with the given language.
 //
 // This panel can be accessed when the user clicks on antispam settings button,
-// insied the general settings panel.
+// inside the general settings panel.
 func (bot *telegramBot) sendAntispamSettingsMessage(m *tb.Message, lang string, chatToConfigure *tb.Chat, settings chatSettings) {
 	// Generate message text based on chatToConfigure.
 	buf := strings.Builder{}

@@ -53,11 +53,14 @@ func (bot *telegramBot) getChatSettings(chat *tb.Chat) (chatSettings, error) {
 			ChatAdmins: database.ChatAdminList{},
 		}
 
-		chatAdmins, err := bot.telebot.AdminsOf(chat)
-		if err != nil {
-			return chatSettings{}, fmt.Errorf("failed to get admin list for chat: %w", err)
+		// Private chats doesn't have admins, Telegram will reply with an error.
+		if chat.Type != tb.ChatPrivate {
+			chatAdmins, err := bot.telebot.AdminsOf(chat)
+			if err != nil {
+				return chatSettings{}, fmt.Errorf("failed to get admin list for chat: %w", err)
+			}
+			settings.ChatAdmins.SetFromChat(chatAdmins)
 		}
-		settings.ChatAdmins.SetFromChat(chatAdmins)
 
 		err = bot.db.SetChatSettings(chat.ID, settings)
 		if err != nil {
