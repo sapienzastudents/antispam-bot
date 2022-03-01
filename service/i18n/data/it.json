@@ -98,5 +98,9 @@
     "You will be terminated in 60 seconds, there will be no further warnings": "Sarai terminato in 60 secondi, non ci saranno ulteriori avvertimenti",
     "Not authorized": "Non autorizzato",
     "Admins settings": "Impostazioni amministratori",
-    "Add admin": "Aggiungi un amministratore"
+    "Add admin": "Aggiungi un amministratore",
+    "Contacts": "Contatti",
+    "<b>Contacts</b>\n\n": "<b>Contatti</b>\n\n",
+    "You can reach us on our <a href=\"https://sapienzahub.it/\">SapienzaHub website</a> for more information.\n\n": "Puoi raggiungerci sul nostro <a href=\"https://sapienzahub.it/\">sito web SapienzaHub</a> per maggiori informazioni.\n\n",
+    "If you have any problem with the bot, open an issue on the our <a href=\"https://gitlab.com/sapienzastudents/antispam-telegram-bot/\">GitLab repository</a>!": "Se hai un qualsiasi problema con il bot, apri una issue sulla nostra <a href=\"https://gitlab.com/sapienzastudents/antispam-telegram-bot/\">repository GitLab</a>!"
 }

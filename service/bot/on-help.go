@@ -154,6 +154,17 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			buttons = append(buttons, []tb.InlineButton{adminSettingsBt})
 		}
 
+		contactsbt := tb.InlineButton{
+			Unique: "contacts",
+			Text:   "❓ " + bot.bundle.T(lang, "Contacts"),
+		}
+		bot.telebot.Handle(&contactsbt, func(ctx tb.Context) error {
+			callback := ctx.Callback()
+			_ = bot.telebot.Respond(callback)
+			return bot.onContacts(ctx)
+		})
+		buttons = append(buttons, []tb.InlineButton{contactsbt})
+
 		// Help button, used to show a small help message on how to add the bot
 		// on a group.
 		guidebt := tb.InlineButton{
