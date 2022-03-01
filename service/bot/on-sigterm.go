@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onSigTerm quits from the group where the command /sigterm is sent and deletes
 // all infos about it.

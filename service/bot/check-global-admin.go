@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // checkGlobalAdmin is a "firewall" wrapper for global admin only handlers. It
 // checks if the sender is a global admin.

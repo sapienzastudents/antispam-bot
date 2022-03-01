@@ -4,7 +4,7 @@ import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/antispam"
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // spamFilter checks all text values in the slice against antispam functions. If

@@ -8,7 +8,7 @@ import (
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // getChatSettings retrieves the chat settings from the database for the given

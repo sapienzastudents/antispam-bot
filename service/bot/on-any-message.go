@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // onAnyMessage is triggered by any message in a group or in a private

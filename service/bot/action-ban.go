@@ -2,7 +2,7 @@ package bot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // banUser will ban a user. It has no effect on chat admins. It records the action in the log

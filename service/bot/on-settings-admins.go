@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"strings"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // sendAdminsForSettings sends the bot admins settings panel to the chat where

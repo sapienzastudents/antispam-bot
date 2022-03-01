@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onReloadGroup refreshes the cache for the group where /reload command is sent.
 func (bot *telegramBot) onReloadGroup(ctx tb.Context, settings chatSettings) {

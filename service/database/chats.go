@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // migrateOldChats migrates old tracked chats on the database to the new

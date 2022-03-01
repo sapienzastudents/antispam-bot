@@ -2,7 +2,7 @@ package bot
 
 import (
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // contextualChatSettingsFunc is the signature of the function that can be

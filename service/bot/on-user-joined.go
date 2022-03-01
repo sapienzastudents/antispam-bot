@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onAddedToGroup is fired when the bot is added to a group.
 func (bot *telegramBot) onAddedToGroup(ctx tb.Context, settings chatSettings) {

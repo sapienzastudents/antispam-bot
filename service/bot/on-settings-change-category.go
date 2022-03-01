@@ -1,7 +1,7 @@
 package bot
 
 import (
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // handleChangeCategory is the callback handler for "change category" button in

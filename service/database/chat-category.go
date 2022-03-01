@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // ChatCategoryTree is a node of the chat tree. Each node can contain some chats and/or some sub categories

@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onDont is fired on /dont command. It works only if the command is given as a
 // reply for another message, it deletes the command message and replies to the

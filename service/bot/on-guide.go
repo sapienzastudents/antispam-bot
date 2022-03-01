@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onGuide fires when guide button is pressed.
 func (bot *telegramBot) onGuide(ctx tb.Context) {

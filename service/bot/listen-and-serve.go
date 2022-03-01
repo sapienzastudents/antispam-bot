@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // simpleHandler adds the given function as handler for the given endpoint. It

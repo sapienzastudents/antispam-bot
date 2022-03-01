@@ -3,7 +3,7 @@ package bot
 import (
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // checkGroupAdmin returns a function suited to be passed to refreshDBInfo.

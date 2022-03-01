@@ -1,12 +1,14 @@
 package bot
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
 	"github.com/sirupsen/logrus"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // getInviteLink returns the invite link for the given chat.
@@ -24,16 +26,10 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 	// Warning: "InviteLink" API will actually generate a new link instead of
 	// getting the current link.
 	inviteLink, err = bot.telebot.InviteLink(chat)
-	if err != nil && err.Error() == tb.ErrGroupMigrated.Error() {
-		// Chat has been migrated (why? Probably from normal groups to
-		// supergroups). We need to update some infos.
-		apierr, _ := err.(*tb.APIError)
-
-		ID, ok := apierr.Parameters["migrate_to_chat_id"].(int64)
-		if !ok {
-			return "", fmt.Errorf("migrate_to_chat_id is not an int64: %w", err)
-		}
-		newChatInfo, err := bot.telebot.ChatByID(ID)
+	grouperr := &tb.GroupError{}
+	apierr := &tb.Error{}
+	if errors.As(err, &grouperr) {
+		newChatInfo, err := bot.telebot.ChatByID(grouperr.MigratedTo)
 		if err != nil {
 			return "", fmt.Errorf("failed to get chat info for migrated supergroup: %w", err)
 		}
@@ -46,7 +42,7 @@ func (bot *telegramBot) getInviteLink(chat *tb.Chat) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to get invite link from API: %w", err)
 		}
-	} else if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == 400 || apierr.Code == 403) {
+	} else if errors.As(err, &apierr) && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
 		return "", fmt.Errorf("no permissions for invite link: %w", err)
 	} else if err != nil {
 		return "", fmt.Errorf("failed to get invite link from API: %w", err)

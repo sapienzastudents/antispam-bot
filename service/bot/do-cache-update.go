@@ -10,7 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 var (
@@ -47,7 +47,8 @@ func (bot *telegramBot) DoCacheUpdate() error {
 		time.Sleep(1000 * time.Millisecond)
 
 		members, err := bot.telebot.Len(chat)
-		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
+		apierr := &tb.Error{}
+		if errors.As(err, &apierr) && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
 			// We're out of the chat
 			_ = bot.db.DeleteChat(chat.ID)
 		} else if err != nil && strings.Contains(err.Error(), "bot is not a member of the group chat") {
@@ -71,7 +72,8 @@ func (bot *telegramBot) DoCacheUpdate() error {
 func (bot *telegramBot) DoCacheUpdateForChat(chatID int64) error {
 	chat, err := bot.telebot.ChatByID(chatID)
 	if err != nil {
-		if apierr, ok := err.(*tb.APIError); ok && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
+		apierr := &tb.Error{}
+		if errors.As(err, &apierr) && (apierr.Code == http.StatusBadRequest || apierr.Code == http.StatusForbidden) {
 			_ = bot.db.DeleteChat(chatID)
 			return ErrChatNotFound
 		}

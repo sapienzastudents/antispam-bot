@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/sapienzastudents/antispam-telegram-bot/service/database"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // sendAntispamSettingsMessage sends the antispam settings message panel to the

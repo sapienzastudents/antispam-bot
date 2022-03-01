@@ -3,7 +3,7 @@ package bot
 import (
 	"reflect"
 
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 var botPermissionsTag = map[string]string{

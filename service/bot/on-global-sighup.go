@@ -1,6 +1,6 @@
 package bot
 
-import tb "gopkg.in/tucnak/telebot.v3"
+import tb "gopkg.in/telebot.v3"
 
 // onSigHup refreshes the cache for ALL groups on /sighup command.
 func (bot *telegramBot) onSigHup(ctx tb.Context, settings chatSettings) {

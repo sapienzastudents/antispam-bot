@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/patrickmn/go-cache"
-	tb "gopkg.in/tucnak/telebot.v3"
+	tb "gopkg.in/telebot.v3"
 )
 
 // Bot requests are stateless. However, we need to maintain some state across
