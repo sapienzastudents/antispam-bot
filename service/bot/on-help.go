@@ -141,6 +141,22 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			buttons = append(buttons, []tb.InlineButton{settingsBt})
 		}
 
+		// "Blacklist" button.
+		blacklistBt := tb.InlineButton{
+			Unique: "bt_action_blacklist",
+			Text:   "⚫️ " + bot.bundle.T(lang, "Blacklist"),
+		}
+		bot.telebot.Handle(&blacklistBt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
+
+			bot.sendBlacklist(ctx.Sender(), ctx.Message(), 0)
+			return nil
+		})
+		buttons = append(buttons, []tb.InlineButton{blacklistBt})
+
 		if isGlobalAdmin {
 			adminSettingsBt := tb.InlineButton{
 				Unique: "bt_action_admin_settings",

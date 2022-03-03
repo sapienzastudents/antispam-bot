@@ -2,9 +2,11 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/go-redis/redis/v8"
 	tb "gopkg.in/telebot.v3"
 )
 
@@ -52,4 +54,48 @@ func (db *Database) DeleteBlacklist(id int64) error {
 	}
 
 	return nil
+}
+
+// ListBlacklist returns the list of chats that are on the blacklist.
+//
+// The returned tb.Chat contains only ID and Title fields.
+func (db *Database) ListBlacklist() ([]*tb.Chat, error) {
+	var chats []*tb.Chat
+	var cursor uint64 = 0
+	var err error
+	var keys []string
+	for {
+		keys, cursor, err = db.conn.SScan(context.TODO(), "blacklist", cursor, "", -1).Result()
+		if errors.Is(err, redis.Nil) {
+			return chats, nil
+		} else if err != nil {
+			return nil, fmt.Errorf("on scanning chats in \"blacklist\": %w", err)
+		}
+
+		for _, key := range keys {
+			chat := tb.Chat{}
+
+			id, err := strconv.ParseInt(key, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("on parsing chat's id: %w", err)
+			}
+			chat.ID = id
+
+			hid := "blacklist:" + key
+			title, err := db.conn.HGet(context.TODO(), hid, "title").Result()
+			if err != nil {
+				return nil, fmt.Errorf("on retrieving chat's title from %q key: %w", hid, err)
+			}
+			chat.Title = title
+
+			chats = append(chats, &chat)
+		}
+
+		// SCAN cycle end
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return chats, nil
 }
