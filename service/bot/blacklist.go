@@ -253,38 +253,41 @@ func (bot *telegramBot) sendBlacklistRemoval(sender *tb.User, message *tb.Messag
 	}
 	bot.telebot.Handle(&yesBt, func(ctx tb.Context) error {
 		callback := ctx.Callback()
-		ctx.Respond(&tb.CallbackResponse{
-			Text: "Ok! Want to remove chat",
-		})
-		/* TODO
-		callback := ctx.Callback()
-		page, err := strconv.Atoi(callback.Data)
+
+		id, err := strconv.ParseInt(callback.Data, 10, 64)
 		if err != nil {
+			bot.logger.WithError(err).Error("Failed to parse callback data as int64")
+			ctx.Respond(&tb.CallbackResponse{
+				Text: "Internal server error, contact an admin!",
+			})
 			return err
 		}
-		*/
+
+		if err := bot.db.DeleteBlacklist(id); err != nil {
+			bot.logger.WithError(err).WithField("chat_id", id).Error("Failed to remove group from blacklist")
+			ctx.Respond(&tb.CallbackResponse{
+				Text: "Internal server error, contact an admin!",
+			})
+			return err
+		}
+
+		ctx.Respond(&tb.CallbackResponse{
+			Text: "Chat removed from the blacklist!",
+		})
 		bot.sendBlacklist(callback.Sender, callback.Message, 0)
 		return nil
 	})
 
 	// "No" (do not want to remove the group from the blacklist) button.
 	noBt := tb.InlineButton{
-		Unique: "confirm_blacklist_yes",
+		Unique: "confirm_blacklist_no",
 		Text:   "❌ " + bot.bundle.T(lang, "No"),
-		Data:   strconv.FormatInt(id, 10),
 	}
 	bot.telebot.Handle(&noBt, func(ctx tb.Context) error {
 		callback := ctx.Callback()
 		ctx.Respond(&tb.CallbackResponse{
-			Text: "Ok! Want to keep chat on blacklist",
+			Text: "Chat NOT removed from the blacklist!",
 		})
-		/* TODO
-		callback := ctx.Callback()
-		page, err := strconv.Atoi(callback.Data)
-		if err != nil {
-			return err
-		}
-		*/
 		bot.sendBlacklist(callback.Sender, callback.Message, 0)
 		return nil
 	})
