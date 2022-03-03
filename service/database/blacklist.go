@@ -39,7 +39,7 @@ func (db *Database) AddBlacklist(c *tb.Chat) error {
 
 // DeleteBlacklist removes the group of the given ID from the blacklist.
 //
-// If the given chat ID doesn't exists this method does nothing.
+// If the given chat ID doesn't exist this method does nothing.
 func (db *Database) DeleteBlacklist(id int64) error {
 	// Chat info are stored on multiple keys on DB, we must remove each one.
 	sid := strconv.FormatInt(id, 10)
@@ -98,4 +98,30 @@ func (db *Database) ListBlacklist() ([]*tb.Chat, error) {
 	}
 
 	return chats, nil
+}
+
+// GetBlacklist returns the chat corresponding to the given ID.
+//
+// The returned tb.Chat contains only ID and Title fields. If the given chat ID
+// doesn't exist it returns an error.
+func (db *Database) GetBlacklist(id int64) (*tb.Chat, error) {
+	chat := &tb.Chat{ID: id}
+	sid := strconv.FormatInt(id, 10)
+
+	// Check is the given id is on the blacklist.
+	if is, err := db.conn.SIsMember(context.TODO(), "blacklist", sid).Result(); err != nil {
+		return nil, fmt.Errorf("on checking if given id is on \"blacklist\" set: %w", err)
+	} else if !is {
+		return nil, errors.New("given id is not on blacklist")
+	}
+
+	// Retrieve chat's info.
+	hid := "blacklist:" + sid
+	title, err := db.conn.HGet(context.TODO(), hid, "title").Result()
+	if err != nil {
+		return nil, fmt.Errorf("on retrieving chat's title from %q key: %w", hid, err)
+	}
+	chat.Title = title
+
+	return chat, nil
 }

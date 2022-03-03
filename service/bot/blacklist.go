@@ -113,22 +113,21 @@ func (bot *telegramBot) sendBlacklist(sender *tb.User, messageToEdit *tb.Message
 			Data:   strconv.FormatInt(x.ID, 10),
 		}
 		bot.telebot.Handle(&btn, func(ctx tb.Context) error {
-			ctx.Respond(&tb.CallbackResponse{
-				Text: "Ok!",
-			})
-			// TODO
-			/*
 			callback := ctx.Callback()
 
-			id, err := strconv.ParseInt(callback.Data, 10, 64)
-			if err != nil {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
 				return err
 			}
-			newchat, _ := bot.telebot.ChatByID(id)
 
-			settings, _ := bot.getChatSettings(newchat)
-			bot.sendSettingsMessage(callback.Sender, callback.Message, callback.Message.Chat, newchat, settings)
-			*/
+			// Parse chat's id from callback data.
+			id, err := strconv.ParseInt(callback.Data, 10, 64)
+			if err != nil {
+				bot.logger.WithError(err).Error("Failed to parse callback data")
+				return err
+			}
+
+			bot.sendBlacklistRemoval(callback.Sender, callback.Message, id)
 			return nil
 		})
 		chatButtons = append(chatButtons, []tb.InlineButton{btn})
@@ -224,5 +223,87 @@ func (bot *telegramBot) sendBlacklist(sender *tb.User, messageToEdit *tb.Message
 		if _, err = bot.telebot.Edit(messageToEdit, msg, sendOptions); err != nil {
 			bot.logger.WithError(err).Error("Failed to edit blacklist message")
 		}
+	}
+}
+
+// sendBlacklistRemoval sends a confirmation message to remove the given chat's
+// id from the blacklist.
+//
+// The confirmation message is sent editing messageToEdit. After clicking a
+// button, the blacklist list will be sent.
+func (bot *telegramBot) sendBlacklistRemoval(sender *tb.User, message *tb.Message, id int64) {
+	lang := sender.LanguageCode
+
+	// Only bot admins can remove a group from a blacklist.
+	if is, err := bot.db.IsBotAdmin(sender.ID); err != nil {
+		bot.logger.WithError(err).Error("Failed to check if the user is a bot admin")
+		return
+	} else if !is {
+		bot.logger.Warn("This user triggered the blacklist but it is not a bot admin!")
+		return
+	}
+
+	var chatButtons [][]tb.InlineButton
+
+	// "Yes" (want to remove the group from the blacklist) button.
+	yesBt := tb.InlineButton{
+		Unique: "confirm_blacklist_yes",
+		Text:   "✅ " + bot.bundle.T(lang, "Yes"),
+		Data:   strconv.FormatInt(id, 10),
+	}
+	bot.telebot.Handle(&yesBt, func(ctx tb.Context) error {
+		callback := ctx.Callback()
+		ctx.Respond(&tb.CallbackResponse{
+			Text: "Ok! Want to remove chat",
+		})
+		/* TODO
+		callback := ctx.Callback()
+		page, err := strconv.Atoi(callback.Data)
+		if err != nil {
+			return err
+		}
+		*/
+		bot.sendBlacklist(callback.Sender, callback.Message, 0)
+		return nil
+	})
+
+	// "No" (do not want to remove the group from the blacklist) button.
+	noBt := tb.InlineButton{
+		Unique: "confirm_blacklist_yes",
+		Text:   "❌ " + bot.bundle.T(lang, "No"),
+		Data:   strconv.FormatInt(id, 10),
+	}
+	bot.telebot.Handle(&noBt, func(ctx tb.Context) error {
+		callback := ctx.Callback()
+		ctx.Respond(&tb.CallbackResponse{
+			Text: "Ok! Want to keep chat on blacklist",
+		})
+		/* TODO
+		callback := ctx.Callback()
+		page, err := strconv.Atoi(callback.Data)
+		if err != nil {
+			return err
+		}
+		*/
+		bot.sendBlacklist(callback.Sender, callback.Message, 0)
+		return nil
+	})
+
+	chatButtons = append(chatButtons, []tb.InlineButton{yesBt, noBt})
+
+	// We need to get chat's info to retrieve the title.
+	chat, err := bot.db.GetBlacklist(id)
+	if err != nil {
+		bot.logger.WithField("blacklist_id", id).WithError(err).Error("Failed to get blacklisted chat")
+		return
+	}
+
+	rawMsg := bot.bundle.T(lang, "Do you want to remove %q group from the blacklist?")
+	msg := fmt.Sprintf(rawMsg, chat.Title)
+	options := &tb.ReplyMarkup{
+		InlineKeyboard: chatButtons,
+	}
+	if _, err := bot.telebot.Edit(message, msg, options); err != nil {
+		bot.logger.WithError(err).Error("Failed to edit blacklist message to confirmation message")
 	}
 }
