@@ -1,6 +1,9 @@
 package bot
 
 import (
+	"errors"
+	"net/http"
+
 	"github.com/sirupsen/logrus"
 	tb "gopkg.in/telebot.v3"
 )
@@ -19,6 +22,22 @@ func (bot *telegramBot) refreshDBInfo(handler contextualChatSettingsFunc) tb.Han
 		chat := ctx.Chat()
 		if chat == nil {
 			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Chat, ignored")
+			return nil
+		}
+
+		if is, err := bot.db.Blacklisted(chat.ID); err != nil {
+			bot.logger.WithField("chat_id", chat.ID).WithError(err).Error("Failed to check if chat is on the blacklist")
+			return nil
+		} else if is {
+			bot.logger.WithField("chat_id", chat.ID).Warn("Someone tried to add the bot on a blacklisted group!")
+			if err := bot.telebot.Leave(chat); err != nil {
+				apierr := &tb.Error{}
+				if errors.As(err, &apierr) && apierr.Code == http.StatusForbidden {
+					// Failed to leave: we are already out!
+					return nil
+				}
+				bot.logger.WithField("chat_id", chat.ID).WithError(err).Error("Failed to leave from a blacklisted group")
+			}
 			return nil
 		}
 

@@ -125,3 +125,14 @@ func (db *Database) GetBlacklist(id int64) (*tb.Chat, error) {
 
 	return chat, nil
 }
+
+// Blacklisted returns true if the chat corresponding to the given ID if on the
+// blacklist.
+func (db *Database) Blacklisted(id int64) (bool, error) {
+	sid := strconv.FormatInt(id, 10)
+	is, err := db.conn.SIsMember(context.TODO(), "blacklist", sid).Result()
+	if err != nil {
+		return false, fmt.Errorf("on checking if given id is on \"blacklist\" set: %w", err)
+	}
+	return is, nil
+}

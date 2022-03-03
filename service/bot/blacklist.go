@@ -40,6 +40,7 @@ func (bot *telegramBot) AddBlacklist(ctx tb.Context, state State) {
 		return
 	}
 
+	// Group is added to the blacklist.
 	blacklisted := state.ChatToEdit
 	logger = logger.WithField("chat_id", blacklisted.ID)
 	if err := bot.db.AddBlacklist(blacklisted); err != nil {
@@ -50,6 +51,19 @@ func (bot *telegramBot) AddBlacklist(ctx tb.Context, state State) {
 		if err != nil {
 			bot.logger.WithError(err).Error("Failed to reply to a callback")
 		}
+		return
+	}
+
+	// Also the bot leaves from the blacklisted group.
+	if err := bot.telebot.Leave(blacklisted); err != nil {
+		bot.logger.WithError(err).Error("Failed to leave from a blacklisted group")
+		err := ctx.Respond(&tb.CallbackResponse{
+			Text: bot.bundle.T(lang, "Failed to leave from the blacklisted group!"),
+		})
+		if err != nil {
+			bot.logger.WithError(err).Error("Failed to reply to a callback")
+		}
+		return
 	}
 
 	err := ctx.Respond(&tb.CallbackResponse{
