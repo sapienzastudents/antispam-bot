@@ -62,56 +62,19 @@ dont - Send a message to the user with a link to https://dontasktoask.com/
 | Remain anonymous | No | DO NOT GRANT* |
 | Add new admins | No | Not used |
 
-*: Telegram APIs and `telebot` have a bug handling the "Remain anonymous" permission. If granted to a bot, the bot won't
-be able to use all other permissions. Do not grant until we have a reasonable fix.
+*: Telegram APIs and `telebot` have a bug handling the "Remain anonymous"
+permission. If granted to a bot, the bot won't be able to use all other
+permissions. Do not grant until we have a reasonable fix.
 
-**Note: we strongly suggest you to grant all permissions to the bot**, especially if you plan to use the "admin fallback"
-functionality. Rationale: when admins/bots promote a new admin, they can grant to the new admin only those permissions
-that they have; so, if you use the "admin fallback" feature, and you never granted "Change group info" to the bot, then
-**no admins will have this permissions, ever**.
+**Note: we strongly suggest you to grant all permissions to the bot**,
+especially if you plan to use the "admin fallback" functionality. Rationale:
+when admins/bots promote a new admin, they can grant to the new admin only those
+permissions that they have; so, if you use the "admin fallback" feature, and you
+never granted "Change group info" to the bot, then **no admins will have this
+permissions, ever**.
 
-**Note 2**: the bot was not tested with less than full permissions. If you encounter any bug, please create an issue.
-
-## Features / ToDo
-
-When not ticked, they're planned:
-
-* [X] Use CAS blacklist
-* [X] Multilanguage!
-* [X] Write an help/welcome message
-* UI/UX
-  * [ ] Better messages for users
-  * [ ] Icons in buttons
-  * [ ] Place buttons in a better way
-* [ ] Merge "chatrooms" and "settings" sets in Redis
-* [ ] Per-group configurable checks
-  * [x] Detect Chinese messages (when Chinese chars are higher than a given
-    threshold)
-  * [X] Detect Arabic messages
-  * [ ] Detect spam links with some heuristic
-  * [ ] Detect people that are sending multiple messages for a single phrase
-  * [ ] Auto-kick deleted accounts
-* [x] Index all groups and provide invite links (opt-out by group admin)
-  * [X] Split groups by course (degree program)
-* [ ] Create a way to index answers and try to provide some clues (maybe some
-  AI/NLP?)
-* [X] Publish the group index on sapienzahub.it website
-* [ ] Public log channel with actions (for auditing)
-* [X] Group activity metrics (export to `/metrics` endpoint)
-* [ ] Clean up the code
-  * [X] Do not use global variables (!!!)
-  * [X] Do not use `telebot` inside the `db` package
-  * [ ] Handle errors correctly (!!!)
-* [x] Switch to `logrus` for structured logging
-  * [ ] Use structured logging fields for logging
-* [ ] Expose HTTP endpoint (optionally)
-* [x] Rewrite the bot using `telebot.v3` library to fix some structural issues
-* [ ] Write some documentation
-* [ ] Write a "fallback system" for lost groups
-  * When a group lose all admins, and the bot can promote a new admin, there
-    should be a system capable of either promoting a new admin based on some
-    algorithm, or do an election for a new admin
-* [ ] Rename "categories" as "degree programs"
+**Note 2**: the bot was not tested with less than full permissions. If you
+encounter any bug, please create an issue.
 
 ## How to build
 
