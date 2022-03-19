@@ -235,6 +235,16 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 		return settings
 	}))
 
+	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{settingsRefreshButton, reloadGroupInfoBt})
+
+	// ============================== Add to blacklist
+	blacklistBtn := tb.InlineButton{
+		Unique: "settings_add_to_blacklist",
+		Text:   "⚫️ " + bot.bundle.T(lang, "Add to blacklist"),
+	}
+	bot.handleAdminCallbackStateful(&blacklistBtn, bot.AddBlacklist)
+	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{blacklistBtn})
+
 	// ============================== Close settings
 	closeBtn := tb.InlineButton{
 		Unique: "settings_close",
@@ -243,8 +253,6 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	bot.handleAdminCallbackStateful(&closeBtn, func(ctx tb.Context, state State) {
 		_ = bot.telebot.Delete(ctx.Callback().Message)
 	})
-
-	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{settingsRefreshButton, reloadGroupInfoBt})
 	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{closeBtn})
 
 	sendOpts := tb.SendOptions{
