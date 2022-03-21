@@ -14,19 +14,22 @@ func (bot *telegramBot) onContacts(ctx tb.Context) error {
 		bot.bundle.T(lang, "You can reach us on our <a href=\"https://sapienzahub.it/\">SapienzaHub website</a> for more information.\n\n") +
 		bot.bundle.T(lang, "If you have any problem with the bot, open an issue on the our <a href=\"https://gitlab.com/sapienzastudents/antispam-telegram-bot/\">GitLab repository</a>!")
 
-	// Close button.
-	bt := tb.InlineButton{
-		Unique: "on-contacts-close",
-		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+	// "Back" button.
+	backBtn := tb.InlineButton{
+		Unique: "on_contacts_back",
+		Text:   "◀ " + bot.bundle.T(lang, "Back"),
 	}
-	var chatButtons [][]tb.InlineButton
-	chatButtons = append(chatButtons, []tb.InlineButton{bt})
-	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+	bot.telebot.Handle(&backBtn, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
+		}
 		callback := ctx.Callback()
-		_ = bot.telebot.Respond(callback)
-		_ = bot.telebot.Delete(callback.Message)
+		bot.sendHelpMessage(callback.Sender, callback.Message)
 		return nil
 	})
+	var chatButtons [][]tb.InlineButton
+	chatButtons = append(chatButtons, []tb.InlineButton{backBtn})
 
 	options := &tb.SendOptions{
 		ParseMode:   tb.ModeHTML,

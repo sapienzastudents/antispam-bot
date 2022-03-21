@@ -46,20 +46,7 @@ func (bot *telegramBot) startFromUUID(payload string, sender *tb.User) {
 // It replies also for /start command. When that command is followed by an UUID,
 // then calls startFromUUID to handle the UUID and chat mapping.
 func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
-	bot.botCommandsRequestsTotal.WithLabelValues("start").Inc()
-
-	if err := ctx.Delete(); err != nil {
-		bot.logger.WithError(err).Warn("Failed to delete message")
-	}
-
-	// IETF language tag used to localize messages.
-	lang := ctx.Sender().LanguageCode
-
 	msg := ctx.Message()
-	if msg == nil {
-		bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Message, ignored")
-		return
-	}
 
 	if msg.Private() {
 		// If a UUID is specified, then we need to lookup for the invite link
@@ -71,147 +58,167 @@ func (bot *telegramBot) onHelp(ctx tb.Context, settings chatSettings) {
 			return
 		}
 
-		// "Groups" button.
-		var buttons [][]tb.InlineButton
-		groupsBt := tb.InlineButton{
-			Unique: "bt_action_groups",
-			Text:   "🏘 " + bot.bundle.T(lang, "Groups"),
-		}
-		bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
-			cb := ctx.Callback()
-			if cb == nil {
-				bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Callback, ignored")
-				return nil
-			}
-			_ = bot.telebot.Respond(ctx.Callback())
+		bot.sendHelpMessage(ctx.Sender(), nil)
+	}
+}
 
-			// Note that the second parameter is always ignored in onGroups, so
-			// we can avoid a DB lookup.
-			bot.sendGroupListForLinks(ctx.Sender(), ctx.Message(), ctx.Message().Chat, nil)
-			return nil
-		})
-		buttons = append(buttons, []tb.InlineButton{groupsBt})
+// sendHelpMessage sends the help message to the given user.
+//
+// If message is not nil, it edits this message instead of sending a new one.
+func (bot *telegramBot) sendHelpMessage(user *tb.User, message *tb.Message) {
+	// IETF language tag used to localize messages.
+	lang := user.LanguageCode
 
-		sender := ctx.Sender()
-		if sender == nil {
-			bot.logger.WithField("updateid", ctx.Update().ID).Warn("Update with nil on Sender, ignored")
-			return
+	var buttons [][]tb.InlineButton
+
+	// "Groups" button.
+	groupsBt := tb.InlineButton{
+		Unique: "bt_action_groups",
+		Text:   "🏘 " + bot.bundle.T(lang, "Groups"),
+	}
+	bot.telebot.Handle(&groupsBt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
 		}
-		isGlobalAdmin, err := bot.db.IsBotAdmin(sender.ID)
+
+		// Note that the second parameter is always ignored in onGroups, so
+		// we can avoid a DB lookup.
+		bot.sendGroupListForLinks(ctx.Sender(), ctx.Message(), ctx.Message().Chat, nil)
+		return nil
+	})
+	buttons = append(buttons, []tb.InlineButton{groupsBt})
+
+	isGlobalAdmin, err := bot.db.IsBotAdmin(user.ID)
+	if err != nil {
+		bot.logger.WithField("user_id", user.ID).WithError(err).Error("Failed to check if the user is a global admin")
+		return
+	}
+
+	// "Settings" button.
+	// Check if the user is an admin in at least one chat.
+	settingsVisible := false
+	if !isGlobalAdmin {
+		chatrooms, err := bot.db.ListMyChats()
 		if err != nil {
-			bot.logger.WithError(err).Error("Failed to check if the user is a global admin")
+			bot.logger.WithError(err).Error("Failed to get chatroom list")
 			return
 		}
-
-		// Settings button.
-		// Check if the user is an admin in at least one chat.
-		settingsVisible := false
-		if !isGlobalAdmin {
-			chatrooms, err := bot.db.ListMyChats()
+		for _, x := range chatrooms {
+			chatsettings, err := bot.getChatSettings(x)
 			if err != nil {
-				bot.logger.WithError(err).Error("Failed to get chatroom list")
-				return
+				bot.logger.WithError(err).WithField("chatid", x.ID).Warn("Failed to get chatroom settings")
+				continue
 			}
-			for _, x := range chatrooms {
-				chatsettings, err := bot.getChatSettings(x)
-				if err != nil {
-					bot.logger.WithError(err).WithField("chatid", x.ID).Warn("Failed to get chatroom settings")
-					continue
-				}
-				if chatsettings.ChatAdmins.IsAdmin(sender) {
-					settingsVisible = true
-					break
-				}
+			if chatsettings.ChatAdmins.IsAdmin(user) {
+				settingsVisible = true
+				break
 			}
-		} else {
-			// The global bot admin is always able to see group settings button.
-			settingsVisible = true
 		}
+	} else {
+		// The global bot admin is always able to see group settings button.
+		settingsVisible = true
+	}
 
-		if settingsVisible {
-			settingsBt := tb.InlineButton{
-				Unique: "bt_action_settings",
-				Text:   "⚙️ " + bot.bundle.T(lang, "Settings"),
-			}
-			bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
-				_ = bot.telebot.Respond(ctx.Callback())
-				bot.sendGroupListForSettings(ctx.Sender(), ctx.Message(), ctx.Message().Chat, 0)
-				return nil
-			})
-			buttons = append(buttons, []tb.InlineButton{settingsBt})
+	if settingsVisible {
+		settingsBt := tb.InlineButton{
+			Unique: "bt_action_settings",
+			Text:   "⚙️ " + bot.bundle.T(lang, "Settings"),
 		}
-
-		// "Blacklist" button.
-		blacklistBt := tb.InlineButton{
-			Unique: "bt_action_blacklist",
-			Text:   "⚫️ " + bot.bundle.T(lang, "Blacklist"),
-		}
-		bot.telebot.Handle(&blacklistBt, func(ctx tb.Context) error {
+		bot.telebot.Handle(&settingsBt, func(ctx tb.Context) error {
 			if err := ctx.Respond(); err != nil {
 				bot.logger.WithError(err).Error("Failed to respond to callback query")
 				return err
 			}
-
-			bot.sendBlacklist(ctx.Sender(), ctx.Message(), 0)
+			bot.sendGroupListForSettings(ctx.Sender(), ctx.Message(), ctx.Message().Chat, 0)
 			return nil
 		})
-		buttons = append(buttons, []tb.InlineButton{blacklistBt})
+		buttons = append(buttons, []tb.InlineButton{settingsBt})
+	}
 
-		if isGlobalAdmin {
-			adminSettingsBt := tb.InlineButton{
-				Unique: "bt_action_admin_settings",
-				Text:   "👮" + bot.bundle.T(lang, "Admins settings"),
+	// "Blacklist" button.
+	blacklistBt := tb.InlineButton{
+		Unique: "bt_action_blacklist",
+		Text:   "⚫️ " + bot.bundle.T(lang, "Blacklist"),
+	}
+	bot.telebot.Handle(&blacklistBt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
+		}
+
+		bot.sendBlacklist(ctx.Sender(), ctx.Message(), 0)
+		return nil
+	})
+	buttons = append(buttons, []tb.InlineButton{blacklistBt})
+
+	if isGlobalAdmin {
+		adminSettingsBt := tb.InlineButton{
+			Unique: "bt_action_admin_settings",
+			Text:   "👮" + bot.bundle.T(lang, "Admins settings"),
+		}
+		bot.telebot.Handle(&adminSettingsBt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
 			}
-			bot.telebot.Handle(&adminSettingsBt, func(ctx tb.Context) error {
-				_ = bot.telebot.Respond(ctx.Callback())
-				bot.sendAdminsForSettings(ctx.Sender(), ctx.Message())
-				return nil
-			})
-			buttons = append(buttons, []tb.InlineButton{adminSettingsBt})
-		}
-
-		contactsbt := tb.InlineButton{
-			Unique: "contacts",
-			Text:   "❓ " + bot.bundle.T(lang, "Contacts"),
-		}
-		bot.telebot.Handle(&contactsbt, func(ctx tb.Context) error {
-			callback := ctx.Callback()
-			_ = bot.telebot.Respond(callback)
-			return bot.onContacts(ctx)
-		})
-		buttons = append(buttons, []tb.InlineButton{contactsbt})
-
-		// Help button, used to show a small help message on how to add the bot
-		// on a group.
-		guidebt := tb.InlineButton{
-			Unique: "guide",
-			Text:   "ℹ️  " + bot.bundle.T(lang, "How to add a group"),
-		}
-		bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
-			callback := ctx.Callback()
-			_ = bot.telebot.Respond(callback)
-			bot.onGuide(ctx)
+			bot.sendAdminsForSettings(ctx.Sender(), ctx.Message())
 			return nil
 		})
-		buttons = append(buttons, []tb.InlineButton{guidebt})
+		buttons = append(buttons, []tb.InlineButton{adminSettingsBt})
+	}
 
-		// Close button.
-		bt := tb.InlineButton{
-			Unique: "help_close",
-			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+	contactsbt := tb.InlineButton{
+		Unique: "contacts",
+		Text:   "❓ " + bot.bundle.T(lang, "Contacts"),
+	}
+	bot.telebot.Handle(&contactsbt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
 		}
-		buttons = append(buttons, []tb.InlineButton{bt})
-		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
-			_ = bot.telebot.Respond(ctx.Callback())
-			_ = bot.telebot.Delete(ctx.Callback().Message)
-			return nil
-		})
+		return bot.onContacts(ctx)
+	})
+	buttons = append(buttons, []tb.InlineButton{contactsbt})
 
-		// Send reply with buttons.
-		err = ctx.Send("👋 "+bot.bundle.T(lang, "Hi! What are you looking for?"),
-			&tb.ReplyMarkup{InlineKeyboard: buttons})
-		if err != nil {
-			bot.logger.WithError(err).Error("Failed to send message on help")
+	// Help button, used to show a small help message on how to add the bot
+	// on a group.
+	guidebt := tb.InlineButton{
+		Unique: "guide",
+		Text:   "ℹ️  " + bot.bundle.T(lang, "How to add a group"),
+	}
+	bot.telebot.Handle(&guidebt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
 		}
+		bot.onGuide(ctx)
+		return nil
+	})
+	buttons = append(buttons, []tb.InlineButton{guidebt})
+
+	// Close button.
+	bt := tb.InlineButton{
+		Unique: "help_close",
+		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+	}
+	buttons = append(buttons, []tb.InlineButton{bt})
+	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
+		}
+		return bot.telebot.Delete(ctx.Callback().Message)
+	})
+
+	msg := "👋 " + bot.bundle.T(lang, "Hi! What are you looking for?")
+	sendOptions := &tb.ReplyMarkup{InlineKeyboard: buttons}
+	if message == nil {
+		_, err = bot.telebot.Send(user, msg, sendOptions)
+	} else {
+		_, err = bot.telebot.Edit(message, msg, sendOptions)
+	}
+	if err != nil {
+		bot.logger.WithError(err).WithField("user_id", user.ID).Error("Failed to send/edit message for chat")
 	}
 }

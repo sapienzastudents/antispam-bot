@@ -139,17 +139,21 @@ func (bot *telegramBot) sendGroupListForSettings(sender *tb.User, messageToEdit 
 			})
 		}
 
+		// "Back" button.
 		bt := tb.InlineButton{
-			Unique: "groups_settings_list_close",
-			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+			Unique: "group_settings_back",
+			Text:   "◀ " + bot.bundle.T(lang, "Back"),
 		}
-		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
 			callback := ctx.Callback()
-			_ = bot.telebot.Respond(callback)
-			_ = bot.telebot.Delete(callback.Message)
+			bot.sendHelpMessage(callback.Sender, callback.Message)
 			return nil
 		})
+		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 
 		msg = bot.bundle.T(lang, "Please select the chatroom:")
 		sendOptions = &tb.SendOptions{

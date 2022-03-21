@@ -27,15 +27,18 @@ func (bot *telegramBot) sendAdminsForSettings(sender *tb.User, msgToEdit *tb.Mes
 	// Buttons to send with the reply message.
 	var chatButtons [][]tb.InlineButton
 
-	// Close button.
+	// "Back" button.
 	bt := tb.InlineButton{
-		Unique: "admins_settings_close",
-		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+		Unique: "admins_settings_back",
+		Text:   "◀ " + bot.bundle.T(lang, "Back"),
 	}
 	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
+		}
 		callback := ctx.Callback()
-		_ = bot.telebot.Respond(callback)
-		_ = bot.telebot.Delete(callback.Message)
+		bot.sendHelpMessage(callback.Sender, callback.Message)
 		return nil
 	})
 	chatButtons = append(chatButtons, []tb.InlineButton{bt})

@@ -16,19 +16,21 @@ func (bot *telegramBot) onGuide(ctx tb.Context) {
 
 	lang := ctx.Sender().LanguageCode
 
+	// "Back" button.
 	bt := tb.InlineButton{
-		Unique: "on-guide-close",
-		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+		Unique: "on_guide_back",
+		Text:   "◀ " + bot.bundle.T(lang, "Back"),
 	}
-
-	var chatButtons [][]tb.InlineButton
-	chatButtons = append(chatButtons, []tb.InlineButton{bt})
 	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return err
+		}
 		callback := ctx.Callback()
-		_ = bot.telebot.Respond(callback)
-		_ = bot.telebot.Delete(callback.Message)
+		bot.sendHelpMessage(callback.Sender, callback.Message)
 		return nil
 	})
+	chatButtons := [][]tb.InlineButton{{bt}}
 
 	msg := bot.bundle.T(lang, "What you need to do to add a group on the network:\n\n") +
 		bot.bundle.T(lang, "<b>0.</b> Check if your group is already on the list;\n") +

@@ -93,13 +93,38 @@ func (bot *telegramBot) sendGroupListForLinks(sender *tb.User, messageToEdit *tb
 		buttons = append(buttons, []tb.InlineButton{bt})
 	}
 
-	bt := tb.InlineButton{Unique: "groups_list_close", Text: "🚪 " + bot.bundle.T(lang, "Close")}
-	bot.telebot.Handle(&bt, func(ctx tb.Context) error {
-		_ = bot.telebot.Respond(ctx.Callback())
-		_ = bot.telebot.Delete(ctx.Callback().Message)
-		return nil
-	})
-	buttons = append(buttons, []tb.InlineButton{bt})
+	// Close or back button. If there is not a message to edit the back button
+	// is useless, the list may be triggered by /groups command.
+	if messageToEdit == nil {
+		closeBtn := tb.InlineButton{
+			Unique: "group_list_close",
+			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+		}
+		bot.telebot.Handle(&closeBtn, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
+			return bot.telebot.Delete(ctx.Callback().Message)
+		})
+		buttons = append(buttons, []tb.InlineButton{closeBtn})
+	} else {
+		backBtn := tb.InlineButton{
+			Unique: "group_list_back",
+			Text:   "◀ " + bot.bundle.T(lang, "Back"),
+		}
+		bot.telebot.Handle(&backBtn, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
+
+			callback := ctx.Callback()
+			bot.sendHelpMessage(callback.Sender, callback.Message)
+			return nil
+		})
+		buttons = append(buttons, []tb.InlineButton{backBtn})
+	}
 
 	// Send (or edit) message with button links.
 	sendOptions := &tb.SendOptions{

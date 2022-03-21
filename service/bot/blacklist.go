@@ -153,17 +153,21 @@ func (bot *telegramBot) sendBlacklist(sender *tb.User, messageToEdit *tb.Message
 	msg := ""
 
 	if len(chatButtons) == 0 { // Special case: blacklist empty.
+		// "Back" button.
 		bt := tb.InlineButton{
-			Unique: "blacklist_close",
-			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+			Unique: "blacklist_back",
+			Text:   "◀ " + bot.bundle.T(lang, "Back"),
 		}
-		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
 			callback := ctx.Callback()
-			_ = bot.telebot.Respond(callback)
-			_ = bot.telebot.Delete(callback.Message)
+			bot.sendHelpMessage(callback.Sender, callback.Message)
 			return nil
 		})
+		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 
 		msg = bot.bundle.T(lang, "Blacklist is empty.")
 		sendOptions = &tb.SendOptions{
@@ -208,17 +212,21 @@ func (bot *telegramBot) sendBlacklist(sender *tb.User, messageToEdit *tb.Message
 			})
 		}
 
+		// "Back" button.
 		bt := tb.InlineButton{
-			Unique: "blacklist_close",
-			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+			Unique: "blacklist_back",
+			Text:   "◀ " + bot.bundle.T(lang, "Back"),
 		}
-		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
 			callback := ctx.Callback()
-			_ = bot.telebot.Respond(callback)
-			_ = bot.telebot.Delete(callback.Message)
+			bot.sendHelpMessage(callback.Sender, callback.Message)
 			return nil
 		})
+		chatButtons = append(chatButtons, []tb.InlineButton{bt})
 
 		msg = bot.bundle.T(lang, "Please select the group you want to remove from the blacklist:")
 		sendOptions = &tb.SendOptions{
