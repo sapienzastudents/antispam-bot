@@ -245,15 +245,46 @@ func (bot *telegramBot) sendSettingsMessage(user *tb.User, messageToEdit *tb.Mes
 	bot.handleAdminCallbackStateful(&blacklistBtn, bot.AddBlacklist)
 	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{blacklistBtn})
 
-	// ============================== Close settings
-	closeBtn := tb.InlineButton{
-		Unique: "settings_close",
-		Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+	// Back or close button. If the group settings is sent on a group there will
+	// be a close button, otherwhise there is a back button to group list.
+	group := true
+	if chatToSend != nil && chatToSend.Type == tb.ChatPrivate {
+		group = false
 	}
-	bot.handleAdminCallbackStateful(&closeBtn, func(ctx tb.Context, state State) {
-		_ = bot.telebot.Delete(ctx.Callback().Message)
-	})
-	inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{closeBtn})
+	if messageToEdit != nil && messageToEdit.Chat.Type == tb.ChatPrivate {
+		group = false
+	}
+
+	if group {
+		closeBtn := tb.InlineButton{
+			Unique: "settings_close",
+			Text:   "🚪 " + bot.bundle.T(lang, "Close"),
+		}
+		bot.handleAdminCallbackStateful(&closeBtn, func(ctx tb.Context, state State) {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return
+			}
+
+			_ = bot.telebot.Delete(ctx.Callback().Message)
+		})
+		inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{closeBtn})
+	} else {
+		backBtn := tb.InlineButton{
+			Unique: "settings_back",
+			Text:   "◀ " + bot.bundle.T(lang, "Back"),
+		}
+		bot.handleAdminCallbackStateful(&backBtn, func(ctx tb.Context, state State) {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return
+			}
+
+			callback := ctx.Callback()
+			bot.sendGroupListForSettings(callback.Sender, callback.Message, callback.Message.Chat, 0)
+		})
+		inlineKeyboard = append(inlineKeyboard, []tb.InlineButton{backBtn})
+	}
 
 	sendOpts := tb.SendOptions{
 		ParseMode: tb.ModeMarkdown,
