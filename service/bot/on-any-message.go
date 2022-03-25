@@ -73,41 +73,7 @@ func (bot *telegramBot) onAnyMessage(ctx tb.Context, settings chatSettings) {
 		return
 	}
 	if state.AddBotAdmin {
-		// This button is always shown also when the user send a invalid ID.
-		var chatButtons [][]tb.InlineButton
-
-		bt := tb.InlineButton{
-			Unique: "back_to_admins_settings",
-			Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
-		}
-		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
-			callback := ctx.Callback()
-			bot.sendAdminsForSettings(callback.Sender, callback.Message)
-			return nil
-		})
-		chatButtons = append(chatButtons, []tb.InlineButton{bt})
-
-		id, err := strconv.ParseInt(m.Text, 10, 64)
-		if err != nil {
-			msg := bot.bundle.T(lang, "The given user ID is not valid, please retry.")
-			_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
-			return
-		}
-
-		// Reset state flag. If there is an error on inserting ID, it is an
-		// error on the server, in any case it's better to reset the state.
-		state.AddBotAdmin = false
-		state.Save()
-
-		if err := bot.db.AddBotAdmin(id); err != nil {
-			bot.logger.WithError(err).Error("Failed to add a new bot admin")
-			msg := bot.bundle.T(lang, "Oops, I'm broken, please get in touch with my admin!")
-			_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
-			return
-		}
-
-		msg := bot.bundle.T(lang, "Admin added")
-		_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
+		_ = stateAddBotAdmin(bot, ctx, state)
 		return
 	}
 
@@ -147,4 +113,70 @@ func (bot *telegramBot) onAnyMessage(ctx tb.Context, settings chatSettings) {
 
 		bot.spamFilter(m, settings, textvalues)
 	}
+}
+
+func stateAddBotAdmin(bot *telegramBot, ctx tb.Context, state State) error {
+	m := ctx.Message()
+	lang := ctx.Sender().LanguageCode
+
+	// This button is always shown also when the user send a invalid ID.
+	var chatButtons [][]tb.InlineButton
+
+	// Button to cancel the operation and go back to admin list panel.
+	bt := tb.InlineButton{
+		Unique: "add_admin_cancel",
+		Text:   "❌ " + bot.bundle.T(lang, "Cancel"),
+	}
+	chatButtons = [][]tb.InlineButton{{bt}}
+	bot.handleAdminCallbackStateful(&bt, func(ctx tb.Context, state State) {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return
+		}
+		state.AddBotAdmin = false
+		state.Save()
+
+		callback := ctx.Callback()
+		bot.sendAdminsForSettings(callback.Sender, callback.Message)
+	})
+
+	id, err := strconv.ParseInt(m.Text, 10, 64)
+	if err != nil {
+		msg := bot.bundle.T(lang, "The given user ID is not valid, please retry.")
+		_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
+		return nil
+	}
+
+	// Reset state flag. If there is an error on inserting ID, it is an
+	// error on the server, in any case it's better to reset the state.
+	state.AddBotAdmin = false
+	state.Save()
+
+	if err := bot.db.AddBotAdmin(id); err != nil {
+		bot.logger.WithError(err).Error("Failed to add a new bot admin")
+		msg := bot.bundle.T(lang, "Oops, I'm broken, please get in touch with my admin!")
+		_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
+		return nil
+	}
+
+	// Happy path: admin added without problems. There is a button to allow the
+	// user to go back to admin list.
+	bt = tb.InlineButton{
+		Unique: "back_to_admins_settings",
+		Text:   "◀ " + bot.bundle.T(lang, "Back to admin list"),
+	}
+	bot.handleAdminCallbackStateful(&bt, func(ctx tb.Context, state State) {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return
+		}
+		callback := ctx.Callback()
+		bot.sendAdminsForSettings(callback.Sender, callback.Message)
+	})
+	chatButtons = [][]tb.InlineButton{{bt}}
+
+	options := &tb.ReplyMarkup{InlineKeyboard: chatButtons}
+	msg := bot.bundle.T(lang, "Admin added!")
+	_, _ = bot.telebot.Send(m.Chat, msg, options)
+	return nil
 }
