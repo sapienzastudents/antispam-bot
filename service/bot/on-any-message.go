@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -140,9 +141,18 @@ func stateAddBotAdmin(bot *telegramBot, ctx tb.Context, state State) error {
 		bot.sendAdminsForSettings(callback.Sender, callback.Message)
 	})
 
+	// User can send an invalid ID.
 	id, err := strconv.ParseInt(m.Text, 10, 64)
 	if err != nil {
 		msg := bot.bundle.T(lang, "The given user ID is not valid, please retry.")
+		_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
+		return nil
+	}
+
+	// User can send an ID that never contacted the bot, we can't get the user's
+	// info.
+	if _, err = bot.telebot.ChatByID(id); errors.Is(err, tb.ErrChatNotFound) {
+		msg := bot.bundle.T(lang, "The given user ID never contacted the bot, please retry.")
 		_, _ = bot.telebot.Send(m.Chat, msg, &tb.ReplyMarkup{InlineKeyboard: chatButtons})
 		return nil
 	}
