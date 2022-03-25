@@ -122,9 +122,30 @@ func (bot *telegramBot) handleAddAdmin(ctx tb.Context, state State) {
 	_ = bot.telebot.Respond(callback)
 
 	lang := ctx.Sender().LanguageCode
-	msg := bot.bundle.T(lang, "Write the new admin ID.")
 
-	_, _ = bot.telebot.Edit(callback.Message, msg)
+	// Button to cancel the operation and go back to admin list panel.
+	bt := tb.InlineButton{
+		Unique: "add_admin_cancel",
+		Text:   "❌ " + bot.bundle.T(lang, "Cancel"),
+	}
+	chatButtons := [][]tb.InlineButton{{bt}}
+	bot.handleAdminCallbackStateful(&bt, func(ctx tb.Context, state State) {
+		if err := ctx.Respond(); err != nil {
+			bot.logger.WithError(err).Error("Failed to respond to callback query")
+			return
+		}
+		state.AddBotAdmin = false
+		state.Save()
+
+		callback := ctx.Callback()
+		bot.sendAdminsForSettings(callback.Sender, callback.Message)
+	})
+
+	options := &tb.ReplyMarkup{InlineKeyboard: chatButtons}
+	msg := bot.bundle.T(lang, "Write the new admin ID.\n\n") +
+		bot.bundle.T(lang, "Please make sure the new admin has contacted the bot at least once.")
+
+	_, _ = bot.telebot.Edit(callback.Message, msg, options)
 	state.AddBotAdmin = true
 	state.Save()
 }

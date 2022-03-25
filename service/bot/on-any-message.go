@@ -78,7 +78,7 @@ func (bot *telegramBot) onAnyMessage(ctx tb.Context, settings chatSettings) {
 
 		bt := tb.InlineButton{
 			Unique: "back_to_admins_settings",
-			Text:   "◀" + bot.bundle.T(lang, "Back to settings"),
+			Text:   "◀ " + bot.bundle.T(lang, "Back to settings"),
 		}
 		bot.telebot.Handle(&bt, func(ctx tb.Context) error {
 			callback := ctx.Callback()
