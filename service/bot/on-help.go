@@ -136,23 +136,24 @@ func (bot *telegramBot) sendHelpMessage(user *tb.User, message *tb.Message) {
 		buttons = append(buttons, []tb.InlineButton{settingsBt})
 	}
 
-	// "Blacklist" button.
-	blacklistBt := tb.InlineButton{
-		Unique: "bt_action_blacklist",
-		Text:   "⚫️ " + bot.bundle.T(lang, "Blacklist"),
-	}
-	bot.telebot.Handle(&blacklistBt, func(ctx tb.Context) error {
-		if err := ctx.Respond(); err != nil {
-			bot.logger.WithError(err).Error("Failed to respond to callback query")
-			return err
-		}
-
-		bot.sendBlacklist(ctx.Sender(), ctx.Message(), 0)
-		return nil
-	})
-	buttons = append(buttons, []tb.InlineButton{blacklistBt})
-
 	if isGlobalAdmin {
+		// "Blacklist" button.
+		blacklistBt := tb.InlineButton{
+			Unique: "bt_action_blacklist",
+			Text:   "⚫️ " + bot.bundle.T(lang, "Blacklist"),
+		}
+		bot.telebot.Handle(&blacklistBt, func(ctx tb.Context) error {
+			if err := ctx.Respond(); err != nil {
+				bot.logger.WithError(err).Error("Failed to respond to callback query")
+				return err
+			}
+
+			bot.sendBlacklist(ctx.Sender(), ctx.Message(), 0)
+			return nil
+		})
+		buttons = append(buttons, []tb.InlineButton{blacklistBt})
+
+		// Admin settings button.
 		adminSettingsBt := tb.InlineButton{
 			Unique: "bt_action_admin_settings",
 			Text:   "👮" + bot.bundle.T(lang, "Admins settings"),
