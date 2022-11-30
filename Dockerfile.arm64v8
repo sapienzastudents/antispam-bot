@@ -3,7 +3,7 @@ FROM docker.io/golang:1.19 as build
 LABEL org.opencontainers.image.authors="inbox@emanuelepetriglia.com"
 
 ENV GOARCH arm64
-ENV GOARM 8
+ENV GOARM 7
 
 # Disable CGO to build a self-contained executable.
 ENV CGO_ENABLED 0
