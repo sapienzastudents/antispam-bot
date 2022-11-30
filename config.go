@@ -13,7 +13,7 @@ import (
 type BotConfig struct {
 	Path      string `conf:"default:./config.yml,flag:config,short:c,help:configuration file"`
 	BotToken  string `conf:"default:-,flag:bot-token,short:b,help:Bot token"`
-	RedisURL  string `conf:"default:redis://127.0.0.1:6379,flag:redis-url,short:r,help:redis URL"`
+	RedisURL  string `conf:"default:redis://localhost:6379,flag:redis-url,short:r,help:redis URL"`
 	LogLevel  string `conf:"default:info,flag:log-level,short:l,help:Minimium log level"`
 	CASUpdate bool   `conf:"default:true,flag:cas-update,help:Update automatically CAS database"`
 	Git       struct {
