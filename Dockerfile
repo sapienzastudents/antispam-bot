@@ -1,4 +1,4 @@
-FROM golang:1.19 as build
+FROM docker.io/golang:1.19 as build
 
 LABEL org.opencontainers.image.authors="inbox@emanuelepetriglia.com"
 
@@ -19,7 +19,7 @@ COPY *.go ./
 COPY service ./service
 RUN go build -v -o antispam-telegram-bot .
 
-FROM alpine:3.17
+FROM docker.io/alpine:3.17
 
 # Configuration file for the bot.
 ENV ANTISPAM_PATH ./config.yml
