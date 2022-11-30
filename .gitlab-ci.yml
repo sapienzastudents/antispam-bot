@@ -1,53 +1,22 @@
 # GitLab pipeline to build, test and release this Telegram bot.
-image: golang:1.16
+image: quay.io/buildah/stable
 
 stages:
   - build
-  - test
-  - release
 
-variables:
-  # We need to move GOPATH under repository's root directory because GitLab
-  # allows to cache only directories under this.
-  GOPATH: $CI_PROJECT_DIR/.go
-
-cache:
-  paths:
-    - .go/
-  key:
-    files:
-      - go.mod
-      - go.sum
-
-build-amd64-linux:
+# Instructions inspired by https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#docker-alternatives
+build-amd64:
   stage: build
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-  script: GOARCH=amd64 GOOS=linux go build ./
-  artifacts:
-    name: "linux-amd64-antispam-telegram-bot-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID"
-    paths:
-      - antispam-telegram-bot
-      - README.md
-      - LICENSE
-    expire_in: 3 day
-
-build-armv7-linux:
-  stage: build
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-  script: GOARM=7 GOARCH=arm GOOS=linux go build ./
-  artifacts:
-    name: "linux-armv7-antispam-telegram-bot-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID"
-    paths:
-      - antispam-telegram-bot
-      - README.md
-      - LICENSE
-    expire_in: 3 day
-
-vet:
-  stage: test
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-  script: go vet ./...
-  dependencies: [] # This job doesn't use artifacts!
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
+    IMAGE_NAME: "${CI_REGISTRY_IMAGE}/antispam-sapienza-bot:${CI_COMMIT_SHORT_SHA}"
+  before_script:
+    - export REGISTRY_AUTH_FILE=${HOME}/auth.json
+    - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - buildah images
+    - buildah built -t $IMAGE_NAME
+    - buildah images
+    - buildah push $IMAGE_NAME
