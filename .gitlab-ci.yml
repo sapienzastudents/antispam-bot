@@ -17,6 +17,6 @@ build-amd64:
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
     - buildah images
-    - buildah built -t $IMAGE_NAME
+    - buildah builx -t $IMAGE_NAME
     - buildah images
     - buildah push $IMAGE_NAME
