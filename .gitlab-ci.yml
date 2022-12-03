@@ -12,11 +12,12 @@ build-amd64:
     BUILDAH_FORMAT: docker
     BUILDAH_ISOLATION: chroot
     IMAGE_NAME: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    IMAGE_LATEST: "${CI_REGISTRY_IMAGE}:latest"
   before_script:
     - export REGISTRY_AUTH_FILE=${HOME}/auth.json
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
-    - buildah build -t $IMAGE_NAME
+    - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST
     - buildah push $IMAGE_NAME
 
 build-arm64v8:
@@ -26,9 +27,10 @@ build-arm64v8:
     BUILDAH_FORMAT: docker
     BUILDAH_ISOLATION: chroot
     IMAGE_NAME: "${CI_REGISTRY_IMAGE}/arm64v8:${CI_COMMIT_SHORT_SHA}"
+    IMAGE_LATEST: "${CI_REGISTRY_IMAGE}:latest"
   before_script:
     - export REGISTRY_AUTH_FILE=${HOME}/auth.json
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
-    - buildah build -t $IMAGE_NAME -f Dockerfile.arm64v8
+    - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST -f Dockerfile.arm64v8
     - buildah push $IMAGE_NAME
