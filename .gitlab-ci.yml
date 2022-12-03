@@ -19,6 +19,7 @@ build-amd64:
   script:
     - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST
     - buildah push $IMAGE_NAME
+    - buildah push $IMAGE_LATEST
 
 build-arm64v8:
   stage: build
@@ -34,3 +35,4 @@ build-arm64v8:
   script:
     - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST -f Dockerfile.arm64v8
     - buildah push $IMAGE_NAME
+    - buildah push $IMAGE_LATEST
