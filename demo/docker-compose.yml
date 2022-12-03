@@ -1,7 +1,28 @@
 version: '3'
 
 services:
+  bot:
+    image: registry.gitlab.com/sapienzastudents/antispam-telegram-bot
+    build: ../
+    environment:
+      ANTISPAM_PATH: /app/config-bot.yml
+    volumes:
+      - type: bind
+        source: ./config-bot.yml
+        target: /app/config-bot.yml
+        read_only: true
+    restart: on-failure
+    links:
+      - redis
+
   redis:
     image: redis:5
-    ports:
-      - "6379:6379"
+    volumes:
+      - type: bind
+        source: ./redis.conf
+        target: /usr/local/etc/redis/redis.conf
+        read_only: true
+      - type: bind
+        source: ./db
+        target: /data
+    entrypoint: redis-server /usr/local/etc/redis/redis.conf
