@@ -1,5 +1,5 @@
 bottoken: "TOKEN"
-#redisurl: "redis://127.0.0.1:6379" # This is an hardcoded default.
+redisurl: "redis://redis:6379"
 #git: # Optional arguments.
 #  tmpdir: "/tmp/xxx"
 #  sshkey: "..."
