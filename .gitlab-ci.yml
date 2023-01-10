@@ -21,7 +21,7 @@ build-amd64:
     - buildah push $IMAGE_NAME
     - buildah push $IMAGE_LATEST
 
-build-arm64v8:
+build-arm64v7:
   stage: build
   variables:
     STORAGE_DRIVER: vfs
@@ -33,6 +33,6 @@ build-arm64v8:
     - export REGISTRY_AUTH_FILE=${HOME}/auth.json
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
-    - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST -f Dockerfile.arm64v8
+    - buildah build -t $IMAGE_NAME -t $IMAGE_LATEST -f Dockerfile.arm32v7
     - buildah push $IMAGE_NAME
     - buildah push $IMAGE_LATEST
